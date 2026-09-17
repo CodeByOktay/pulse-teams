@@ -1,0 +1,161 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StateGroup {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  hashedPassword String
+  image          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  ownedProjects   Project[]
+  projectMembers  ProjectMember[]
+  assignedTasks   TaskAssignee[]
+  comments        Comment[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  identifier  String   @unique @db.VarChar(5)
+  description String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members ProjectMember[]
+  states  State[]
+  tasks   Task[]
+  labels  Label[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model State {
+  id        String     @id @default(cuid())
+  name      String
+  color     String     @default("#60646C")
+  group     StateGroup
+  sequence  Float      @default(65535)
+  isDefault Boolean    @default(false)
+  projectId String
+  createdAt DateTime   @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@unique([name, projectId])
+  @@index([projectId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  priority    Priority  @default(NONE)
+  sequenceId  Int
+  sortOrder   Float     @default(65535)
+  startDate   DateTime?
+  dueDate     DateTime?
+  projectId   String
+  stateId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  state     State          @relation(fields: [stateId], references: [id], onDelete: Restrict)
+  labels    TaskLabel[]
+  assignees TaskAssignee[]
+  comments  Comment[]
+
+  @@unique([projectId, sequenceId])
+  @@index([projectId])
+  @@index([stateId])
+  @@index([projectId, stateId, sortOrder])
+}
+
+model Label {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#60646C")
+  projectId String
+  createdAt DateTime @default(now())
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   TaskLabel[]
+
+  @@unique([name, projectId])
+}
+
+model TaskLabel {
+  taskId  String
+  labelId String
+
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+}
+
+model TaskAssignee {
+  taskId String
+  userId String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  taskId    String
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
