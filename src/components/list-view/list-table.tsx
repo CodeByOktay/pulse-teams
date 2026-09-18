@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import {
   groupTasksByState,
@@ -48,6 +48,9 @@ export function ListTable({
   onOpenTask,
   selectedTaskIds,
   onToggleSelect,
+  isAllSelected = false,
+  isSomeSelected = false,
+  onToggleSelectAll,
 }: {
   tasks: ListTask[];
   projectId: string;
@@ -55,9 +58,19 @@ export function ListTable({
   onOpenTask: (taskId: string) => void;
   selectedTaskIds?: string[];
   onToggleSelect?: (taskId: string, isSelected: boolean) => void;
+  isAllSelected?: boolean;
+  isSomeSelected?: boolean;
+  onToggleSelectAll?: () => void;
 }) {
   const [sortField, setSortField] = useState<ListSortField>("stateOrder");
   const [sortOrder, setSortOrder] = useState<ListSortOrder>("asc");
+  const selectAllRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = isSomeSelected && !isAllSelected;
+    }
+  }, [isSomeSelected, isAllSelected]);
 
   function handleHeaderClick(field: ListSortField) {
     if (field === sortField) {
@@ -85,7 +98,7 @@ export function ListTable({
       <table className="w-full border-collapse text-left">
         <thead className="sticky top-0 z-10 bg-white dark:bg-zinc-900">
           <tr className="border-b border-zinc-200 dark:border-zinc-800">
-            {HEADERS.map((header) => (
+            {HEADERS.map((header, index) => (
               <th
                 key={header.label || "checkbox"}
                 onClick={header.field ? () => handleHeaderClick(header.field!) : undefined}
@@ -93,16 +106,28 @@ export function ListTable({
                   header.field ? "cursor-pointer select-none hover:text-zinc-700 dark:hover:text-zinc-200" : ""
                 }`}
               >
-                <span className="flex items-center gap-1">
-                  {header.label}
-                  {header.field === sortField ? (
-                    sortOrder === "asc" ? (
-                      <ArrowUp className="h-3 w-3" />
-                    ) : (
-                      <ArrowDown className="h-3 w-3" />
-                    )
-                  ) : null}
-                </span>
+                {index === 0 ? (
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    checked={isAllSelected}
+                    disabled={!onToggleSelectAll}
+                    onChange={() => onToggleSelectAll?.()}
+                    aria-label="Tümünü seç"
+                    className="h-3.5 w-3.5"
+                  />
+                ) : (
+                  <span className="flex items-center gap-1">
+                    {header.label}
+                    {header.field === sortField ? (
+                      sortOrder === "asc" ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3" />
+                      )
+                    ) : null}
+                  </span>
+                )}
               </th>
             ))}
           </tr>

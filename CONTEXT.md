@@ -8,7 +8,7 @@ Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 tamamlandi, Faz 2 dev
 - Proje: C:\Staj_Project
 - DB: PostgreSQL 16 Docker (docker start staj-pm-postgres)
 - Sunucu: cd C:\Staj_Project && npm run dev  ->  http://localhost:3000
-- Test: npm test (67 test, %100 geciyor)
+- Test: npm test (85 test, %100 geciyor)
 
 ## Stack
 Next.js 16 App Router + TypeScript + Tailwind v4 + Prisma v6 + PostgreSQL 16
@@ -39,7 +39,7 @@ J: [TAMAMLANDI ✅] Sprint/Cycle DB semasi + 7 server action + sprint-utils (13 
 K: [TAMAMLANDI ✅] Sprint Yonetim Sayfasi + UI + sprint-actions.test.ts (11 test, 38 toplam)
 L: [TAMAMLANDI ✅] Liste Gorunumu tablo + ViewSwitcher + list-view-sort.test.ts (15 test)
 M: [TAMAMLANDI ✅] Aktivite/Audit Log 15 ActivityType + activity-logger.test.ts (14 test, 67 toplam)
-N: Toplu Islemler Bulk Actions + bulk-selection.test.ts (15 test)
+N: [TAMAMLANDI ✅] Toplu Islemler Bulk Actions + ConfirmDialog + bulk-selection.test.ts (18 test, 85 toplam)
 O: Markdown Aciklama react-markdown + markdown-utils.test.ts (15 test)
 P: Proje Ayarlari State ve Etiket yonetimi + settings-validation.test.ts (20 test)
 Hedef: 100+ Vitest testi, npm run build hatasiz
@@ -53,6 +53,7 @@ Proje: C:\Staj_Project - Staj PM (Next.js 16 + Prisma + PostgreSQL Kanban uygula
 Faz 1 (v0.1.0) tamamlandi. 14 Vitest testi %100 geciyor.
 Simdi Faz 2 Prompt [J/K/L...] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]
+
 
 
 

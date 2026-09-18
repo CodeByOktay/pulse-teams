@@ -45,7 +45,7 @@ export default async function ProjectListPage({
     taskWhere.assignees = { some: { userId: { in: filters.assigneeIds } } };
   }
 
-  const [states, labels, members, tasks, totalProjectTasks] = await Promise.all([
+  const [states, labels, members, tasks, totalProjectTasks, activeSprint] = await Promise.all([
     prisma.state.findMany({
       where: { projectId },
       orderBy: { sequence: "asc" },
@@ -64,6 +64,10 @@ export default async function ProjectListPage({
       },
     }),
     prisma.task.count({ where: { projectId } }),
+    prisma.sprint.findFirst({
+      where: { projectId, status: "ACTIVE" },
+      select: { id: true, name: true },
+    }),
   ]);
 
   const listTasks: ListTask[] = tasks.map((task) => ({
@@ -113,6 +117,7 @@ export default async function ProjectListPage({
         members={members.map((m) => ({ id: m.user.id, name: m.user.name }))}
         totalTaskCount={totalProjectTasks}
         isFiltered={isBoardFiltered(filters)}
+        activeSprint={activeSprint}
       />
     </div>
   );

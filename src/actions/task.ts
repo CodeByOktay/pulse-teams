@@ -283,6 +283,102 @@ export async function getTaskDetail(taskId: string) {
   return task;
 }
 
+export type BulkUpdateTasksInput = {
+  stateId?: string;
+  priority?: Priority;
+  assigneeId?: string;
+};
+
+async function requireSameProjectTasks(taskIds: string[], userId: string) {
+  const tasks = await prisma.task.findMany({
+    where: { id: { in: taskIds } },
+    select: { id: true, projectId: true },
+  });
+
+  if (tasks.length !== taskIds.length) {
+    throw new Error("Bazı görevler bulunamadı.");
+  }
+
+  const projectIds = new Set(tasks.map((t) => t.projectId));
+  if (projectIds.size > 1) {
+    throw new Error("Seçili görevler aynı projeye ait olmalıdır.");
+  }
+
+  const [projectId] = projectIds;
+  await requireMembership(projectId, userId);
+
+  return projectId;
+}
+
+export async function bulkUpdateTasks(taskIds: string[], data: BulkUpdateTasksInput) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  if (taskIds.length === 0) {
+    throw new Error("En az bir görev seçilmelidir.");
+  }
+
+  if (taskIds.length > 100) {
+    throw new Error("Aynı anda en fazla 100 görev güncellenebilir.");
+  }
+
+  const projectId = await requireSameProjectTasks(taskIds, session.user.id);
+
+  await prisma.$transaction(async (tx) => {
+    if (data.stateId !== undefined) {
+      await tx.task.updateMany({
+        where: { id: { in: taskIds } },
+        data: { stateId: data.stateId },
+      });
+    }
+
+    if (data.priority !== undefined) {
+      await tx.task.updateMany({
+        where: { id: { in: taskIds } },
+        data: { priority: data.priority },
+      });
+    }
+
+    if (data.assigneeId !== undefined) {
+      await tx.taskAssignee.createMany({
+        data: taskIds.map((taskId) => ({ taskId, userId: data.assigneeId as string })),
+        skipDuplicates: true,
+      });
+    }
+  });
+
+  revalidatePath(`/projects/${projectId}/list`);
+  revalidatePath(`/projects/${projectId}/board`);
+
+  return { updatedCount: taskIds.length };
+}
+
+export async function bulkDeleteTasks(taskIds: string[]) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  if (taskIds.length === 0) {
+    throw new Error("En az bir görev seçilmelidir.");
+  }
+
+  if (taskIds.length > 50) {
+    throw new Error("Aynı anda en fazla 50 görev silinebilir.");
+  }
+
+  const projectId = await requireSameProjectTasks(taskIds, session.user.id);
+
+  const { count } = await prisma.task.deleteMany({ where: { id: { in: taskIds } } });
+
+  revalidatePath(`/projects/${projectId}/list`);
+  revalidatePath(`/projects/${projectId}/board`);
+
+  return { deletedCount: count };
+}
+
 export async function reorderTask(taskId: string, newStateId: string, newSortOrder: number) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
