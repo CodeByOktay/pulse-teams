@@ -17,7 +17,10 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     orderBy: { createdAt: "asc" },
   });
 
-  const projects = memberships.map((membership) => membership.project);
+  const projects = memberships.map((membership) => ({
+    ...membership.project,
+    role: membership.role,
+  }));
 
   return (
     <div className="flex min-h-screen">

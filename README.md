@@ -2,14 +2,14 @@
 
 > Next.js 16 (App Router), PostgreSQL, Prisma ORM, NextAuth ve @dnd-kit kullanılarak geliştirilmiş modern, hızlı ve kurumsal seviyede proje yönetim (PM) sistemi.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v0.1.0-blue.svg)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v0.2.0-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?logo=tailwind-css)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)
-![Testler](https://img.shields.io/badge/Vitest-14%20passed-success?logo=vitest)
+![Testler](https://img.shields.io/badge/Vitest-136%20passed-success?logo=vitest)
 
 ---
 
@@ -34,16 +34,26 @@ Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan a
 - 🔍 **URL Tabanlı Filtreleme & Sıralama:** Yer imlerine eklenebilir ve paylaşılabilir filtreler (`?priority=...&label=...&sort=...`), dinamik sayaç, tek tıkla filtre temizleme.
 - 🧭 **Navigasyon & Boş Durumlar:** Breadcrumb ekmek kırıntısı, 256px koyu tema Sidebar, kullanıcı avatar açılır menüsü ve 3 farklı senaryoya özel Empty State kartları.
 
+## 🚀 Yeni Özellikler (Faz 2 — v0.2.0)
+
+- 🏃 **Sprint / Cycle Yönetimi:** Taslak → Aktif → Tamamlandı durum akışı, tek seferde tek aktif sprint kısıtı, sprint bazlı ilerleme çubuğu ve gecikme (overdue) rozeti.
+- 📊 **Liste Görünümü:** Kanban'a alternatif, sıralanabilir sütun başlıklı, state'e göre gruplanan ve gruplar açılıp kapanabilen (collapsible) tablo görünümü; `ViewSwitcher` ile Board ↔ Liste geçişi.
+- 📜 **Aktivite / Audit Log:** 15 farklı `ActivityType` ile her görev mutasyonunun (durum, öncelik, atama, etiket, sprint, yorum) otomatik olarak kaydedilmesi ve Türkçe okunabilir mesajlara çevrilmesi.
+- ☑️ **Toplu İşlemler (Bulk Actions):** Liste görünümünde çoklu görev seçimi (tümünü seç / indeterminate durum), toplu durum-öncelik değiştirme, toplu sprint'e ekleme ve onay dialoglu toplu silme.
+- ✍️ **Markdown Desteği:** Görev açıklamalarında Yaz/Önizle sekmeli editör, seçili metni saran araç çubuğu (kalın/italik/kod/liste/link), Kanban kartında düz metin önizleme.
+- ⚙️ **Proje Ayarları:** Yalnızca `ADMIN` rolüne açık durum (state) ve etiket yönetim paneli; sürükle-bırakla durum sıralama, renk seçici, kullanım sayısı gösterimi ve güvenli silme kısıtları.
+
 ---
 
 ## 🏗️ Teknoloji Yığını (Tech Stack)
 
 | Katman | Teknoloji | Açıklama |
 |---|---|---|
-| **Framework** | Next.js 16 (App Router) | Server Components, Server Actions ve SSR |
+| **Framework** | Next.js 16 (App Router, Turbopack) | Server Components, Server Actions ve SSR |
 | **Dil** | TypeScript 5 | Sıkı tip denetimi (strict mode) |
 | **Stil / Arayüz** | Tailwind CSS v4, Lucide React | Modern, minimalist ve koyu/açık tema uyumlu tasarım |
 | **Sürükle-Bırak** | @dnd-kit (core, sortable, utilities) | Yüksek performanslı ve erişilebilir DnD motoru |
+| **Markdown** | react-markdown + remark-gfm | GFM uyumlu Markdown render motoru |
 | **ORM** | Prisma ORM 6.19 | Tip güvenli veritabanı modelleme ve migration |
 | **Veritabanı** | PostgreSQL 16 (Docker) | Güçlü ilişkisel veritabanı altyapısı |
 | **Kimlik Doğrulama** | NextAuth.js v4 + bcryptjs | JWT oturum stratejisi ve Edge Middleware |
@@ -53,7 +63,7 @@ Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan a
 
 ## 🏛️ Mimari Varlık Modeli (Entity-Relationship)
 
-Veritabanında tanımlı 9 ana model ve ilişkileri:
+Veritabanında tanımlı 12 ana model ve ilişkileri:
 
 ```mermaid
 erDiagram
@@ -61,19 +71,25 @@ erDiagram
     User ||--o{ ProjectMember : "üyesidir"
     User ||--o{ TaskAssignee : "atanır"
     User ||--o{ Comment : "yazar"
+    User ||--o{ Activity : "gerçekleştirir"
 
     Project ||--o{ ProjectMember : "barındırır"
     Project ||--o{ State : "tanımlar"
     Project ||--o{ Task : "içerir"
     Project ||--o{ Label : "kapsar"
+    Project ||--o{ Sprint : "planlar"
 
     State ||--o{ Task : "gruplar (Restrict)"
 
     Task ||--o{ TaskLabel : "bağlanır"
     Task ||--o{ TaskAssignee : "bağlanır"
     Task ||--o{ Comment : "içerir"
+    Task ||--o{ SprintTask : "bağlanır"
+    Task ||--o{ Activity : "kaydeder"
 
     Label ||--o{ TaskLabel : "etiketler"
+
+    Sprint ||--o{ SprintTask : "kapsar"
 ```
 
 ---
@@ -104,9 +120,9 @@ Docker PostgreSQL konteynerini başlatın:
 docker run --name staj-pm-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=staj_pm -p 5432:5432 -d postgres:16
 ```
 
-Prisma şemasını veritabanına uygulayın:
+Prisma migration'larını veritabanına uygulayın:
 ```bash
-npx prisma db push
+npx prisma migrate dev
 ```
 
 *(Opsiyonel)* Varsayılan demo verilerini tohumlayın:
@@ -124,7 +140,7 @@ Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini açın.
 
 ## 🧪 Testleri Çalıştırma
 
-Kritik iş kurallarını (Filtreler, Sıra Numaraları, Kayan Noktalı Sıralama, Renk Motoru) test etmek için:
+Kritik iş kurallarını (Filtreler, Sıra Numaraları, Kayan Noktalı Sıralama, Renk Motoru, Sprint, Aktivite Logu, Toplu İşlemler, Markdown, Ayarlar) test etmek için:
 
 ```bash
 npm test
@@ -149,12 +165,14 @@ npm run build
   - [x] Slide-Over Görev Detay Çekmecesi & Yorumlar
   - [x] URL Tabanlı Filtreleme ve Sıralama
   - [x] 14 Adet Vitest Otomatik Testi
-- [ ] **Faz 2: Sprint/Cycle & Gelişmiş Görünümler (v0.2.0)** — *Sırada*
-  - [ ] Sprint (Cycle) döngüleri ve sprint bazlı filtreleme
-  - [ ] Liste Görünümü (List View) ve Tablo Görünümü (Spreadsheet View)
-  - [ ] Aktivite Geçmişi ve Değişiklik Günlüğü (Audit Log)
-  - [ ] Toplu Görev İşlemleri (Bulk Actions)
-  - [ ] Görev Açıklamasında Markdown Desteği
+- [x] **Faz 2: Sprint/Cycle & Gelişmiş Görünümler (v0.2.0)** — *Tamamlandı*
+  - [x] Sprint (Cycle) döngüleri ve sprint bazlı filtreleme
+  - [x] Liste Görünümü (List View) ve tablo görünümü
+  - [x] Aktivite Geçmişi ve Değişiklik Günlüğü (Audit Log)
+  - [x] Toplu Görev İşlemleri (Bulk Actions)
+  - [x] Görev Açıklamasında Markdown Desteği
+  - [x] Proje Ayarları (Durum & Etiket Yönetimi)
+  - [x] 136 Adet Vitest Otomatik Testi
 - [ ] **Faz 3: Entegrasyonlar, Bildirimler & AI (v0.3.0)**
   - [ ] E-posta ve uygulama içi bildirimler
   - [ ] OAuth entegrasyonu (Google & GitHub)

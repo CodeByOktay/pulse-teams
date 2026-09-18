@@ -5,8 +5,7 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
-
-const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
+import { validateLabelName, validateHexColor } from "@/lib/settings-logic";
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -36,14 +35,16 @@ export async function createLabel({
 
   await requireMembership(projectId, session.user.id);
 
-  const trimmedName = name.trim();
-  if (!trimmedName) {
-    throw new Error("Etiket adı zorunludur.");
+  const nameValidation = validateLabelName(name);
+  if (!nameValidation.valid) {
+    throw new Error(nameValidation.error);
   }
 
-  if (!HEX_COLOR_REGEX.test(color)) {
+  if (!validateHexColor(color)) {
     throw new Error("Renk #RRGGBB formatında olmalıdır.");
   }
+
+  const trimmedName = name.trim();
 
   const existing = await prisma.label.findUnique({
     where: { name_projectId: { name: trimmedName, projectId } },
@@ -58,6 +59,63 @@ export async function createLabel({
   });
 
   revalidatePath(`/projects/${projectId}/board`);
+  revalidatePath(`/projects/${projectId}/settings`);
+
+  return label;
+}
+
+export async function updateLabel(
+  labelId: string,
+  data: Partial<{ name: string; color: string }>,
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  const existingLabel = await prisma.label.findUnique({ where: { id: labelId } });
+  if (!existingLabel) {
+    throw new Error("Etiket bulunamadı.");
+  }
+
+  await requireMembership(existingLabel.projectId, session.user.id);
+
+  const updateData: Record<string, unknown> = {};
+
+  if (data.name !== undefined) {
+    const nameValidation = validateLabelName(data.name);
+    if (!nameValidation.valid) {
+      throw new Error(nameValidation.error);
+    }
+
+    const trimmedName = data.name.trim();
+
+    if (trimmedName !== existingLabel.name) {
+      const existing = await prisma.label.findUnique({
+        where: { name_projectId: { name: trimmedName, projectId: existingLabel.projectId } },
+      });
+      if (existing) {
+        throw new Error("Bu isimde bir etiket zaten var.");
+      }
+    }
+
+    updateData.name = trimmedName;
+  }
+
+  if (data.color !== undefined) {
+    if (!validateHexColor(data.color)) {
+      throw new Error("Renk #RRGGBB formatında olmalıdır.");
+    }
+    updateData.color = data.color;
+  }
+
+  const label = await prisma.label.update({
+    where: { id: labelId },
+    data: updateData,
+  });
+
+  revalidatePath(`/projects/${existingLabel.projectId}/board`);
+  revalidatePath(`/projects/${existingLabel.projectId}/settings`);
 
   return label;
 }
@@ -78,6 +136,7 @@ export async function deleteLabel(labelId: string) {
   await prisma.label.delete({ where: { id: labelId } });
 
   revalidatePath(`/projects/${label.projectId}/board`);
+  revalidatePath(`/projects/${label.projectId}/settings`);
 }
 
 export async function addLabelToTask(taskId: string, labelId: string) {

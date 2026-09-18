@@ -8,6 +8,7 @@ import { Trash2 } from "lucide-react";
 import { deleteTask } from "@/actions/task";
 import { LabelBadge } from "@/components/labels/label-badge";
 import { Avatar } from "@/components/assignees/avatar";
+import { stripMarkdown, truncateMarkdown } from "@/lib/markdown-utils";
 import type { BoardTask } from "@/types/board";
 import type { Priority } from "@prisma/client";
 
@@ -114,6 +115,12 @@ export function TaskCard({
       <p className="mb-2 line-clamp-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
         {task.title}
       </p>
+
+      {task.description ? (
+        <p className="mb-2 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+          {truncateMarkdown(stripMarkdown(task.description), 60)}
+        </p>
+      ) : null}
 
       {task.labels.length > 0 ? (
         <div className="mb-2 flex flex-wrap items-center gap-1">

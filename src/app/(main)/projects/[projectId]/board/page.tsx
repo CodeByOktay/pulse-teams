@@ -82,6 +82,7 @@ export default async function ProjectBoardPage({
       id: task.id,
       sequenceId: task.sequenceId,
       title: task.title,
+      description: task.description,
       priority: task.priority,
       dueDate: task.dueDate ? task.dueDate.toISOString() : null,
       sortOrder: task.sortOrder,

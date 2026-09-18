@@ -7,6 +7,7 @@ export type BoardTask = {
   id: string;
   sequenceId: number;
   title: string;
+  description: string | null;
   priority: Priority;
   dueDate: string | null;
   sortOrder: number;

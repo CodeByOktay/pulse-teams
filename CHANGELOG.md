@@ -1,51 +1,69 @@
+
 # Değişiklik Günlüğü (Changelog)
 
-Bu projedeki tüm önemli değişiklikler bu dosyada belgelenmektedir.  
-Format [Keep a Changelog](https://keepachangelog.com/tr/1.0.0/) standardına uygundur ve [Semantic Versioning](https://semver.org/lang/tr/) kurallarını takip eder.
+Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](https://keepachangelog.com/) standardına uygundur.
+
+## [0.2.0] - 2026-09-18 (Faz 2 — Sprint, Görünümler & Ayarlar)
+
+### Eklendi (Added)
+- **Sprint / Cycle Yönetimi (Prompt J, K):**
+  - `Sprint` ve `SprintTask` modelleri, `SprintStatus` enum'u (`DRAFT`/`ACTIVE`/`COMPLETED`) eklendi.
+  - `createSprint`, `updateSprint`, `deleteSprint`, `startSprint`, `completeSprint`, `addTaskToSprint`, `removeTaskFromSprint` server action'ları; iş kuralları (`validateSprintDates`, `canDeleteSprint`, `canStartSprint`) saf fonksiyonlara çıkarıldı.
+  - `/projects/[id]/sprints` sayfası: `SprintCard`, `CreateSprintModal`, `EditSprintModal`, `CompleteSprintDialog`, `SprintTaskPicker` bileşenleri; tek seferde yalnızca bir `ACTIVE` sprint kısıtı.
+  - `sprint-utils.test.ts` (13 test) ve `sprint-actions.test.ts` (11 test).
+- **Liste Görünümü (Prompt L):**
+  - `/projects/[id]/list` sayfası: sıralanabilir sütun başlıkları (Başlık, Durum, Öncelik, Bitiş Tarihi), state'e göre collapsible gruplama.
+  - `ViewSwitcher` bileşeni ile Board ↔ Liste geçişi, `FilterBar`'ın her iki görünümde yeniden kullanılması.
+  - `sortTasksByField` / `groupTasksByState` saf fonksiyonları — null `dueDate` değerleri her zaman sona alınır.
+  - `list-view-sort.test.ts` (15 test).
+- **Aktivite / Audit Log (Prompt M):**
+  - `Activity` modeli ve 15 değerli `ActivityType` enum'u; `task`/`actor` ilişkileri, `taskId` ve `taskId+createdAt` indeksleri.
+  - `logActivity(tx, data)` — çağrıldığı `prisma.$transaction` içinde kayıt atar, kendi hatasını yutar ve ana işlemi asla başarısız yapmaz.
+  - `formatActivityMessage` — her `ActivityType` için Türkçe okunabilir mesaj üretir, eksik/bilinmeyen veriler için güvenli fallback döner.
+  - `createTask`, `updateTask`, `assignUserToTask`/`unassignUserFromTask`, `addLabelToTask`/`removeLabelFromTask`, `createComment`/`deleteComment`, `addTaskToSprint`/`removeTaskFromSprint` aktivite logu üretecek şekilde güncellendi.
+  - `TaskDetailModal`'a Aktivite/Yorumlar sekmeleri eklendi; `TaskActivity` bileşeni son 20 aktiviteyi getirir, "Tüm geçmişi göster" ile sayfalanır.
+  - `activity-logger.test.ts` (14 test).
+- **Toplu İşlemler / Bulk Actions (Prompt N):**
+  - `bulkUpdateTasks` (≤100 görev, durum/öncelik/atanan toplu güncelleme) ve `bulkDeleteTasks` (≤50 görev) server action'ları; tüm `taskId`'lerin aynı projeye ait olduğu ve kullanıcının o projede üye olduğu her zaman sunucuda doğrulanır.
+  - `useBulkSelection` hook'u ve saf `bulk-selection-logic.ts` (`toggleItem`, `selectAll`, `isAllSelected`, limit doğrulayıcılar).
+  - `BulkActionBar` (durum/öncelik/sprint toplu değiştirme, kırmızı toplu silme butonu) ve yeniden kullanılabilir `ConfirmDialog` bileşeni.
+  - Liste görünümü satır/başlık checkbox'ları (header'da "tümünü seç" + indeterminate durum desteği).
+  - `bulk-selection.test.ts` (18 test).
+- **Markdown Desteği (Prompt O):**
+  - `react-markdown` + `remark-gfm` entegrasyonu (Next.js 16 Turbopack ile ek yapılandırma gerekmeden native ESM çözümlemesi).
+  - `MarkdownEditor` (Yaz/Önizle sekmeleri, auto-resize textarea, Tab → 2 boşluk, seçili metni saran B/I/kod/liste/link araç çubuğu) ve `MarkdownRenderer` (başlık, liste, kod bloğu, blockquote, link için özel stiller).
+  - `TaskDescription` yeniden yazıldı: manuel "Kaydet" butonu + "Kaydedilmemiş değişiklikler" rozeti.
+  - `stripMarkdown`, `truncateMarkdown` (kelime sınırında ve dengeli `**`/`` ` `` ile güvenli kesme), `countWords` saf fonksiyonları; Kanban kartında düz metin önizleme.
+  - `markdown-utils.test.ts` (21 test).
+- **Proje Ayarları (Prompt P):**
+  - `/projects/[id]/settings` sayfası — yalnızca `ADMIN` rolündeki üyelere açık, diğerlerine erişim engeli ekranı gösterir.
+  - `src/actions/state.ts`: `createState`, `updateState`, `deleteState`, `reorderStates` — tümü `requireAdmin` ile korunur; `reorderStates` gönderilen ID kümesini projenin gerçek state'leriyle doğrulayıp `$transaction` içinde toplu günceller.
+  - `label.ts`'e `updateLabel` eklendi; `createLabel`/`deleteLabel` ortak `settings-logic.ts` doğrulamalarını kullanacak şekilde güncellendi.
+  - `StatesManager` (`@dnd-kit` ile sürükle-bırak sıralama, 500ms debounce), `LabelsManager` (kullanım sayısı gösterimi), `ColorPicker` (hex ↔ renk seçici senkronizasyonu).
+  - Sidebar'a yalnızca `ADMIN` rolüne görünen "Ayarlar" bağlantısı eklendi.
+  - `validateStateName`, `validateLabelName`, `validateHexColor`, `canDeleteState`, `calculateStateSequences` saf fonksiyonları.
+  - `settings-validation.test.ts` (30 test).
+
+### Değişti (Changed)
+- `BoardTask` tipine `description` alanı eklendi; Kanban kartı artık açıklama önizlemesi gösteriyor.
+- Sidebar, her proje için Board/Liste/Sprints/(Ayarlar) alt bağlantılarını gösterecek şekilde yeniden düzenlendi.
+
+### Test
+- Toplam Vitest testi 14'ten **136**'ya çıktı (11 test dosyası), tamamı geçiyor.
+- `npx tsc --noEmit` ve `npm run build` her prompt sonrası hatasız doğrulandı.
 
 ---
 
 ## [0.1.0] - 2026-09-17 (Faz 1 — MVP)
 
 ### Eklendi (Added)
-- **Teknoloji Altyapısı (Prompt A):**
-  - Next.js 16 (App Router) + TypeScript + Tailwind CSS v4 mimarisi kuruldu.
-  - Prisma ORM (v6.19.3) ve hot-reload güvenli global singleton istemcisi (`src/lib/prisma.ts`) oluşturuldu.
-- **Veritabanı ve Şema Mimarisi (Prompt B):**
-  - PostgreSQL 16 üzerinde 9 ilişkisel model (`User`, `Project`, `ProjectMember`, `State`, `Task`, `Label`, `TaskLabel`, `TaskAssignee`, `Comment`) tanımlandı.
-  - Sütun soyutlaması için `StateGroup` ve görev öncelikleri için `Priority` enum'ları eklendi.
-  - Yeni açılan projelere 5 varsayılan sütun (`Backlog`, `Todo`, `In Progress`, `Done`, `Cancelled`) tohumlayan `seedDefaultStates` motoru yazıldı.
-- **Kimlik Doğrulama & Oturum (Prompt C):**
-  - NextAuth.js ile e-posta ve şifreye dayalı `CredentialsProvider` sistemi entegre edildi.
-  - Şifreler `bcryptjs` (salt 12) ile hash'lendi; JWT tabanlı stateless oturum yönetimi kuruldu.
-  - `middleware.ts` üzerinden korumalı rota güvenlik duvarı (route guard) eklendi.
-  - Giriş ve kayıt formları, istemci validasyonu ve hata bildirimleri tamamlandı.
-- **Proje Yönetimi & Dashboard (Prompt D):**
-  - `createProject` sunucu eylemi ile atomik transaction (`$transaction`) içinde proje açma, durum tohumlama ve yönetici (`ADMIN`) üyeliği bağlandı.
-  - 256px koyu temalı `Sidebar`, aktif proje vurgusu ve kullanıcı çıkış aksiyonu eklendi.
-  - Dashboard üzerinde görev sayaçları (`_count: { tasks: true }`) ve `EmptyState` entegrasyonu sağlandı.
-- **Görev Yönetimi & Sıralama (Prompt E):**
-  - Proje kapsamlı artan numara üreten `getNextSequenceId` motoru (`PRJ-1`, `PRJ-2`) yazıldı.
-  - Kayan noktalı (`Float`) `sortOrder` matematiksel sıralama algoritması eklendi.
-  - `createTask`, `updateTask`, `deleteTask` ve `reorderTask` server action'ları yetkilendirme (`requireMembership`) ile korundu.
-- **Etiketler & Atamalar (Prompt F):**
-  - Çoklu etiketleme ve görevli atama (M2M) yapısı kuruldu; mükerrer istekler için idempotent hata yönetimi sağlandı.
-  - Kullanıcı adlarından bitwise matematiksel hash üreten deterministik avatar renk motoru (`getAvatarColor`) ve 10'lu onaylı renk paleti eklendi.
-  - Açılır menü seçiciler (`LabelPicker`, `AssigneePicker`) ve dış tıklama algılayıcı (`useClickOutside`) geliştirildi.
-- **Kanban Panosu & Sürükle-Bırak (Prompt G):**
-  - `@dnd-kit` ile kolon içi ve kolonlar arası akıcı sürükle-bırak desteği tamamlandı.
-  - Ağ gecikmesini hissettirmeyen İyimser UI Güncellemesi (Optimistic Updates) ve hata geri alma (rollback) güvencesi kuruldu.
-  - Sütun altından kesintisiz hızlı görev girişi (`AddTaskInline`) ve kart üzeri mikro etkileşimler (hover silme, renkli bitiş tarihleri, öncelik ikonları) eklendi.
-- **Görev Detay Modalı & Yorumlar (Prompt H):**
-  - 720px sağdan kayan slide-over çekmece paneli geliştirildi.
-  - Tıkla-düzenle inline başlık ve `onBlur` ile otomatik kaydeden açıklama textarea'sı eklendi.
-  - Görev tartışma/yorum akışı kuruldu; kullanıcıların yalnızca kendi yorumlarını silebilmesini sağlayan çift katmanlı (UI + Server Action) güvenlik kalkanı uygulandı.
-- **Filtreleme, Sıralama & Navigasyon (Prompt I):**
-  - URL arama parametreleri tabanlı (`?priority=...&label=...&sort=...`) yer imlerine eklenebilir filtreleme motoru kuruldu.
-  - `Header`, hiyerarşik `Breadcrumb` ve 3 farklı senaryoya özel `EmptyState` eklendi.
-- **Test Altyapısı:**
-  - Projeye **Vitest** entegre edildi. Filtreleme, sıra numarası, kayan noktalı sıralama ve renk motoru için 14 adet otomatik birim testi yazıldı (%100 başarı).
+- **Altyapı:** Next.js 16 (App Router), Tailwind v4, Prisma 6.19 ve Docker üzerinde PostgreSQL 16.
+- **Kimlik Doğrulama:** NextAuth.js ile e-posta/şifre tabanlı kayıt/giriş, bcryptjs (salt 12) şifreleme ve rota koruma middleware'i.
+- **Proje Yönetimi:** Proje CRUD, otomatik 5 durum (Backlog, Todo, In Progress, Done, Cancelled) tohumlama ve dashboard.
+- **Görev Yönetimi:** Görev CRUD, projeye özgü artan Sequence ID (`PRJ-1`) ve kayan noktalı (`Float`) sıralama algoritması.
+- **Etiketler & Atamalar:** Çoklu etiketleme, kullanıcı ataması, deterministik avatar renk motoru ve 10'lu renk paleti.
+- **Kanban Panosu:** `@dnd-kit` ile kolon içi/arası sürükle-bırak, iyimser UI (optimistic update) ve hızlı görev ekleme.
+- **Görev Detay Modalı:** Slide-over çekmece, inline başlık/açıklama düzenleme ve yazar korumalı yorum sistemi.
+- **Filtreleme & UX:** URL tabanlı filtreler (`?priority=...`), sıralama seçici, Header, Breadcrumb ve Empty State bileşenleri.
+- **Testler:** Vitest ile 14 adet otomatik birim testi (%100 geçildi).
 
----
-
-[0.1.0]: https://github.com

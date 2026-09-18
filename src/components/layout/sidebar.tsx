@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { LogOut, Calendar, LayoutGrid, List } from "lucide-react";
+import { LogOut, Calendar, LayoutGrid, List, Settings } from "lucide-react";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { getAvatarColor } from "@/lib/colors";
 
@@ -11,6 +11,7 @@ export type SidebarProject = {
   id: string;
   name: string;
   identifier: string;
+  role: string;
 };
 
 export function Sidebar({ projects }: { projects: SidebarProject[] }) {
@@ -41,6 +42,7 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
             const isBoardActive = isActiveProject && activeSection === "board";
             const isListActive = isActiveProject && activeSection === "list";
             const isSprintsActive = isActiveProject && activeSection === "sprints";
+            const isSettingsActive = isActiveProject && activeSection === "settings";
             return (
               <li key={project.id} className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-slate-300">
@@ -86,6 +88,19 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
                   <Calendar className="h-3.5 w-3.5 shrink-0" />
                   Sprints
                 </Link>
+                {project.role === "ADMIN" ? (
+                  <Link
+                    href={`/projects/${project.id}/settings`}
+                    className={`ml-3 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                      isSettingsActive
+                        ? "bg-slate-800 text-white"
+                        : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                    }`}
+                  >
+                    <Settings className="h-3.5 w-3.5 shrink-0" />
+                    Ayarlar
+                  </Link>
+                ) : null}
               </li>
             );
           })}
