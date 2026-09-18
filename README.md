@@ -1,36 +1,167 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Staj PM — Modern Kanban-First Proje Yönetim Uygulaması
 
-## Getting Started
+> Next.js 16 (App Router), PostgreSQL, Prisma ORM, NextAuth ve @dnd-kit kullanılarak geliştirilmiş modern, hızlı ve kurumsal seviyede proje yönetim (PM) sistemi.
 
-First, run the development server:
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v0.1.0-blue.svg)
+![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-blue?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?logo=tailwind-css)
+![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)
+![Testler](https://img.shields.io/badge/Vitest-14%20passed-success?logo=vitest)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 📌 Proje Hakkında
+
+Staj PM, popüler açık kaynak proje yönetim sistemlerinin (özellikle **Plane** ve kısmen **Vikunja**, **Focalboard**) mimari desenlerinden kavramsal ilham alınarak inşa edilmiştir.
+
+Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan arındırılmış, milisaniyelik tepki hızına sahip ve klavye/fare ergonomisini ön planda tutan bir kullanıcı deneyimi sunar.
+
+---
+
+## ✨ Temel Özellikler (Faz 1 — MVP)
+
+- 🔐 **Güvenli Kimlik Doğrulama:** NextAuth.js ile e-posta/şifre tabanlı kayıt/giriş, bcryptjs (salt 12) şifreleme ve rota koruma middleware'i.
+- 📁 **Çalışma Alanı & Proje Yönetimi:** Çoklu proje desteği, proje bazlı kısa tanımlayıcı kod (`PRJ`, `MOB`), otomatik tohumlanan 5 varsayılan durum (`Backlog`, `Todo`, `In Progress`, `Done`, `Cancelled`).
+- 🔢 **Proje Kapsamlı Sequence ID:** Görevlerin global sayaç yerine projenin koduna göre artan numaralar alması (`PRJ-1`, `PRJ-2`).
+- 📋 **Sürükle-Bırak Kanban Panosu:** `@dnd-kit` ile kolon içi dikey sıralama, kolonlar arası kart geçişleri, boş kolonlara kart bırakabilme ve kullanıcıyı bekletmeyen İyimser UI Güncellemeleri (Optimistic Updates).
+- ⚡ **Kayan Noktalı (Float) Sıralama:** Kart konumlarının $O(1)$ sürede `(üst + alt) / 2` float aritmetiği ile hesaplanması; tüm listeyi yeniden indekslememe avantajı.
+- 🏷️ **Etiketler & Atamalar:** Görevlere çoklu etiket bağlama, proje üyelerini görevlendirme, deterministik avatar renk motoru ve 10'lu kontrast renk paleti.
+- 📑 **Slide-Over Görev Detay Çekmecesi:** Kart tıklamasıyla sağdan açılan 720px'lik panel, anlık tıkla-düzenle başlık, odak kalkınca (`onBlur`) otomatik kaydeden açıklama textarea'sı.
+- 💬 **Yorum Sistemi:** Görev içi kronolojik tartışma akışı; kullanıcıların yalnızca kendi yorumlarını silebilmesini sağlayan çift katmanlı (UI + Server Action) güvenlik duvarı.
+- 🔍 **URL Tabanlı Filtreleme & Sıralama:** Yer imlerine eklenebilir ve paylaşılabilir filtreler (`?priority=...&label=...&sort=...`), dinamik sayaç, tek tıkla filtre temizleme.
+- 🧭 **Navigasyon & Boş Durumlar:** Breadcrumb ekmek kırıntısı, 256px koyu tema Sidebar, kullanıcı avatar açılır menüsü ve 3 farklı senaryoya özel Empty State kartları.
+
+---
+
+## 🏗️ Teknoloji Yığını (Tech Stack)
+
+| Katman | Teknoloji | Açıklama |
+|---|---|---|
+| **Framework** | Next.js 16 (App Router) | Server Components, Server Actions ve SSR |
+| **Dil** | TypeScript 5 | Sıkı tip denetimi (strict mode) |
+| **Stil / Arayüz** | Tailwind CSS v4, Lucide React | Modern, minimalist ve koyu/açık tema uyumlu tasarım |
+| **Sürükle-Bırak** | @dnd-kit (core, sortable, utilities) | Yüksek performanslı ve erişilebilir DnD motoru |
+| **ORM** | Prisma ORM 6.19 | Tip güvenli veritabanı modelleme ve migration |
+| **Veritabanı** | PostgreSQL 16 (Docker) | Güçlü ilişkisel veritabanı altyapısı |
+| **Kimlik Doğrulama** | NextAuth.js v4 + bcryptjs | JWT oturum stratejisi ve Edge Middleware |
+| **Test Aracı** | Vitest 5 | Hızlı ve ESM uyumlu otomatik birim testi çalıştırma |
+
+---
+
+## 🏛️ Mimari Varlık Modeli (Entity-Relationship)
+
+Veritabanında tanımlı 9 ana model ve ilişkileri:
+
+```mermaid
+erDiagram
+    User ||--o{ Project : "oluşturur"
+    User ||--o{ ProjectMember : "üyesidir"
+    User ||--o{ TaskAssignee : "atanır"
+    User ||--o{ Comment : "yazar"
+
+    Project ||--o{ ProjectMember : "barındırır"
+    Project ||--o{ State : "tanımlar"
+    Project ||--o{ Task : "içerir"
+    Project ||--o{ Label : "kapsar"
+
+    State ||--o{ Task : "gruplar (Restrict)"
+
+    Task ||--o{ TaskLabel : "bağlanır"
+    Task ||--o{ TaskAssignee : "bağlanır"
+    Task ||--o{ Comment : "içerir"
+
+    Label ||--o{ TaskLabel : "etiketler"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Kurulum ve Çalıştırma
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Gereksinimler
+- **Node.js:** v20 veya üzeri
+- **Docker Desktop:** (PostgreSQL servisi için)
 
-## Learn More
+### 1. Depoyu Klonlayın ve Bağımlılıkları Yükleyin
+```bash
+cd C:\Staj_Project
+npm install
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 2. Ortam Değişkenlerini Tanımlayın (`.env`)
+Proje kökündeki `.env` dosyasını kontrol edin veya oluşturun:
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/staj_pm?schema=public"
+NEXTAUTH_SECRET="super-secret-key-change-in-production"
+NEXTAUTH_URL="http://localhost:3000"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Veritabanını Başlatın ve Şemayı Senkronize Edin
+Docker PostgreSQL konteynerini başlatın:
+```bash
+docker run --name staj-pm-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=staj_pm -p 5432:5432 -d postgres:16
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Prisma şemasını veritabanına uygulayın:
+```bash
+npx prisma db push
+```
 
-## Deploy on Vercel
+*(Opsiyonel)* Varsayılan demo verilerini tohumlayın:
+```bash
+npx prisma db seed
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. Geliştirme Sunucusunu Başlatın
+```bash
+npm run dev
+```
+Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini açın.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 🧪 Testleri Çalıştırma
+
+Kritik iş kurallarını (Filtreler, Sıra Numaraları, Kayan Noktalı Sıralama, Renk Motoru) test etmek için:
+
+```bash
+npm test
+```
+
+Tip kontrolü ve üretim derlemesi:
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+---
+
+## 🗺️ Yol Haritası (Roadmap)
+
+- [x] **Faz 1: Temel Kanban Panosu ve Proje Yönetimi MVP (v0.1.0)** — *Tamamlandı*
+  - [x] NextAuth e-posta/şifre kimlik doğrulama
+  - [x] Proje CRUD, Dashboard & Sidebar
+  - [x] Görev CRUD, Proje Sequence ID (`PRJ-1`) & Float Sıralama
+  - [x] Etiketler, Atamalar ve Deterministik Avatar Renkleri
+  - [x] Sürükle-Bırak Kanban Panosu (@dnd-kit)
+  - [x] Slide-Over Görev Detay Çekmecesi & Yorumlar
+  - [x] URL Tabanlı Filtreleme ve Sıralama
+  - [x] 14 Adet Vitest Otomatik Testi
+- [ ] **Faz 2: Sprint/Cycle & Gelişmiş Görünümler (v0.2.0)** — *Sırada*
+  - [ ] Sprint (Cycle) döngüleri ve sprint bazlı filtreleme
+  - [ ] Liste Görünümü (List View) ve Tablo Görünümü (Spreadsheet View)
+  - [ ] Aktivite Geçmişi ve Değişiklik Günlüğü (Audit Log)
+  - [ ] Toplu Görev İşlemleri (Bulk Actions)
+  - [ ] Görev Açıklamasında Markdown Desteği
+- [ ] **Faz 3: Entegrasyonlar, Bildirimler & AI (v0.3.0)**
+  - [ ] E-posta ve uygulama içi bildirimler
+  - [ ] OAuth entegrasyonu (Google & GitHub)
+  - [ ] Yapay Zekâ Destekli Görev Özeti ve Otomasyon
+
+---
+
+## 📄 Lisans
+
+Bu proje eğitim ve staj geliştirme amacıyla oluşturulmuştur.
