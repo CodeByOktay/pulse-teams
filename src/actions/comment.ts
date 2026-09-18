@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity-logger";
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -35,9 +36,19 @@ export async function createComment({ taskId, content }: { taskId: string; conte
 
   await requireMembership(task.projectId, session.user.id);
 
-  const comment = await prisma.comment.create({
-    data: { taskId, content: trimmed, authorId: session.user.id },
-    include: { author: { select: { id: true, name: true } } },
+  const comment = await prisma.$transaction(async (tx) => {
+    const created = await tx.comment.create({
+      data: { taskId, content: trimmed, authorId: session.user.id },
+      include: { author: { select: { id: true, name: true } } },
+    });
+
+    await logActivity(tx, {
+      type: "COMMENT_ADDED",
+      taskId,
+      actorId: session.user.id,
+    });
+
+    return created;
   });
 
   revalidatePath(`/projects/${task.projectId}/board`);
@@ -64,7 +75,14 @@ export async function deleteComment(commentId: string) {
     throw new Error("Sadece kendi yorumunuzu silebilirsiniz.");
   }
 
-  await prisma.comment.delete({ where: { id: commentId } });
+  await prisma.$transaction(async (tx) => {
+    await tx.comment.delete({ where: { id: commentId } });
+    await logActivity(tx, {
+      type: "COMMENT_DELETED",
+      taskId: comment.taskId,
+      actorId: session.user.id,
+    });
+  });
 
   revalidatePath(`/projects/${comment.task.projectId}/board`);
 }

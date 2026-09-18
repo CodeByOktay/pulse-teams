@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity-logger";
 
 const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
 
@@ -93,7 +94,16 @@ export async function addLabelToTask(taskId: string, labelId: string) {
   await requireMembership(task.projectId, session.user.id);
 
   try {
-    await prisma.taskLabel.create({ data: { taskId, labelId } });
+    await prisma.$transaction(async (tx) => {
+      await tx.taskLabel.create({ data: { taskId, labelId } });
+      const label = await tx.label.findUnique({ where: { id: labelId } });
+      await logActivity(tx, {
+        type: "TASK_LABEL_ADDED",
+        taskId,
+        actorId: session.user.id,
+        metadata: { labelName: label?.name ?? "Bilinmeyen etiket" },
+      });
+    });
   } catch {
     // already attached — no-op
   }
@@ -115,7 +125,16 @@ export async function removeLabelFromTask(taskId: string, labelId: string) {
   await requireMembership(task.projectId, session.user.id);
 
   try {
-    await prisma.taskLabel.delete({ where: { taskId_labelId: { taskId, labelId } } });
+    await prisma.$transaction(async (tx) => {
+      await tx.taskLabel.delete({ where: { taskId_labelId: { taskId, labelId } } });
+      const label = await tx.label.findUnique({ where: { id: labelId } });
+      await logActivity(tx, {
+        type: "TASK_LABEL_REMOVED",
+        taskId,
+        actorId: session.user.id,
+        metadata: { labelName: label?.name ?? "Bilinmeyen etiket" },
+      });
+    });
   } catch {
     // not attached — no-op
   }

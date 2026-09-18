@@ -8,6 +8,7 @@ import { getTaskDetail, updateTask } from "@/actions/task";
 import { TaskIdentifier } from "@/components/task-detail/task-identifier";
 import { TaskDescription } from "@/components/task-detail/task-description";
 import { TaskComments, type CommentItem } from "@/components/task-detail/task-comments";
+import { TaskActivity } from "@/components/task-detail/task-activity";
 import { TaskProperties, type StateOption } from "@/components/task-detail/task-properties";
 import type { LabelOption } from "@/components/labels/label-picker";
 import type { AssigneeOption } from "@/components/assignees/assignee-picker";
@@ -51,6 +52,7 @@ export function TaskDetailModal({
   const [titleValue, setTitleValue] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"activity" | "comments">("activity");
 
   useEffect(() => {
     let cancelled = false;
@@ -169,11 +171,42 @@ export function TaskDetailModal({
 
               <TaskDescription taskId={taskId} initialDescription={detail.description ?? ""} />
 
-              <TaskComments
-                taskId={taskId}
-                initialComments={detail.comments}
-                currentUserId={session?.user?.id ?? ""}
-              />
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("activity")}
+                    className={`px-3 py-2 text-sm font-medium transition-colors ${
+                      activeTab === "activity"
+                        ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                        : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    Aktivite
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("comments")}
+                    className={`px-3 py-2 text-sm font-medium transition-colors ${
+                      activeTab === "comments"
+                        ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                        : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    Yorumlar
+                  </button>
+                </div>
+
+                {activeTab === "activity" ? (
+                  <TaskActivity taskId={taskId} currentUserId={session?.user?.id ?? ""} />
+                ) : (
+                  <TaskComments
+                    taskId={taskId}
+                    initialComments={detail.comments}
+                    currentUserId={session?.user?.id ?? ""}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="w-64 shrink-0 overflow-y-auto border-l border-zinc-200 px-4 py-4 dark:border-zinc-800">

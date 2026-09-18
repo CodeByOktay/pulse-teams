@@ -108,6 +108,8 @@ export default async function ProjectBoardPage({
         filters={filters}
         labels={labels}
         members={members.map((m) => ({ id: m.user.id, name: m.user.name }))}
+        projectId={projectId}
+        activeView="board"
       />
       <KanbanBoard
         projectId={projectId}

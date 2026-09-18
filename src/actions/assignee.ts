@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/lib/activity-logger";
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -32,7 +33,16 @@ export async function assignUserToTask(taskId: string, userId: string) {
   await requireMembership(task.projectId, userId);
 
   try {
-    await prisma.taskAssignee.create({ data: { taskId, userId } });
+    await prisma.$transaction(async (tx) => {
+      await tx.taskAssignee.create({ data: { taskId, userId } });
+      const user = await tx.user.findUnique({ where: { id: userId } });
+      await logActivity(tx, {
+        type: "TASK_ASSIGNEE_ADDED",
+        taskId,
+        actorId: session.user.id,
+        metadata: { userName: user?.name ?? "Bilinmeyen kullanıcı" },
+      });
+    });
   } catch {
     // already assigned — no-op
   }
@@ -54,7 +64,16 @@ export async function unassignUserFromTask(taskId: string, userId: string) {
   await requireMembership(task.projectId, session.user.id);
 
   try {
-    await prisma.taskAssignee.delete({ where: { taskId_userId: { taskId, userId } } });
+    await prisma.$transaction(async (tx) => {
+      await tx.taskAssignee.delete({ where: { taskId_userId: { taskId, userId } } });
+      const user = await tx.user.findUnique({ where: { id: userId } });
+      await logActivity(tx, {
+        type: "TASK_ASSIGNEE_REMOVED",
+        taskId,
+        actorId: session.user.id,
+        metadata: { userName: user?.name ?? "Bilinmeyen kullanıcı" },
+      });
+    });
   } catch {
     // not assigned — no-op
   }

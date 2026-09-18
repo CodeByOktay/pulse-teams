@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { LogOut, Calendar, LayoutGrid } from "lucide-react";
+import { LogOut, Calendar, LayoutGrid, List } from "lucide-react";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { getAvatarColor } from "@/lib/colors";
 
@@ -39,6 +39,7 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
           {projects.map((project) => {
             const isActiveProject = project.id === activeProjectId;
             const isBoardActive = isActiveProject && activeSection === "board";
+            const isListActive = isActiveProject && activeSection === "list";
             const isSprintsActive = isActiveProject && activeSection === "sprints";
             return (
               <li key={project.id} className="flex flex-col gap-0.5">
@@ -62,6 +63,17 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
                 >
                   <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
                   Board
+                </Link>
+                <Link
+                  href={`/projects/${project.id}/list`}
+                  className={`ml-3 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                    isListActive
+                      ? "bg-slate-800 text-white"
+                      : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                  }`}
+                >
+                  <List className="h-3.5 w-3.5 shrink-0" />
+                  Liste
                 </Link>
                 <Link
                   href={`/projects/${project.id}/sprints`}

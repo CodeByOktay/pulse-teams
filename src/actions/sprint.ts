@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canDeleteSprint, canStartSprint, validateSprintDates } from "@/lib/sprint-logic";
+import { logActivity } from "@/lib/activity-logger";
 import type { SprintStatus } from "@prisma/client";
 
 async function requireMembership(projectId: string, userId: string) {
@@ -164,7 +165,15 @@ export async function addTaskToSprint(sprintId: string, taskId: string) {
   });
 
   if (!existingLink) {
-    await prisma.sprintTask.create({ data: { sprintId, taskId } });
+    await prisma.$transaction(async (tx) => {
+      await tx.sprintTask.create({ data: { sprintId, taskId } });
+      await logActivity(tx, {
+        type: "TASK_SPRINT_ADDED",
+        taskId,
+        actorId: session.user.id,
+        metadata: { sprintName: sprint.name },
+      });
+    });
   }
 
   revalidatePath(`/projects/${sprint.projectId}/sprints`);
@@ -183,8 +192,16 @@ export async function removeTaskFromSprint(sprintId: string, taskId: string) {
 
   await requireMembership(sprint.projectId, session.user.id);
 
-  await prisma.sprintTask.delete({
-    where: { sprintId_taskId: { sprintId, taskId } },
+  await prisma.$transaction(async (tx) => {
+    await tx.sprintTask.delete({
+      where: { sprintId_taskId: { sprintId, taskId } },
+    });
+    await logActivity(tx, {
+      type: "TASK_SPRINT_REMOVED",
+      taskId,
+      actorId: session.user.id,
+      metadata: { sprintName: sprint.name },
+    });
   });
 
   revalidatePath(`/projects/${sprint.projectId}/sprints`);

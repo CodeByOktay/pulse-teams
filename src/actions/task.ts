@@ -5,7 +5,28 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getNextSequenceId } from "@/lib/sequence";
+import { logActivity } from "@/lib/activity-logger";
 import type { Priority } from "@prisma/client";
+
+const PRIORITY_LABEL_TR: Record<Priority, string> = {
+  NONE: "Yok",
+  LOW: "Düşük",
+  MEDIUM: "Orta",
+  HIGH: "Yüksek",
+  URGENT: "Acil",
+};
+
+function dateOnly(date: Date | null | undefined): string | null {
+  if (!date) return null;
+  return date.toLocaleDateString("tr-TR");
+}
+
+function datesDiffer(a: Date | null, b: Date | null | undefined): boolean {
+  if (b === undefined) return false;
+  const aTime = a ? a.getTime() : null;
+  const bTime = b ? b.getTime() : null;
+  return aTime !== bTime;
+}
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -64,7 +85,7 @@ export async function createTask(input: CreateTaskInput) {
 
     const sortOrder = lastTask ? lastTask.sortOrder + 10000 : 65535;
 
-    return tx.task.create({
+    const created = await tx.task.create({
       data: {
         title: input.title.trim(),
         description: input.description,
@@ -77,6 +98,14 @@ export async function createTask(input: CreateTaskInput) {
         sortOrder,
       },
     });
+
+    await logActivity(tx, {
+      type: "TASK_CREATED",
+      taskId: created.id,
+      actorId: session.user.id,
+    });
+
+    return created;
   });
 
   revalidatePath(`/projects/${input.projectId}/board`);
@@ -99,35 +128,108 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
     throw new Error("Bu işlem için giriş yapmalısınız.");
   }
 
-  const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
+  const existingTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: { state: true },
+  });
   if (!existingTask) {
     throw new Error("Görev bulunamadı.");
   }
 
   await requireMembership(existingTask.projectId, session.user.id);
 
-  const updateData: Record<string, unknown> = {};
+  const actorId = session.user.id;
 
-  if (data.title !== undefined) updateData.title = data.title.trim();
-  if (data.description !== undefined) updateData.description = data.description;
-  if (data.priority !== undefined) updateData.priority = data.priority;
-  if (data.startDate !== undefined) updateData.startDate = data.startDate;
-  if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+  const task = await prisma.$transaction(async (tx) => {
+    const updateData: Record<string, unknown> = {};
 
-  if (data.stateId !== undefined && data.stateId !== existingTask.stateId) {
-    const lastTask = await prisma.task.findFirst({
-      where: { stateId: data.stateId },
-      orderBy: { sortOrder: "desc" },
-      select: { sortOrder: true },
+    if (data.title !== undefined) updateData.title = data.title.trim();
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.priority !== undefined) updateData.priority = data.priority;
+    if (data.startDate !== undefined) updateData.startDate = data.startDate;
+    if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+
+    let newStateName: string | null = null;
+    if (data.stateId !== undefined && data.stateId !== existingTask.stateId) {
+      const lastTask = await tx.task.findFirst({
+        where: { stateId: data.stateId },
+        orderBy: { sortOrder: "desc" },
+        select: { sortOrder: true },
+      });
+
+      updateData.stateId = data.stateId;
+      updateData.sortOrder = lastTask ? lastTask.sortOrder + 10000 : 65535;
+
+      const newState = await tx.state.findUnique({ where: { id: data.stateId } });
+      newStateName = newState?.name ?? null;
+    }
+
+    const updated = await tx.task.update({
+      where: { id: taskId },
+      data: updateData,
     });
 
-    updateData.stateId = data.stateId;
-    updateData.sortOrder = lastTask ? lastTask.sortOrder + 10000 : 65535;
-  }
+    if (data.title !== undefined && updated.title !== existingTask.title) {
+      await logActivity(tx, {
+        type: "TASK_TITLE_UPDATED",
+        taskId,
+        actorId,
+        oldValue: existingTask.title,
+        newValue: updated.title,
+      });
+    }
 
-  const task = await prisma.task.update({
-    where: { id: taskId },
-    data: updateData,
+    if (data.description !== undefined && data.description !== existingTask.description) {
+      await logActivity(tx, {
+        type: "TASK_DESCRIPTION_UPDATED",
+        taskId,
+        actorId,
+        oldValue: existingTask.description,
+        newValue: data.description,
+      });
+    }
+
+    if (newStateName !== null) {
+      await logActivity(tx, {
+        type: "TASK_STATE_CHANGED",
+        taskId,
+        actorId,
+        oldValue: existingTask.state.name,
+        newValue: newStateName,
+      });
+    }
+
+    if (data.priority !== undefined && data.priority !== existingTask.priority) {
+      await logActivity(tx, {
+        type: "TASK_PRIORITY_CHANGED",
+        taskId,
+        actorId,
+        oldValue: PRIORITY_LABEL_TR[existingTask.priority],
+        newValue: PRIORITY_LABEL_TR[data.priority],
+      });
+    }
+
+    if (datesDiffer(existingTask.dueDate, data.dueDate)) {
+      await logActivity(tx, {
+        type: "TASK_DUE_DATE_CHANGED",
+        taskId,
+        actorId,
+        oldValue: dateOnly(existingTask.dueDate),
+        newValue: dateOnly(data.dueDate),
+      });
+    }
+
+    if (datesDiffer(existingTask.startDate, data.startDate)) {
+      await logActivity(tx, {
+        type: "TASK_START_DATE_CHANGED",
+        taskId,
+        actorId,
+        oldValue: dateOnly(existingTask.startDate),
+        newValue: dateOnly(data.startDate),
+      });
+    }
+
+    return updated;
   });
 
   revalidatePath(`/projects/${existingTask.projectId}/board`);
