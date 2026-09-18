@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canDeleteSprint, canStartSprint, validateSprintDates } from "@/lib/sprint-logic";
 import type { SprintStatus } from "@prisma/client";
 
 async function requireMembership(projectId: string, userId: string) {
@@ -38,12 +39,18 @@ export async function createSprint(input: CreateSprintInput) {
     throw new Error("Sprint adı zorunludur.");
   }
 
+  const dateValidation = validateSprintDates(input.startDate, input.endDate);
+  if (!dateValidation.valid) {
+    throw new Error(dateValidation.error);
+  }
+
   const activeSprint = await prisma.sprint.findFirst({
     where: { projectId: input.projectId, status: "ACTIVE" },
   });
 
-  if (activeSprint) {
-    throw new Error("Bu projede zaten aktif bir sprint var.");
+  const startCheck = canStartSprint(Boolean(activeSprint));
+  if (!startCheck.allowed) {
+    throw new Error(startCheck.reason);
   }
 
   const sprint = await prisma.sprint.create({
@@ -82,6 +89,13 @@ export async function updateSprint(sprintId: string, data: UpdateSprintInput) {
 
   await requireMembership(existingSprint.projectId, session.user.id);
 
+  const nextStartDate = data.startDate !== undefined ? data.startDate : existingSprint.startDate;
+  const nextEndDate = data.endDate !== undefined ? data.endDate : existingSprint.endDate;
+  const dateValidation = validateSprintDates(nextStartDate, nextEndDate);
+  if (!dateValidation.valid) {
+    throw new Error(dateValidation.error);
+  }
+
   const updateData: Record<string, unknown> = {};
 
   if (data.name !== undefined) updateData.name = data.name.trim();
@@ -113,8 +127,9 @@ export async function deleteSprint(sprintId: string) {
 
   await requireMembership(existingSprint.projectId, session.user.id);
 
-  if (existingSprint.status !== "DRAFT") {
-    throw new Error("Sadece taslak sprintler silinebilir.");
+  const deleteCheck = canDeleteSprint(existingSprint.status);
+  if (!deleteCheck.allowed) {
+    throw new Error(deleteCheck.reason);
   }
 
   await prisma.sprint.delete({ where: { id: sprintId } });
@@ -192,8 +207,9 @@ export async function startSprint(sprintId: string) {
     where: { projectId: sprint.projectId, status: "ACTIVE" },
   });
 
-  if (activeSprint) {
-    throw new Error("Bu projede zaten aktif bir sprint var.");
+  const startCheck = canStartSprint(Boolean(activeSprint));
+  if (!startCheck.allowed) {
+    throw new Error(startCheck.reason);
   }
 
   const updated = await prisma.sprint.update({

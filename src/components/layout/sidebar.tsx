@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { LogOut } from "lucide-react";
+import { LogOut, Calendar, LayoutGrid } from "lucide-react";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { getAvatarColor } from "@/lib/colors";
 
@@ -17,6 +17,7 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const activeProjectId = pathname.match(/^\/projects\/([^/]+)/)?.[1];
+  const activeSection = pathname.match(/^\/projects\/[^/]+\/([^/]+)/)?.[1];
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-slate-900 text-white">
@@ -36,17 +37,12 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
         </p>
         <ul className="flex flex-col gap-0.5">
           {projects.map((project) => {
-            const isActive = project.id === activeProjectId;
+            const isActiveProject = project.id === activeProjectId;
+            const isBoardActive = isActiveProject && activeSection === "board";
+            const isSprintsActive = isActiveProject && activeSection === "sprints";
             return (
-              <li key={project.id}>
-                <Link
-                  href={`/projects/${project.id}/board`}
-                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
-                    isActive
-                      ? "bg-slate-800 text-white"
-                      : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
-                  }`}
-                >
+              <li key={project.id} className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-slate-300">
                   <span
                     className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: getAvatarColor(project.identifier) }}
@@ -55,6 +51,28 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
                   <span className="ml-auto shrink-0 text-[10px] text-slate-500">
                     {project.identifier}
                   </span>
+                </div>
+                <Link
+                  href={`/projects/${project.id}/board`}
+                  className={`ml-3 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                    isBoardActive
+                      ? "bg-slate-800 text-white"
+                      : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                  }`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                  Board
+                </Link>
+                <Link
+                  href={`/projects/${project.id}/sprints`}
+                  className={`ml-3 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                    isSprintsActive
+                      ? "bg-slate-800 text-white"
+                      : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                  }`}
+                >
+                  <Calendar className="h-3.5 w-3.5 shrink-0" />
+                  Sprints
                 </Link>
               </li>
             );
