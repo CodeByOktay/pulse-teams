@@ -3,7 +3,7 @@
 ## Proje Kimliği
 - **Ad:** Pulse — Kanban-first Proje Yönetim Uygulaması
 - **Konum:** `C:\Pulse`
-- **Versiyon:** v0.3.0-dev (Faz 3 devam ediyor — Prompt T tamamlandı)
+- **Versiyon:** v0.3.0-dev (Faz 3 devam ediyor — Prompt U tamamlandı)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -78,6 +78,17 @@ Enum'lar (5):
   saf fonksiyon; CommandPalette (Ctrl+K/Cmd+K) klavye navigasyonu (moveActiveIndex ile döngüsel
   yukarı/aşağı) ve proje bazlı Hızlı Aksiyon komutları (yalnızca /projects/[id]/... sayfasındayken
   gösterilir) içerir
+- Dashboard Analytics: src/lib/analytics-logic.ts saf fonksiyonlar — isTaskOverdue/countOverdueTasks
+  (yalnızca DONE hariç tutulur, CANCELLED de gecikmiş sayılabilir), calculateCompletionRate
+  (0 görevde division-by-zero engellenir), calculateSprintBurndown(totalTasks, completedTasksByDate),
+  calculateProjectVelocity (tamamlanan sprintlerin ortalama görev sayısı, 1 ondalık basamağa
+  yuvarlanır), formatRelativeTime(date, now?) — task-activity.tsx da aynı fonksiyonu kullanır
+  (kod tekrarı kaldırıldı); Dashboard (/) 4 istatistik kartı (aktif proje/bana atanan açık görev/
+  gecikmiş görev/aktif sprint — tümü prisma.count ile optimize sorgu), "Bana Atananlar" widget'ı
+  (en güncel 5 açık görev), "Son Aktiviteler" akışı (projelerdeki son 8 aktivite,
+  formatActivityMessage + formatRelativeTime), "Sprint Hızı" paneli (aktif sprintlerin ilerleme
+  çubuğu + ortalama hız) gösterir; harici grafik kütüphanesi kullanılmaz, tamamı Tailwind CSS
+  tabanlı
 
 ## Test Konvansiyonu
 - Konum: src/lib/__tests__/*.test.ts
@@ -91,8 +102,8 @@ Enum'lar (5):
   - sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15)
   - activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21)
   - settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19)
-  - backlog-logic.test.ts (23), **search-logic.test.ts (24)**
-- Toplam: **230 test**, %100 geçiyor
+  - backlog-logic.test.ts (23), search-logic.test.ts (24), **dashboard-analytics.test.ts (25)**
+- Toplam: **255 test**, %100 geçiyor
 
 ## Kod Stili
 - Import alias: @/* → src/*
@@ -124,13 +135,14 @@ OAuth + E-posta bildirimleri → Backlog'a alındı.
 - **T** [TAMAMLANDI] Global Arama & Komut Paleti (Cmd+K) — globalSearch server action,
   CommandPalette bileşeni (Ctrl+K/Cmd+K, klavye navigasyonu), Sidebar'a arama butonu +
   search-logic.test.ts (24 test)
-- **U** [BEKLEYEN]  Dashboard Yenileme & Analytics
+- **U** [TAMAMLANDI] Dashboard Yenileme & Analytics — 4 istatistik kartı, Bana Atananlar widget'ı,
+  Son Aktiviteler akışı, Sprint Hızı paneli, analytics-logic.ts + dashboard-analytics.test.ts (25 test)
 - **V** [BEKLEYEN]  Gelişmiş Filtreler & Kayıtlı Görünümler
 - **W** [BEKLEYEN]  Task Relations (Blocks/Relates To)
 - **X** [BEKLEYEN]  Kullanıcı Profili & Şifre Değiştirme
 
 ## Her Prompt Sonrası Doğrulama
-npm test          # tüm testler geçmeli (şu an: 230 test)
+npm test          # tüm testler geçmeli (şu an: 255 test)
 npx tsc --noEmit  # TypeScript hatası olmamalı
 
 <!-- BEGIN:nextjs-agent-rules -->

@@ -2,13 +2,13 @@
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
-Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt T tamamlandi).
+Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt U tamamlandi).
 
 ## Lokasyon & Calistirma
 - Proje: C:\Pulse
 - DB: PostgreSQL 16 Docker (docker start pulse-postgres)
 - Sunucu: cd C:\Pulse && npm run dev  ->  http://localhost:3000
-- Test: npm test (230 test, %100 geciyor)
+- Test: npm test (255 test, %100 geciyor)
 
 ## Stack
 Next.js 16 App Router (Turbopack) + TypeScript + Tailwind v4 + Prisma v6 + PostgreSQL 16
@@ -82,10 +82,26 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
     git) yalnizca bir proje sayfasindayken (URL'den activeProjectId cikarilarak) gosterilir
   - Sidebar'a kompakt "Ara... (Ctrl+K)" butonu eklendi
   - search-logic.test.ts (24 test)
-- 230 Vitest testi (%100 basari)
+- **[U] Dashboard Yenileme & Analytics:**
+  - analytics-logic.ts (saf mantik): isTaskOverdue/countOverdueTasks (yalnizca DONE haric tutulur),
+    calculateCompletionRate (division-by-zero engellenir), calculateSprintBurndown(totalTasks,
+    completedTasksByDate), calculateProjectVelocity (tamamlanan sprintlerin ortalama gorev sayisi,
+    1 ondalik basamaga yuvarlanir), formatRelativeTime(date, now?) — task-activity.tsx'teki
+    yinelenen fonksiyon kaldirilip bu ortak fonksiyona tasindi
+  - Dashboard (/) 4 istatistik karti: Toplam Aktif Projeler, Bana Atanan Gorevler (acik durum),
+    Gecikmis Gorevler, Aktif Sprintler — tumu prisma.count ile optimize sorgu (src/components/dashboard/stats-overview.tsx)
+  - "Bana Atananlar" widget'i: bana atanan, DONE olmayan en guncel 5 gorev, oncelik rozeti +
+    gecikmis tarihte kirmizi vurgu, tiklaninca ilgili board'a ?task= ile yonlendirir
+    (src/components/dashboard/my-tasks-widget.tsx)
+  - "Son Aktiviteler" akisi: kullanicinin projelerindeki son 8 aktivite, formatActivityMessage +
+    formatRelativeTime, tiklaninca ilgili gorevin board'una gider (src/components/dashboard/recent-activity-feed.tsx)
+  - "Sprint Hizi" paneli: aktif sprintlerin CSS tabanli ilerleme cubugu (calculateCompletionRate) +
+    kalan gorev sayisi (calculateSprintBurndown) + ortalama hiz (calculateProjectVelocity, son 10
+    tamamlanmis sprint) — harici grafik kutuphanesi kullanilmadi (src/components/dashboard/sprint-metrics-panel.tsx)
+  - dashboard-analytics.test.ts (25 test)
+- 255 Vitest testi (%100 basari)
 
 ## Faz 3 Bekleyen Promptlar
-- **U** [BEKLEYEN] Dashboard Yenileme & Analytics
 - **V** [BEKLEYEN] Gelismis Filtreler & Kayitli Gorunumler
 - **W** [BEKLEYEN] Task Relations (Blocks/Relates To)
 - **X** [BEKLEYEN] Kullanici Profili & Sifre Degistirme
@@ -109,9 +125,12 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 - globalSearch(query) -> parseTaskIdentifier ile "PRJ-12" formatini ayristirir, task title
   substring + identifier eslesmesini OR ile birlestirir, kullanici uyeligi where clause'unda
   filtrelenir (client'tan gelen projectId'ye guvenilmez)
+- isTaskOverdue(dueDate, stateGroup, now?) -> yalnizca DONE haric tutulur (CANCELLED de gecikmis
+  sayilabilir), formatRelativeTime(date, now?) -> "az once/X dakika once/X saat once/dun/X gun once"
+  (src/lib/analytics-logic.ts)
 
 ## Mevcut Route Haritasi
-/                           → Dashboard (proje listesi)
+/                           → Dashboard (istatistik kartlari, Bana Atananlar, Son Aktiviteler, Sprint Hizi, proje listesi)
 /projects/[id]/board        → Kanban Panosu
 /projects/[id]/list         → Liste Gorunumu
 /projects/[id]/backlog      → Backlog Gorunumu (YENI - Faz 3 S)
@@ -126,7 +145,7 @@ sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.
 sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15),
 activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21),
 settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19),
-backlog-logic.test.ts (23), search-logic.test.ts (24) = 230 toplam
+backlog-logic.test.ts (23), search-logic.test.ts (24), dashboard-analytics.test.ts (25) = 255 toplam
 
 ## Her Prompt Sonrasi Dogrulama
 npm test
@@ -135,7 +154,7 @@ npm run build
 
 ## Yeni Chat Baslangic Sablonu
 Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
-Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt T tamamlandi).
-230 Vitest testi %100 geciyor.
-Simdi Faz 3 Prompt [U/V/W...] uygulayacagiz.
+Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt U tamamlandi).
+255 Vitest testi %100 geciyor.
+Simdi Faz 3 Prompt [V/W/X...] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]
