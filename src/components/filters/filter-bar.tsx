@@ -20,7 +20,7 @@ export function FilterBar({
   labels: FilterLabelOption[];
   members: FilterAssigneeOption[];
   projectId?: string;
-  activeView?: "board" | "list";
+  activeView?: "board" | "list" | "backlog";
 }) {
   const { clearAll } = useBoardQuery();
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canDeleteSprint, canStartSprint, validateSprintDates } from "@/lib/sprint-logic";
+import { canMoveTaskToSprint, getRemovableSprintIds } from "@/lib/backlog-logic";
 import { logActivity } from "@/lib/activity-logger";
 import type { SprintStatus } from "@prisma/client";
 
@@ -278,4 +279,120 @@ export async function completeSprint(sprintId: string) {
   revalidatePath(`/projects/${sprint.projectId}/sprints`);
 
   return incompleteCount;
+}
+
+export async function moveTaskToSprint(taskId: string, targetSprintId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  const targetSprint = await prisma.sprint.findUnique({ where: { id: targetSprintId } });
+
+  const moveCheck = canMoveTaskToSprint(targetSprint);
+  if (!moveCheck.allowed || !targetSprint) {
+    throw new Error(moveCheck.reason ?? "Sprint bulunamadı.");
+  }
+
+  await requireMembership(targetSprint.projectId, session.user.id);
+
+  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!task) {
+    throw new Error("Görev bulunamadı.");
+  }
+
+  if (task.projectId !== targetSprint.projectId) {
+    throw new Error("Görev bu projeye ait değil.");
+  }
+
+  const existingLinks = await prisma.sprintTask.findMany({
+    where: { taskId },
+    include: { sprint: { select: { status: true, name: true } } },
+  });
+
+  const removableSprintIds = getRemovableSprintIds(existingLinks).filter(
+    (sprintId) => sprintId !== targetSprintId,
+  );
+  const previousSprintNames = existingLinks
+    .filter((link) => removableSprintIds.includes(link.sprintId))
+    .map((link) => link.sprint.name);
+  const alreadyLinked = existingLinks.some((link) => link.sprintId === targetSprintId);
+
+  await prisma.$transaction(async (tx) => {
+    if (removableSprintIds.length > 0) {
+      await tx.sprintTask.deleteMany({
+        where: { taskId, sprintId: { in: removableSprintIds } },
+      });
+      for (const sprintName of previousSprintNames) {
+        await logActivity(tx, {
+          type: "TASK_SPRINT_REMOVED",
+          taskId,
+          actorId: session.user.id,
+          metadata: { sprintName },
+        });
+      }
+    }
+
+    if (!alreadyLinked) {
+      await tx.sprintTask.create({ data: { sprintId: targetSprintId, taskId } });
+      await logActivity(tx, {
+        type: "TASK_SPRINT_ADDED",
+        taskId,
+        actorId: session.user.id,
+        metadata: { sprintName: targetSprint.name },
+      });
+    }
+  });
+
+  revalidatePath(`/projects/${targetSprint.projectId}/backlog`);
+  revalidatePath(`/projects/${targetSprint.projectId}/sprints`);
+  revalidatePath(`/projects/${targetSprint.projectId}/list`);
+  revalidatePath(`/projects/${targetSprint.projectId}/board`);
+}
+
+export async function moveTaskToBacklog(taskId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!task) {
+    throw new Error("Görev bulunamadı.");
+  }
+
+  await requireMembership(task.projectId, session.user.id);
+
+  const existingLinks = await prisma.sprintTask.findMany({
+    where: { taskId },
+    include: { sprint: { select: { status: true, name: true } } },
+  });
+
+  const removableSprintIds = getRemovableSprintIds(existingLinks);
+  if (removableSprintIds.length === 0) {
+    return;
+  }
+
+  const removedSprintNames = existingLinks
+    .filter((link) => removableSprintIds.includes(link.sprintId))
+    .map((link) => link.sprint.name);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.sprintTask.deleteMany({
+      where: { taskId, sprintId: { in: removableSprintIds } },
+    });
+    for (const sprintName of removedSprintNames) {
+      await logActivity(tx, {
+        type: "TASK_SPRINT_REMOVED",
+        taskId,
+        actorId: session.user.id,
+        metadata: { sprintName },
+      });
+    }
+  });
+
+  revalidatePath(`/projects/${task.projectId}/backlog`);
+  revalidatePath(`/projects/${task.projectId}/sprints`);
+  revalidatePath(`/projects/${task.projectId}/list`);
+  revalidatePath(`/projects/${task.projectId}/board`);
 }
