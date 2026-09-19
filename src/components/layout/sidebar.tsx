@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { LogOut, Calendar, Inbox, LayoutGrid, List, Settings } from "lucide-react";
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
+import { CommandPalette } from "@/components/search/command-palette";
 import { getAvatarColor } from "@/lib/colors";
 
 export type SidebarProject = {
@@ -28,7 +29,8 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
         </Link>
       </div>
 
-      <div className="px-4 pb-2">
+      <div className="flex flex-col gap-2 px-4 pb-2">
+        <CommandPalette />
         <CreateProjectModal />
       </div>
 
