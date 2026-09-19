@@ -2,13 +2,13 @@
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
-Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt S tamamlandi).
+Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt T tamamlandi).
 
 ## Lokasyon & Calistirma
 - Proje: C:\Pulse
 - DB: PostgreSQL 16 Docker (docker start pulse-postgres)
 - Sunucu: cd C:\Pulse && npm run dev  ->  http://localhost:3000
-- Test: npm test (206 test, %100 geciyor)
+- Test: npm test (230 test, %100 geciyor)
 
 ## Stack
 Next.js 16 App Router (Turbopack) + TypeScript + Tailwind v4 + Prisma v6 + PostgreSQL 16
@@ -67,10 +67,24 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
   - Sidebar'a Backlog linki (Inbox ikonu), ViewSwitcher'a Backlog secenegi eklendi
   - backlog-logic.ts (saf mantik: isTaskInBacklog, canMoveTaskToSprint, canDeleteSprintTaskLink,
     getRemovableSprintIds, sortActiveDraftSprints) + backlog-logic.test.ts (23 test)
-- 206 Vitest testi (%100 basari)
+- **[T] Global Arama & Komut Paleti (Cmd+K):**
+  - globalSearch(query) server action (src/actions/search.ts) — query >=2 karakter, kullanicinin
+    uyesi oldugu projelerdeki gorevleri (baslik substring veya PRJ-12 identifier eslesmesi, max 10)
+    ve projeleri (ad/identifier substring, max 5) doner
+  - search-logic.ts: normalizeSearchQuery, isQueryValid, parseTaskIdentifier, matchesQuery,
+    filterQuickNavCommands, moveActiveIndex (dongusel yukari/asagi), flattenSearchResults/
+    countTotalResults/hasNoResults
+  - CommandPalette bileseni (src/components/search/command-palette.tsx): Ctrl+K/Cmd+K global
+    kisayol, Escape ile kapanma, kategorize sonuclar (Projeler/Gorevler/Hizli Aksiyonlar), ok
+    tuslariyla gezinme + Enter ile secim, gorev secildiginde ilgili board'a ?task= ile derin
+    baglanti acar
+  - Hizli Aksiyon komutlari (Board'a git, Liste'ye git, Backlog'a git, Sprintlere git, Ayarlar'a
+    git) yalnizca bir proje sayfasindayken (URL'den activeProjectId cikarilarak) gosterilir
+  - Sidebar'a kompakt "Ara... (Ctrl+K)" butonu eklendi
+  - search-logic.test.ts (24 test)
+- 230 Vitest testi (%100 basari)
 
 ## Faz 3 Bekleyen Promptlar
-- **T** [BEKLEYEN] Global Arama & Komut Paleti (Cmd+K)
 - **U** [BEKLEYEN] Dashboard Yenileme & Analytics
 - **V** [BEKLEYEN] Gelismis Filtreler & Kayitli Gorunumler
 - **W** [BEKLEYEN] Task Relations (Blocks/Relates To)
@@ -92,6 +106,9 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 - acceptInvite -> e-posta esleme zorunlu, $transaction ile ProjectMember create + invite update
 - Proje sahibi (ownerId) cikartılamaz ve rolu degistirilemez
 - Tum mutasyonlar revalidatePath() ile sonlanir
+- globalSearch(query) -> parseTaskIdentifier ile "PRJ-12" formatini ayristirir, task title
+  substring + identifier eslesmesini OR ile birlestirir, kullanici uyeligi where clause'unda
+  filtrelenir (client'tan gelen projectId'ye guvenilmez)
 
 ## Mevcut Route Haritasi
 /                           → Dashboard (proje listesi)
@@ -109,7 +126,7 @@ sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.
 sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15),
 activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21),
 settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19),
-backlog-logic.test.ts (23) = 206 toplam
+backlog-logic.test.ts (23), search-logic.test.ts (24) = 230 toplam
 
 ## Her Prompt Sonrasi Dogrulama
 npm test
@@ -118,7 +135,7 @@ npm run build
 
 ## Yeni Chat Baslangic Sablonu
 Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
-Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt S tamamlandi).
-206 Vitest testi %100 geciyor.
-Simdi Faz 3 Prompt [T/U/V...] uygulayacagiz.
+Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt T tamamlandi).
+230 Vitest testi %100 geciyor.
+Simdi Faz 3 Prompt [U/V/W...] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]

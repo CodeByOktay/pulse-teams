@@ -3,7 +3,7 @@
 ## Proje Kimliği
 - **Ad:** Pulse — Kanban-first Proje Yönetim Uygulaması
 - **Konum:** `C:\Pulse`
-- **Versiyon:** v0.3.0-dev (Faz 3 devam ediyor — Prompt S tamamlandı)
+- **Versiyon:** v0.3.0-dev (Faz 3 devam ediyor — Prompt T tamamlandı)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -72,6 +72,12 @@ Enum'lar (5):
   (COMPLETED sprint geçmişi backlog sayılır); moveTaskToSprint/moveTaskToBacklog yalnızca
   ACTIVE/DRAFT SprintTask bağlantılarını siler, COMPLETED geçmişi asla silinmez
   (canDeleteSprintTaskLink/getRemovableSprintIds)
+- Global Arama: globalSearch(query) — sorgu ≥2 karakter, kullanıcının üyesi olduğu projelerdeki
+  görev (başlık substring veya PRJ-12 identifier eşleşmesi) ve proje (ad/identifier) sonuçlarını
+  döner (görev ≤10, proje ≤5); parseTaskIdentifier ile identifier ayrıştırma src/lib/search-logic.ts'de
+  saf fonksiyon; CommandPalette (Ctrl+K/Cmd+K) klavye navigasyonu (moveActiveIndex ile döngüsel
+  yukarı/aşağı) ve proje bazlı Hızlı Aksiyon komutları (yalnızca /projects/[id]/... sayfasındayken
+  gösterilir) içerir
 
 ## Test Konvansiyonu
 - Konum: src/lib/__tests__/*.test.ts
@@ -85,8 +91,8 @@ Enum'lar (5):
   - sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15)
   - activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21)
   - settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19)
-  - **backlog-logic.test.ts (23)**
-- Toplam: **206 test**, %100 geçiyor
+  - backlog-logic.test.ts (23), **search-logic.test.ts (24)**
+- Toplam: **230 test**, %100 geçiyor
 
 ## Kod Stili
 - Import alias: @/* → src/*
@@ -115,14 +121,16 @@ OAuth + E-posta bildirimleri → Backlog'a alındı.
   kopyalama, sprint rozeti + task-detail-ux.test.ts (19 test)
 - **S** [TAMAMLANDI] Backlog Görünümü & Sprint Entegrasyonu — /backlog route, moveTaskToSprint/
   moveTaskToBacklog, sprint ilerleme kartları + backlog-logic.test.ts (23 test)
-- **T** [BEKLEYEN]  Global Arama & Komut Paleti (Cmd+K)
+- **T** [TAMAMLANDI] Global Arama & Komut Paleti (Cmd+K) — globalSearch server action,
+  CommandPalette bileşeni (Ctrl+K/Cmd+K, klavye navigasyonu), Sidebar'a arama butonu +
+  search-logic.test.ts (24 test)
 - **U** [BEKLEYEN]  Dashboard Yenileme & Analytics
 - **V** [BEKLEYEN]  Gelişmiş Filtreler & Kayıtlı Görünümler
 - **W** [BEKLEYEN]  Task Relations (Blocks/Relates To)
 - **X** [BEKLEYEN]  Kullanıcı Profili & Şifre Değiştirme
 
 ## Her Prompt Sonrası Doğrulama
-npm test          # tüm testler geçmeli (şu an: 206 test)
+npm test          # tüm testler geçmeli (şu an: 230 test)
 npx tsc --noEmit  # TypeScript hatası olmamalı
 
 <!-- BEGIN:nextjs-agent-rules -->
