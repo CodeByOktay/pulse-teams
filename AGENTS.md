@@ -1,11 +1,11 @@
-# Staj PM — Agent Development Guide
+# Pulse — Agent Development Guide
 
 ## Proje Kimliği
-- **Ad:** Staj PM — Kanban-first Proje Yönetim Uygulaması
-- **Konum:** `C:\Staj_Project`
+- **Ad:** Pulse — Kanban-first Proje Yönetim Uygulaması
+- **Konum:** `C:\Pulse`
 - **Versiyon:** v0.2.0 (Faz 1 + Faz 2 tamamlandı)
 - **URL:** http://localhost:3000
-- **DB:** PostgreSQL 16 (Docker container: `staj-pm-postgres`, port 5432)
+- **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
 ## Teknoloji Yığını
 - **Framework:** Next.js 16 (App Router, Turbopack)

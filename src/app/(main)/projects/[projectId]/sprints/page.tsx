@@ -70,7 +70,7 @@ export default async function ProjectSprintsPage({
   }
 
   const breadcrumbItems = [
-    { label: "Staj PM", href: "/" },
+    { label: "Pulse", href: "/" },
     { label: membership.project.name, href: `/projects/${projectId}/board` },
     { label: "Sprints" },
   ];

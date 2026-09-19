@@ -1,13 +1,13 @@
-# CONTEXT - Staj PM (v0.2.0 -> Faz 3)
+# CONTEXT - Pulse (v0.2.0 -> Faz 3)
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
 Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 planlama asamasinda.
 
 ## Lokasyon & Calistirma
-- Proje: C:\Staj_Project
-- DB: PostgreSQL 16 Docker (docker start staj-pm-postgres)
-- Sunucu: cd C:\Staj_Project && npm run dev  ->  http://localhost:3000
+- Proje: C:\Pulse
+- DB: PostgreSQL 16 Docker (docker start pulse-postgres)
+- Sunucu: cd C:\Pulse && npm run dev  ->  http://localhost:3000
 - Test: npm test (136 test, %100 geciyor)
 
 ## Stack
@@ -77,7 +77,7 @@ npx tsc --noEmit
 npm run build
 
 ## Yeni Chat Baslangic Sablonu
-Proje: C:\Staj_Project - Staj PM (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
+Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
 Faz 1 (v0.1.0) ve Faz 2 (v0.2.0) tamamlandi. 136 Vitest testi %100 geciyor.
 Simdi Faz 3 Prompt [Q/R/S...] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]

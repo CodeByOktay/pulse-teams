@@ -24,7 +24,7 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-slate-900 text-white">
       <div className="flex items-center justify-between px-4 py-5">
         <Link href="/" className="text-lg font-semibold">
-          Staj PM
+          Pulse
         </Link>
       </div>
 

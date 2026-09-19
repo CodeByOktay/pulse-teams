@@ -21,11 +21,11 @@ export async function seedDefaultStates(
 
 async function main() {
   const owner = await prisma.user.upsert({
-    where: { email: "admin@staj-pm.local" },
+    where: { email: "admin@pulse.local" },
     update: {},
     create: {
       name: "Admin",
-      email: "admin@staj-pm.local",
+      email: "admin@pulse.local",
       hashedPassword: "",
     },
   });

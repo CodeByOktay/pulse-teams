@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Staj PM",
+  title: "Pulse",
   description: "Kanban-first proje yönetim uygulaması",
 };
 

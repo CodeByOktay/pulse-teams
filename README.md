@@ -1,4 +1,4 @@
-# Staj PM — Modern Kanban-First Proje Yönetim Uygulaması
+# Pulse — Modern Kanban-First Proje Yönetim Uygulaması
 
 > Next.js 16 (App Router), PostgreSQL, Prisma ORM, NextAuth ve @dnd-kit kullanılarak geliştirilmiş modern, hızlı ve kurumsal seviyede proje yönetim (PM) sistemi.
 
@@ -15,7 +15,7 @@
 
 ## 📌 Proje Hakkında
 
-Staj PM, popüler açık kaynak proje yönetim sistemlerinin (özellikle **Plane** ve kısmen **Vikunja**, **Focalboard**) mimari desenlerinden kavramsal ilham alınarak inşa edilmiştir.
+Pulse, popüler açık kaynak proje yönetim sistemlerinin (özellikle **Plane** ve kısmen **Vikunja**, **Focalboard**) mimari desenlerinden kavramsal ilham alınarak inşa edilmiştir.
 
 Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan arındırılmış, milisaniyelik tepki hızına sahip ve klavye/fare ergonomisini ön planda tutan bir kullanıcı deneyimi sunar.
 
@@ -102,14 +102,14 @@ erDiagram
 
 ### 1. Depoyu Klonlayın ve Bağımlılıkları Yükleyin
 ```bash
-cd C:\Staj_Project
+cd C:\Pulse
 npm install
 ```
 
 ### 2. Ortam Değişkenlerini Tanımlayın (`.env`)
 Proje kökündeki `.env` dosyasını kontrol edin veya oluşturun:
 ```env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/staj_pm?schema=public"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/pulse?schema=public"
 NEXTAUTH_SECRET="super-secret-key-change-in-production"
 NEXTAUTH_URL="http://localhost:3000"
 ```
@@ -117,7 +117,7 @@ NEXTAUTH_URL="http://localhost:3000"
 ### 3. Veritabanını Başlatın ve Şemayı Senkronize Edin
 Docker PostgreSQL konteynerini başlatın:
 ```bash
-docker run --name staj-pm-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=staj_pm -p 5432:5432 -d postgres:16
+docker run --name pulse-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=pulse -p 5432:5432 -d postgres:16
 ```
 
 Prisma migration'larını veritabanına uygulayın:

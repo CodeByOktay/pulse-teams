@@ -93,7 +93,7 @@ export default async function ProjectListPage({
   }));
 
   const breadcrumbItems = [
-    { label: "Staj PM", href: "/" },
+    { label: "Pulse", href: "/" },
     { label: membership.project.name, href: `/projects/${projectId}/board` },
     { label: "Liste" },
   ];

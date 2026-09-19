@@ -29,7 +29,7 @@ export default async function ProjectSettingsPage({
   }
 
   const breadcrumbItems = [
-    { label: "Staj PM", href: "/" },
+    { label: "Pulse", href: "/" },
     { label: membership.project.name, href: `/projects/${projectId}/board` },
     { label: "Ayarlar" },
   ];
