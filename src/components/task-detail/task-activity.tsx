@@ -4,27 +4,10 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getTaskActivities } from "@/actions/activity";
 import { formatActivityMessage, type ActivityWithActor } from "@/lib/activity-logger";
+import { formatRelativeTime } from "@/lib/analytics-logic";
 import { Avatar } from "@/components/assignees/avatar";
 
 const PAGE_SIZE = 20;
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const diffMs = Date.now() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / (60 * 1000));
-
-  if (diffMinutes < 1) return "az önce";
-  if (diffMinutes < 60) return `${diffMinutes} dakika önce`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} saat önce`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return "dün";
-  if (diffDays < 30) return `${diffDays} gün önce`;
-
-  return date.toLocaleDateString("tr-TR");
-}
 
 type ActivityItem = ActivityWithActor & { createdAtIso: string };
 
@@ -85,7 +68,7 @@ export function TaskActivity({ taskId }: { taskId: string; currentUserId?: strin
                 {formatActivityMessage(activity)}
               </p>
               <span className="text-xs text-zinc-400">
-                {formatRelativeTime(activity.createdAtIso)}
+                {formatRelativeTime(new Date(activity.createdAtIso))}
               </span>
             </div>
           </div>
