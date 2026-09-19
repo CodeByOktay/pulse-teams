@@ -2,13 +2,13 @@
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
-Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt Q tamamlandi).
+Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt R tamamlandi).
 
 ## Lokasyon & Calistirma
 - Proje: C:\Pulse
 - DB: PostgreSQL 16 Docker (docker start pulse-postgres)
 - Sunucu: cd C:\Pulse && npm run dev  ->  http://localhost:3000
-- Test: npm test (164 test, %100 geciyor)
+- Test: npm test (183 test, %100 geciyor)
 
 ## Stack
 Next.js 16 App Router (Turbopack) + TypeScript + Tailwind v4 + Prisma v6 + PostgreSQL 16
@@ -42,10 +42,20 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
   - MembersManager bileseni: uyeler tablosu, rol degistirme, uye cikartma, bekleyen davetler, davet linki kopyalama
   - Settings -> Uyeler sekmesi (SettingsTabs'a 3. sekme eklendi)
   - member-management.test.ts (28 test)
-- 164 Vitest testi (%100 basari)
+- **[R] Task Detail Premium UX:**
+  - InlineSelectPopover ortak bilesen + StatusPicker/PriorityPicker (klavye navigasyonu, ayni deger
+    tekrar secilirse mutation atlanir, optimistic update + rollback)
+  - TaskProperties kompakt grid duzeni, Turkce etiketler, bos deger placeholder'lari (Atanmamis,
+    Etiket yok, Tarih Belirtilmedi), Sprint satiri (resolveTaskSprintBadge: ACTIVE > DRAFT > Backlog)
+  - DateField (tikla-duzenle tarih secici), CopyLinkButton (window.location.origin tabanli, 2sn
+    "Kopyalandi!" rozeti), modal header'a breadcrumb ("Proje Adi / PRJ-12")
+  - Board/List gorunumleri ?task= query param'i ile derin baglanti destekliyor (paylasilan link
+    dogrudan ilgili gorevi aciyor)
+  - getTaskDetail sorgusuna project.name ve sprints iliskisi eklendi
+  - task-detail-ux.ts (saf mantik) + task-detail-ux.test.ts (19 test)
+- 183 Vitest testi (%100 basari)
 
 ## Faz 3 Bekleyen Promptlar
-- **R** [BEKLEYEN] Task Detail Premium UX — Linear tarzi inline seciciler
 - **S** [BEKLEYEN] Backlog Gorunumu & Sprint Entegrasyonu
 - **T** [BEKLEYEN] Global Arama & Komut Paleti (Cmd+K)
 - **U** [BEKLEYEN] Dashboard Yenileme & Analytics
@@ -84,7 +94,7 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.test.ts (5),
 sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15),
 activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21),
-settings-validation.test.ts (30), member-management.test.ts (28) = 164 toplam
+settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19) = 183 toplam
 
 ## Her Prompt Sonrasi Dogrulama
 npm test
@@ -93,7 +103,7 @@ npm run build
 
 ## Yeni Chat Baslangic Sablonu
 Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
-Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt Q tamamlandi).
-164 Vitest testi %100 geciyor.
-Simdi Faz 3 Prompt [R/S/T...] uygulayacagiz.
+Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt R tamamlandi).
+183 Vitest testi %100 geciyor.
+Simdi Faz 3 Prompt [S/T/U...] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]
