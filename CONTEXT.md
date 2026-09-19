@@ -2,13 +2,13 @@
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
-Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt R tamamlandi).
+Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt S tamamlandi).
 
 ## Lokasyon & Calistirma
 - Proje: C:\Pulse
 - DB: PostgreSQL 16 Docker (docker start pulse-postgres)
 - Sunucu: cd C:\Pulse && npm run dev  ->  http://localhost:3000
-- Test: npm test (183 test, %100 geciyor)
+- Test: npm test (206 test, %100 geciyor)
 
 ## Stack
 Next.js 16 App Router (Turbopack) + TypeScript + Tailwind v4 + Prisma v6 + PostgreSQL 16
@@ -53,10 +53,23 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
     dogrudan ilgili gorevi aciyor)
   - getTaskDetail sorgusuna project.name ve sprints iliskisi eklendi
   - task-detail-ux.ts (saf mantik) + task-detail-ux.test.ts (19 test)
-- 183 Vitest testi (%100 basari)
+- **[S] Backlog Gorunumu & Sprint Entegrasyonu:**
+  - /projects/[projectId]/backlog route'u (requireMembership korumali)
+  - Backlog tanimi: hicbir ACTIVE/DRAFT sprint'e bagli olmayan gorevler
+    (sprints: { none: { sprint: { status: { in: ["ACTIVE","DRAFT"] } } } })
+  - moveTaskToSprint / moveTaskToBacklog server action'lari (src/actions/sprint.ts) — $transaction
+    icinde calisir, TASK_SPRINT_ADDED/TASK_SPRINT_REMOVED loglar, COMPLETED sprint gecmisini
+    asla silmez (getRemovableSprintIds sadece ACTIVE/DRAFT baglantilari secer)
+  - Ust bolumde Aktif/Taslak sprint kartlari (SprintProgressCard) + ilerleme cubugu
+    (getSprintProgress yeniden kullanildi, 0 gorevli sprintte division-by-zero engellendi)
+  - Backlog tablosu: ID, Baslik, Durum, Oncelik, Atanan avatarlari, "Sprint'e Tasi" acilir menusu
+    (MoveToSprintMenu), satira tiklaninca TaskDetailModal acilir
+  - Sidebar'a Backlog linki (Inbox ikonu), ViewSwitcher'a Backlog secenegi eklendi
+  - backlog-logic.ts (saf mantik: isTaskInBacklog, canMoveTaskToSprint, canDeleteSprintTaskLink,
+    getRemovableSprintIds, sortActiveDraftSprints) + backlog-logic.test.ts (23 test)
+- 206 Vitest testi (%100 basari)
 
 ## Faz 3 Bekleyen Promptlar
-- **S** [BEKLEYEN] Backlog Gorunumu & Sprint Entegrasyonu
 - **T** [BEKLEYEN] Global Arama & Komut Paleti (Cmd+K)
 - **U** [BEKLEYEN] Dashboard Yenileme & Analytics
 - **V** [BEKLEYEN] Gelismis Filtreler & Kayitli Gorunumler
@@ -84,6 +97,7 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 /                           → Dashboard (proje listesi)
 /projects/[id]/board        → Kanban Panosu
 /projects/[id]/list         → Liste Gorunumu
+/projects/[id]/backlog      → Backlog Gorunumu (YENI - Faz 3 S)
 /projects/[id]/sprints      → Sprint Yonetimi
 /projects/[id]/settings     → Proje Ayarlari (ADMIN) — Durumlar / Etiketler / Uyeler
 /invite/[token]             → Davet Kabul Sayfasi (YENi - Faz 3 Q)
@@ -94,7 +108,8 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.test.ts (5),
 sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15),
 activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21),
-settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19) = 183 toplam
+settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19),
+backlog-logic.test.ts (23) = 206 toplam
 
 ## Her Prompt Sonrasi Dogrulama
 npm test
@@ -103,7 +118,7 @@ npm run build
 
 ## Yeni Chat Baslangic Sablonu
 Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
-Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt R tamamlandi).
-183 Vitest testi %100 geciyor.
-Simdi Faz 3 Prompt [S/T/U...] uygulayacagiz.
+Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt S tamamlandi).
+206 Vitest testi %100 geciyor.
+Simdi Faz 3 Prompt [T/U/V...] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]
