@@ -3,7 +3,7 @@
 ## Proje Kimliği
 - **Ad:** Pulse — Kanban-first Proje Yönetim Uygulaması
 - **Konum:** `C:\Pulse`
-- **Versiyon:** v0.3.0-dev (Faz 3 devam ediyor — Prompt R tamamlandı)
+- **Versiyon:** v0.3.0-dev (Faz 3 devam ediyor — Prompt S tamamlandı)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -68,6 +68,10 @@ Enum'lar (5):
 - Sprint rozetü: resolveTaskSprintBadge — ACTIVE > DRAFT > Backlog önceliğiyle tek rozet seçer
 - Görev paylaşım linki: buildTaskShareUrl(window.location.origin, pathname, taskId) — board/list
   görünümleri ?task= query param'ını okuyup ilgili görevi otomatik açar
+- Backlog: isTaskInBacklog — görev hiçbir ACTIVE/DRAFT sprint'e bağlı değilse backlog'dadır
+  (COMPLETED sprint geçmişi backlog sayılır); moveTaskToSprint/moveTaskToBacklog yalnızca
+  ACTIVE/DRAFT SprintTask bağlantılarını siler, COMPLETED geçmişi asla silinmez
+  (canDeleteSprintTaskLink/getRemovableSprintIds)
 
 ## Test Konvansiyonu
 - Konum: src/lib/__tests__/*.test.ts
@@ -80,8 +84,9 @@ Enum'lar (5):
   - sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.test.ts (5)
   - sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15)
   - activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21)
-  - settings-validation.test.ts (30), member-management.test.ts (28), **task-detail-ux.test.ts (19)**
-- Toplam: **183 test**, %100 geçiyor
+  - settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19)
+  - **backlog-logic.test.ts (23)**
+- Toplam: **206 test**, %100 geçiyor
 
 ## Kod Stili
 - Import alias: @/* → src/*
@@ -108,7 +113,8 @@ OAuth + E-posta bildirimleri → Backlog'a alındı.
 - **Q** [TAMAMLANDI] Üye Yönetimi & Davet Sistemi — ProjectInvite + 5 action + /invite/[token] + 28 test
 - **R** [TAMAMLANDI] Task Detail Premium UX — inline durum/öncelik seçiciler, breadcrumb, bağlantı
   kopyalama, sprint rozeti + task-detail-ux.test.ts (19 test)
-- **S** [BEKLEYEN]  Backlog Görünümü & Sprint Entegrasyonu
+- **S** [TAMAMLANDI] Backlog Görünümü & Sprint Entegrasyonu — /backlog route, moveTaskToSprint/
+  moveTaskToBacklog, sprint ilerleme kartları + backlog-logic.test.ts (23 test)
 - **T** [BEKLEYEN]  Global Arama & Komut Paleti (Cmd+K)
 - **U** [BEKLEYEN]  Dashboard Yenileme & Analytics
 - **V** [BEKLEYEN]  Gelişmiş Filtreler & Kayıtlı Görünümler
@@ -116,7 +122,7 @@ OAuth + E-posta bildirimleri → Backlog'a alındı.
 - **X** [BEKLEYEN]  Kullanıcı Profili & Şifre Değiştirme
 
 ## Her Prompt Sonrası Doğrulama
-npm test          # tüm testler geçmeli (şu an: 164 test)
+npm test          # tüm testler geçmeli (şu an: 206 test)
 npx tsc --noEmit  # TypeScript hatası olmamalı
 
 <!-- BEGIN:nextjs-agent-rules -->
