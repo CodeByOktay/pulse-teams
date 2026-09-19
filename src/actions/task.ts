@@ -264,9 +264,10 @@ export async function getTaskDetail(taskId: string) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
-      project: { select: { id: true, identifier: true } },
+      project: { select: { id: true, identifier: true, name: true } },
       labels: { include: { label: true } },
       assignees: { include: { user: { select: { id: true, name: true } } } },
+      sprints: { include: { sprint: true } },
       comments: {
         orderBy: { createdAt: "asc" },
         include: { author: { select: { id: true, name: true } } },

@@ -10,6 +10,8 @@ import { TaskDescription } from "@/components/task-detail/task-description";
 import { TaskComments, type CommentItem } from "@/components/task-detail/task-comments";
 import { TaskActivity } from "@/components/task-detail/task-activity";
 import { TaskProperties, type StateOption } from "@/components/task-detail/task-properties";
+import { CopyLinkButton } from "@/components/task-detail/copy-link-button";
+import { buildTaskBreadcrumb, type TaskSprintInfo } from "@/lib/task-detail-ux";
 import type { LabelOption } from "@/components/labels/label-picker";
 import type { AssigneeOption } from "@/components/assignees/assignee-picker";
 import type { Priority } from "@prisma/client";
@@ -27,6 +29,8 @@ type TaskDetail = {
   labelIds: string[];
   assigneeIds: string[];
   comments: CommentItem[];
+  projectName: string;
+  sprints: TaskSprintInfo[];
 };
 
 export function TaskDetailModal({
@@ -78,6 +82,12 @@ export function TaskDetailModal({
           createdAt: c.createdAt.toISOString(),
           author: c.author,
         })),
+        projectName: task.project.name,
+        sprints: task.sprints.map((st) => ({
+          id: st.sprint.id,
+          name: st.sprint.name,
+          status: st.sprint.status,
+        })),
       });
       setTitleValue(task.title);
       setIsLoading(false);
@@ -119,15 +129,23 @@ export function TaskDetailModal({
       <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
 
       <div className="relative flex h-full w-full max-w-[90vw] flex-col bg-white shadow-xl dark:bg-zinc-900 sm:w-[720px]">
-        <div className="flex shrink-0 items-center justify-end border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={handleClose}
-            aria-label="Kapat"
-            className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <span className="min-w-0 truncate text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            {detail
+              ? buildTaskBreadcrumb(detail.projectName, projectIdentifier, detail.sequenceId)
+              : projectIdentifier}
+          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            <CopyLinkButton taskId={taskId} />
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label="Kapat"
+              className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {isLoading || !detail ? (
@@ -223,6 +241,7 @@ export function TaskDetailModal({
                 startDate={detail.startDate}
                 dueDate={detail.dueDate}
                 createdAt={detail.createdAt}
+                sprints={detail.sprints}
                 onLabelsChange={(labelIds) => setDetail({ ...detail, labelIds })}
                 onAssigneesChange={(assigneeIds) => setDetail({ ...detail, assigneeIds })}
               />

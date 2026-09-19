@@ -40,11 +40,16 @@ export function ListViewContainer({
   activeSprint?: { id: string; name: string } | null;
 }) {
   const router = useRouter();
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const { clearAll, searchParams, setParam } = useBoardQuery();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => searchParams.get("task"));
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const { clearAll } = useBoardQuery();
   const bulk = useBulkSelection(tasks);
+
+  function closeTaskDetail() {
+    setSelectedTaskId(null);
+    if (searchParams.get("task")) setParam("task", null);
+  }
 
   function runBulkUpdate(data: { stateId?: string; priority?: Priority }) {
     const ids = [...bulk.selectedIds];
@@ -165,7 +170,7 @@ export function ListViewContainer({
           states={states.map((s) => ({ id: s.id, name: s.name, color: s.color }))}
           availableLabels={availableLabels}
           members={members}
-          onClose={() => setSelectedTaskId(null)}
+          onClose={closeTaskDetail}
         />
       ) : null}
     </div>

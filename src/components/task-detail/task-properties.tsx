@@ -7,17 +7,18 @@ import { LabelPicker, type LabelOption } from "@/components/labels/label-picker"
 import { AssigneePicker, type AssigneeOption } from "@/components/assignees/assignee-picker";
 import { LabelBadge } from "@/components/labels/label-badge";
 import { Avatar } from "@/components/assignees/avatar";
+import { StatusPicker } from "@/components/task-detail/status-picker";
+import { PriorityPicker } from "@/components/task-detail/priority-picker";
+import { DateField } from "@/components/task-detail/date-field";
+import { formatTaskDate, resolveTaskSprintBadge, type TaskSprintInfo } from "@/lib/task-detail-ux";
 import type { Priority } from "@prisma/client";
 
-const PRIORITY_OPTIONS: { value: Priority; label: string; icon: string }[] = [
-  { value: "NONE", label: "Yok", icon: "⚪" },
-  { value: "LOW", label: "Düşük", icon: "🔵" },
-  { value: "MEDIUM", label: "Orta", icon: "🟡" },
-  { value: "HIGH", label: "Yüksek", icon: "🟠" },
-  { value: "URGENT", label: "Acil", icon: "🔴" },
-];
-
 export type StateOption = { id: string; name: string; color: string };
+
+const SPRINT_STATUS_BADGE: Record<string, string> = {
+  ACTIVE: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+  DRAFT: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
+};
 
 function toDateInputValue(iso: string | null): string {
   if (!iso) return "";
@@ -37,6 +38,7 @@ export function TaskProperties({
   startDate,
   dueDate,
   createdAt,
+  sprints,
   onLabelsChange,
   onAssigneesChange,
 }: {
@@ -52,31 +54,14 @@ export function TaskProperties({
   startDate: string | null;
   dueDate: string | null;
   createdAt: string;
+  sprints: TaskSprintInfo[];
   onLabelsChange?: (labelIds: string[]) => void;
   onAssigneesChange?: (userIds: string[]) => void;
 }) {
   const router = useRouter();
-  const [stateId, setStateId] = useState(currentStateId);
-  const [priority, setPriority] = useState(currentPriority);
   const [startDateValue, setStartDateValue] = useState(toDateInputValue(startDate));
   const [dueDateValue, setDueDateValue] = useState(toDateInputValue(dueDate));
   const [, startTransition] = useTransition();
-
-  function handleStateChange(value: string) {
-    setStateId(value);
-    startTransition(async () => {
-      await updateTask(taskId, { stateId: value });
-      router.refresh();
-    });
-  }
-
-  function handlePriorityChange(value: Priority) {
-    setPriority(value);
-    startTransition(async () => {
-      await updateTask(taskId, { priority: value });
-      router.refresh();
-    });
-  }
 
   function handleStartDateChange(value: string) {
     setStartDateValue(value);
@@ -96,48 +81,33 @@ export function TaskProperties({
 
   const selectedLabels = availableLabels.filter((label) => selectedLabelIds.includes(label.id));
   const assignedMembers = members.filter((member) => assignedUserIds.includes(member.id));
+  const sprintBadge = resolveTaskSprintBadge(sprints);
 
   return (
     <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-      <PropertyRow label="State">
-        <select
-          value={stateId}
-          onChange={(e) => handleStateChange(e.target.value)}
-          className="w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900"
-        >
-          {states.map((state) => (
-            <option key={state.id} value={state.id}>
-              {state.name}
-            </option>
-          ))}
-        </select>
+      <PropertyRow label="Durum">
+        <StatusPicker taskId={taskId} value={currentStateId} states={states} />
       </PropertyRow>
 
-      <PropertyRow label="Priority">
-        <select
-          value={priority}
-          onChange={(e) => handlePriorityChange(e.target.value as Priority)}
-          className="w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900"
-        >
-          {PRIORITY_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.icon} {option.label}
-            </option>
-          ))}
-        </select>
+      <PropertyRow label="Öncelik">
+        <PriorityPicker taskId={taskId} value={currentPriority} />
       </PropertyRow>
 
-      <PropertyRow label="Assignees">
+      <PropertyRow label="Atananlar">
         <div className="flex flex-wrap items-center gap-1.5">
-          {assignedMembers.map((member) => (
-            <div
-              key={member.id}
-              className="flex items-center gap-1 rounded-full bg-zinc-100 py-0.5 pl-0.5 pr-2 text-xs dark:bg-zinc-800"
-            >
-              <Avatar name={member.name} size="sm" />
-              {member.name}
-            </div>
-          ))}
+          {assignedMembers.length === 0 ? (
+            <span className="text-sm text-zinc-400">Atanmamış</span>
+          ) : (
+            assignedMembers.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-1 rounded-full bg-zinc-100 py-0.5 pl-0.5 pr-2 text-xs dark:bg-zinc-800"
+              >
+                <Avatar name={member.name} size="sm" />
+                {member.name}
+              </div>
+            ))
+          )}
           <AssigneePicker
             taskId={taskId}
             members={members}
@@ -147,11 +117,15 @@ export function TaskProperties({
         </div>
       </PropertyRow>
 
-      <PropertyRow label="Labels">
+      <PropertyRow label="Etiketler">
         <div className="flex flex-wrap items-center gap-1.5">
-          {selectedLabels.map((label) => (
-            <LabelBadge key={label.id} name={label.name} color={label.color} />
-          ))}
+          {selectedLabels.length === 0 ? (
+            <span className="text-sm text-zinc-400">Etiket yok</span>
+          ) : (
+            selectedLabels.map((label) => (
+              <LabelBadge key={label.id} name={label.name} color={label.color} />
+            ))
+          )}
           <LabelPicker
             taskId={taskId}
             projectId={projectId}
@@ -162,28 +136,40 @@ export function TaskProperties({
         </div>
       </PropertyRow>
 
-      <PropertyRow label="Start Date">
-        <input
-          type="date"
+      <PropertyRow label="Sprint">
+        {sprintBadge.kind === "backlog" ? (
+          <span className="inline-flex w-fit items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+            Backlog
+          </span>
+        ) : (
+          <span
+            className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${SPRINT_STATUS_BADGE[sprintBadge.status] ?? SPRINT_STATUS_BADGE.DRAFT}`}
+          >
+            {sprintBadge.name}
+          </span>
+        )}
+      </PropertyRow>
+
+      <PropertyRow label="Başlangıç Tarihi">
+        <DateField
           value={startDateValue}
-          onChange={(e) => handleStartDateChange(e.target.value)}
-          className="w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900"
+          displayIso={startDateValue ? `${startDateValue}T12:00:00.000Z` : null}
+          placeholder="Tarih Belirtilmedi"
+          onChange={handleStartDateChange}
         />
       </PropertyRow>
 
-      <PropertyRow label="Due Date">
-        <input
-          type="date"
+      <PropertyRow label="Bitiş Tarihi">
+        <DateField
           value={dueDateValue}
-          onChange={(e) => handleDueDateChange(e.target.value)}
-          className="w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm outline-none focus:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900"
+          displayIso={dueDateValue ? `${dueDateValue}T12:00:00.000Z` : null}
+          placeholder="Tarih Belirtilmedi"
+          onChange={handleDueDateChange}
         />
       </PropertyRow>
 
-      <PropertyRow label="Oluşturulma">
-        <span className="text-sm text-zinc-400">
-          {new Date(createdAt).toLocaleDateString("tr-TR")}
-        </span>
+      <PropertyRow label="Oluşturulma Tarihi">
+        <span className="text-sm text-zinc-400">{formatTaskDate(createdAt)}</span>
       </PropertyRow>
     </div>
   );
@@ -191,9 +177,9 @@ export function TaskProperties({
 
 function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5 py-3">
-      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</span>
-      {children}
+    <div className="grid grid-cols-[92px_1fr] items-start gap-2 py-2.5">
+      <span className="pt-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</span>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

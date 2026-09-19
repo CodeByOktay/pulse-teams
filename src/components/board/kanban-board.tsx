@@ -52,9 +52,14 @@ export function KanbanBoard({
 }) {
   const [columns, setColumns] = useState<BoardState[]>(initialStates);
   const [activeTask, setActiveTask] = useState<BoardTask | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const { clearAll, searchParams, setParam } = useBoardQuery();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => searchParams.get("task"));
   const [isCreatingFirstTask, startCreatingFirstTask] = useTransition();
-  const { clearAll } = useBoardQuery();
+
+  function closeTaskDetail() {
+    setSelectedTaskId(null);
+    if (searchParams.get("task")) setParam("task", null);
+  }
 
   useEffect(() => {
     setColumns(initialStates);
@@ -239,7 +244,7 @@ export function KanbanBoard({
           states={columns.map((c) => ({ id: c.id, name: c.name, color: c.color }))}
           availableLabels={availableLabels}
           members={members}
-          onClose={() => setSelectedTaskId(null)}
+          onClose={closeTaskDetail}
         />
       ) : null}
     </DndContext>
