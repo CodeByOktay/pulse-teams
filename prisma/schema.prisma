@@ -64,6 +64,7 @@ model User {
   assignedTasks   TaskAssignee[]
   comments        Comment[]
   activities      Activity[]
+  invitesSent     ProjectInvite[]
 }
 
 model Project {
@@ -81,6 +82,7 @@ model Project {
   tasks   Task[]
   labels  Label[]
   sprints Sprint[]
+  invites ProjectInvite[]
 }
 
 model ProjectMember {
@@ -233,3 +235,29 @@ model Activity {
   @@index([taskId])
   @@index([taskId, createdAt])
 }
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+model ProjectInvite {
+  id        String       @id @default(cuid())
+  token     String       @unique
+  email     String
+  role      String       @default("MEMBER")
+  status    InviteStatus @default(PENDING)
+  projectId String
+  inviterId String
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inviter User    @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([projectId])
+  @@index([email])
+}
+

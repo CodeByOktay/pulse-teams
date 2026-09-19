@@ -1,14 +1,14 @@
-# CONTEXT - Pulse (v0.2.0 -> Faz 3)
+# CONTEXT - Pulse (v0.3.0-dev -> Faz 3 devam ediyor)
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
-Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 planlama asamasinda.
+Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt Q tamamlandi).
 
 ## Lokasyon & Calistirma
 - Proje: C:\Pulse
 - DB: PostgreSQL 16 Docker (docker start pulse-postgres)
 - Sunucu: cd C:\Pulse && npm run dev  ->  http://localhost:3000
-- Test: npm test (136 test, %100 geciyor)
+- Test: npm test (164 test, %100 geciyor)
 
 ## Stack
 Next.js 16 App Router (Turbopack) + TypeScript + Tailwind v4 + Prisma v6 + PostgreSQL 16
@@ -17,7 +17,7 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 ## Faz 1 Tamamlanan Ozellikler (v0.1.0)
 - E-posta/sifre kimlik dogrulama (NextAuth + bcryptjs salt:12)
 - Proje CRUD + Dashboard + Sidebar (slate-900 koyu tema)
-- Gorev CRUD (PRJ-1 sequence ID, float sortOrder siralaması)
+- Gorev CRUD (PRJ-1 sequence ID, float sortOrder sıralaması)
 - Etiketler ve Gorevliler (M2M, deterministik avatar rengi bitwise hash)
 - Kanban Panosu (@dnd-kit, sutun ici/arasi surukle-birak, Optimistic Updates + rollback)
 - Gorev Detay Slide-over Paneli (720px, inline duzenleme, yorumlar, yetki kontrolu)
@@ -34,6 +34,25 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 - **Proje Ayarlari:** /projects/[id]/settings (sadece ADMIN rolu), StatesManager (surukle-birak siralama, renk secici, StateGroup badge, silme kisitlari), LabelsManager (kullanim sayisi, inline duzenleme), ColorPicker (hex <-> color input senkron)
 - 136 Vitest testi (%100 basari), npm run build hatasiz
 
+## Faz 3 Tamamlanan Ozellikler (v0.3.0-dev)
+- **[Q] Uye Yonetimi & Proje Davet Sistemi:**
+  - ProjectInvite modeli (token, email, role, InviteStatus enum: PENDING/ACCEPTED/EXPIRED, expiresAt 7 gun)
+  - 5 server action (src/actions/member.ts): inviteMember, acceptInvite, removeMember, changeMemberRole, cancelInvite
+  - /invite/[token] sayfasi: token gecerlilik, e-posta esleme, giris durumu — her senaryo icin ozel UI
+  - MembersManager bileseni: uyeler tablosu, rol degistirme, uye cikartma, bekleyen davetler, davet linki kopyalama
+  - Settings -> Uyeler sekmesi (SettingsTabs'a 3. sekme eklendi)
+  - member-management.test.ts (28 test)
+- 164 Vitest testi (%100 basari)
+
+## Faz 3 Bekleyen Promptlar
+- **R** [BEKLEYEN] Task Detail Premium UX — Linear tarzi inline seciciler
+- **S** [BEKLEYEN] Backlog Gorunumu & Sprint Entegrasyonu
+- **T** [BEKLEYEN] Global Arama & Komut Paleti (Cmd+K)
+- **U** [BEKLEYEN] Dashboard Yenileme & Analytics
+- **V** [BEKLEYEN] Gelismis Filtreler & Kayitli Gorunumler
+- **W** [BEKLEYEN] Task Relations (Blocks/Relates To)
+- **X** [BEKLEYEN] Kullanici Profili & Sifre Degistirme
+
 ## Kritik Teknikler
 - requireMembership(projectId, userId) -> her server action'da yetki kontrolu
 - requireAdmin(projectId, userId) -> state action'larinda role==="ADMIN" kontrolu (src/actions/state.ts)
@@ -46,30 +65,26 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 - sortTasksByField / groupTasksByState -> null dueDate her zaman sonda (src/lib/list-view-sort.ts)
 - useBulkSelection<T>(items) -> Set tabanli secim hook'u, pure logic bulk-selection-logic.ts'de
 - stripMarkdown / truncateMarkdown -> kelime sinirinda ve dengeli ** / ` ile kesme (src/lib/markdown-utils.ts)
+- inviteMember -> ADMIN kontrolu, randomBytes(32).toString("hex") token, 7 gun expiresAt (src/actions/member.ts)
+- acceptInvite -> e-posta esleme zorunlu, $transaction ile ProjectMember create + invite update
+- Proje sahibi (ownerId) cikartılamaz ve rolu degistirilemez
 - Tum mutasyonlar revalidatePath() ile sonlanir
-- State silinmesi: onDelete: Restrict (gorevler tasınmadan silinemez) + canDeleteState (son state silinemez)
 
-## Faz 2 Tamamlanan Is Sirasi (v0.2.0)
-J: [TAMAMLANDI] Sprint/Cycle DB semasi + 7 server action + sprint-utils.test.ts (13 test, 27 toplam)
-K: [TAMAMLANDI] Sprint Yonetim Sayfasi + UI + sprint-actions.test.ts (11 test, 38 toplam)
-L: [TAMAMLANDI] Liste Gorunumu tablo + ViewSwitcher + list-view-sort.test.ts (15 test, 53 toplam)
-M: [TAMAMLANDI] Aktivite/Audit Log 15 ActivityType + activity-logger.test.ts (14 test, 67 toplam)
-N: [TAMAMLANDI] Toplu Islemler Bulk Actions + ConfirmDialog + bulk-selection.test.ts (18 test, 85 toplam)
-O: [TAMAMLANDI] Markdown Aciklama react-markdown + markdown-utils.test.ts (21 test, 106 toplam)
-P: [TAMAMLANDI] Proje Ayarlari State ve Etiket yonetimi + settings-validation.test.ts (30 test, 136 toplam)
-Sonuc: 136 Vitest testi (hedef 100+ asildi), npm run build hatasiz
+## Mevcut Route Haritasi
+/                           → Dashboard (proje listesi)
+/projects/[id]/board        → Kanban Panosu
+/projects/[id]/list         → Liste Gorunumu
+/projects/[id]/sprints      → Sprint Yonetimi
+/projects/[id]/settings     → Proje Ayarlari (ADMIN) — Durumlar / Etiketler / Uyeler
+/invite/[token]             → Davet Kabul Sayfasi (YENi - Faz 3 Q)
+/login                      → Giris Sayfasi
+/register                   → Kayit Sayfasi
 
 ## Test Dosyasi Bazinda Dagilim
 sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.test.ts (5),
 sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15),
 activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21),
-settings-validation.test.ts (30) = 136 toplam
-
-## Faz 3 Yol Haritasi (v0.3.0) — Planlama
-- E-posta ve uygulama ici bildirimler (gorev atama, yorum, sprint tamamlanma)
-- OAuth entegrasyonu (Google & GitHub) — NextAuth provider ekleme
-- Yapay Zeka destekli gorev ozeti ve otomasyon onerileri
-- (Aday) Dosya/ek eklentisi, gerceklestirilebilir bildirim merkezi, takim bazli raporlama
+settings-validation.test.ts (30), member-management.test.ts (28) = 164 toplam
 
 ## Her Prompt Sonrasi Dogrulama
 npm test
@@ -78,6 +93,7 @@ npm run build
 
 ## Yeni Chat Baslangic Sablonu
 Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
-Faz 1 (v0.1.0) ve Faz 2 (v0.2.0) tamamlandi. 136 Vitest testi %100 geciyor.
-Simdi Faz 3 Prompt [Q/R/S...] uygulayacagiz.
+Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt Q tamamlandi).
+164 Vitest testi %100 geciyor.
+Simdi Faz 3 Prompt [R/S/T...] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]

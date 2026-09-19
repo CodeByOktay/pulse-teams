@@ -3,7 +3,7 @@
 ## Proje Kimliği
 - **Ad:** Pulse — Kanban-first Proje Yönetim Uygulaması
 - **Konum:** `C:\Pulse`
-- **Versiyon:** v0.2.0 (Faz 1 + Faz 2 tamamlandı)
+- **Versiyon:** v0.3.0-dev (Faz 3 devam ediyor — Prompt Q tamamlandı)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -28,11 +28,11 @@
 - `npx prisma generate` — Client yeniden üret
 - `npx tsc --noEmit` — TypeScript tip kontrolü
 
-## Veritabanı Modelleri (Faz 1 + Faz 2 — 12 model)
+## Veritabanı Modelleri (Faz 1 + Faz 2 + Faz 3-Q — 13 model)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
-Sprint, SprintTask, Activity
+Sprint, SprintTask, Activity, **ProjectInvite**
 
-Enum'lar (4):
+Enum'lar (5):
 - StateGroup (BACKLOG/TODO/IN_PROGRESS/DONE/CANCELLED)
 - Priority (NONE/LOW/MEDIUM/HIGH/URGENT)
 - SprintStatus (DRAFT/ACTIVE/COMPLETED)
@@ -40,6 +40,7 @@ Enum'lar (4):
   TASK_STATE_CHANGED, TASK_PRIORITY_CHANGED, TASK_DUE_DATE_CHANGED, TASK_START_DATE_CHANGED,
   TASK_ASSIGNEE_ADDED, TASK_ASSIGNEE_REMOVED, TASK_LABEL_ADDED, TASK_LABEL_REMOVED,
   TASK_SPRINT_ADDED, TASK_SPRINT_REMOVED, COMMENT_ADDED, COMMENT_DELETED)
+- **InviteStatus** (PENDING/ACCEPTED/EXPIRED)
 
 ## Kritik Mimari Kararlar
 - Prisma singleton: src/lib/prisma.ts — globalThis pattern (hot-reload güvenli)
@@ -59,6 +60,8 @@ Enum'lar (4):
 - Bulk action limitleri: bulkUpdateTasks ≤100 görev, bulkDeleteTasks ≤50 görev,
   tüm taskId'lerin aynı projeye ait olduğu her zaman sunucuda doğrulanır
 - Markdown güvenli kesme: truncateMarkdown kelime sınırında keser ve dengesiz ** / ` bırakmaz
+- Davet sistemi: inviteMember — ADMIN kontrolü, token (32 byte hex, 7 gün geçerli), PENDING/ACCEPTED/EXPIRED
+  e-posta eşleşme zorunlu (acceptInvite), proje sahibi çıkartılamaz/rolü değiştirilemez
 
 ## Test Konvansiyonu
 - Konum: src/lib/__tests__/*.test.ts
@@ -71,8 +74,8 @@ Enum'lar (4):
   - sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.test.ts (5)
   - sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15)
   - activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21)
-  - settings-validation.test.ts (30)
-- Toplam: 136 test, %100 geçiyor
+  - settings-validation.test.ts (30), **member-management.test.ts (28)**
+- Toplam: **164 test**, %100 geçiyor
 
 ## Kod Stili
 - Import alias: @/* → src/*
@@ -91,14 +94,22 @@ O: [TAMAMLANDI] Markdown Desteği + markdown-utils.test.ts (21 test)
 P: [TAMAMLANDI] Proje Ayarları + settings-validation.test.ts (30 test)
 Sonuç: 136 Vitest testi (hedef 100+ aşıldı), npm run build hatasız
 
-## Aktif Görev — Faz 3 (v0.3.0) — Planlama Aşamasında
-Faz 3 kapsamı henüz prompt bazında netleştirilmedi. Aday konular:
-- E-posta / uygulama içi bildirimler
-- OAuth entegrasyonu (Google & GitHub)
-- Yapay zekâ destekli görev özeti ve otomasyon
+## Aktif Görev — Faz 3 (v0.3.0) — Devam Ediyor
+Faz 3 odak alanları: UX/UI kalitesi · Proje yönetimi yetenekleri · Jira/Linear deneyimi
+OAuth + E-posta bildirimleri → Backlog'a alındı.
+
+### Faz 3 Prompt Durumu
+- **Q** [TAMAMLANDI] Üye Yönetimi & Davet Sistemi — ProjectInvite + 5 action + /invite/[token] + 28 test
+- **R** [BEKLEYEN]  Task Detail Premium UX — Linear tarzı inline seçiciler
+- **S** [BEKLEYEN]  Backlog Görünümü & Sprint Entegrasyonu
+- **T** [BEKLEYEN]  Global Arama & Komut Paleti (Cmd+K)
+- **U** [BEKLEYEN]  Dashboard Yenileme & Analytics
+- **V** [BEKLEYEN]  Gelişmiş Filtreler & Kayıtlı Görünümler
+- **W** [BEKLEYEN]  Task Relations (Blocks/Relates To)
+- **X** [BEKLEYEN]  Kullanıcı Profili & Şifre Değiştirme
 
 ## Her Prompt Sonrası Doğrulama
-npm test          # tüm testler geçmeli
+npm test          # tüm testler geçmeli (şu an: 164 test)
 npx tsc --noEmit  # TypeScript hatası olmamalı
 
 <!-- BEGIN:nextjs-agent-rules -->

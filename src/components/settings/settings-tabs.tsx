@@ -3,17 +3,26 @@
 import { useState } from "react";
 import { StatesManager, type StateItem } from "@/components/settings/states-manager";
 import { LabelsManager, type LabelItem } from "@/components/settings/labels-manager";
+import { MembersManager, type MemberItem, type PendingInviteItem } from "@/components/settings/members-manager";
 
 export function SettingsTabs({
   projectId,
+  ownerId,
+  currentUserId,
   states,
   labels,
+  members,
+  pendingInvites,
 }: {
   projectId: string;
+  ownerId: string;
+  currentUserId: string;
   states: StateItem[];
   labels: LabelItem[];
+  members: MemberItem[];
+  pendingInvites: PendingInviteItem[];
 }) {
-  const [tab, setTab] = useState<"states" | "labels">("states");
+  const [tab, setTab] = useState<"states" | "labels" | "members">("states");
 
   return (
     <div className="flex flex-col gap-4">
@@ -32,12 +41,27 @@ export function SettingsTabs({
         >
           Etiketler
         </button>
+        <button
+          type="button"
+          onClick={() => setTab("members")}
+          className={tabClass(tab === "members")}
+        >
+          Üyeler
+        </button>
       </div>
 
       {tab === "states" ? (
         <StatesManager states={states} projectId={projectId} />
-      ) : (
+      ) : tab === "labels" ? (
         <LabelsManager labels={labels} projectId={projectId} />
+      ) : (
+        <MembersManager
+          projectId={projectId}
+          ownerId={ownerId}
+          currentUserId={currentUserId}
+          members={members}
+          pendingInvites={pendingInvites}
+        />
       )}
     </div>
   );
@@ -50,3 +74,4 @@ function tabClass(isActive: boolean): string {
       : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
   }`;
 }
+
