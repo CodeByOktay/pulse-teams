@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Header } from "@/components/layout/header";
 import { FilterBar } from "@/components/filters/filter-bar";
 import { KanbanBoard } from "@/components/board/kanban-board";
-import { isBoardFiltered, parseBoardFilters } from "@/lib/board-filters";
+import { buildTaskWhereFromFilters, isBoardFiltered, parseBoardFilters } from "@/lib/board-filters";
 import type { BoardState } from "@/types/board";
 import type { Prisma } from "@prisma/client";
 
@@ -34,16 +34,7 @@ export default async function ProjectBoardPage({
     notFound();
   }
 
-  const taskWhere: Prisma.TaskWhereInput = {};
-  if (filters.priorities.length > 0) {
-    taskWhere.priority = { in: filters.priorities };
-  }
-  if (filters.labelIds.length > 0) {
-    taskWhere.labels = { some: { labelId: { in: filters.labelIds } } };
-  }
-  if (filters.assigneeIds.length > 0) {
-    taskWhere.assignees = { some: { userId: { in: filters.assigneeIds } } };
-  }
+  const taskWhere: Prisma.TaskWhereInput = buildTaskWhereFromFilters(filters);
 
   const taskOrderBy: Prisma.TaskOrderByWithRelationInput = filters.sort
     ? { [filters.sort]: filters.order }

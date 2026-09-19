@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Header } from "@/components/layout/header";
 import { FilterBar } from "@/components/filters/filter-bar";
 import { ListViewContainer } from "@/components/list-view/list-view-container";
-import { isBoardFiltered, parseBoardFilters } from "@/lib/board-filters";
+import { buildTaskWhereFromFilters, isBoardFiltered, parseBoardFilters } from "@/lib/board-filters";
 import type { ListTask } from "@/types/list";
 import type { Prisma } from "@prisma/client";
 
@@ -34,16 +34,7 @@ export default async function ProjectListPage({
     notFound();
   }
 
-  const taskWhere: Prisma.TaskWhereInput = { projectId };
-  if (filters.priorities.length > 0) {
-    taskWhere.priority = { in: filters.priorities };
-  }
-  if (filters.labelIds.length > 0) {
-    taskWhere.labels = { some: { labelId: { in: filters.labelIds } } };
-  }
-  if (filters.assigneeIds.length > 0) {
-    taskWhere.assignees = { some: { userId: { in: filters.assigneeIds } } };
-  }
+  const taskWhere: Prisma.TaskWhereInput = { projectId, ...buildTaskWhereFromFilters(filters) };
 
   const [states, labels, members, tasks, totalProjectTasks, activeSprint] = await Promise.all([
     prisma.state.findMany({

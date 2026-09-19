@@ -89,6 +89,16 @@ Enum'lar (5):
   formatActivityMessage + formatRelativeTime), "Sprint Hızı" paneli (aktif sprintlerin ilerleme
   çubuğu + ortalama hız) gösterir; harici grafik kütüphanesi kullanılmaz, tamamı Tailwind CSS
   tabanlı
+- Gelişmiş Filtreler: BoardFilters { priorities, labelIds, assigneeIds, groups, due, query, sort, order } —
+  board-filters.ts; group filtresi 4 değer alır (TODO/IN_PROGRESS/DONE/CANCELLED, BACKLOG hariç),
+  due filtresi (overdue/today/this_week/no_date) resolveDueDateRange ile Date sınırlarına çevrilir
+  (hafta Pazartesi başlar); buildTaskWhereFromFilters tüm filtreleri tek Prisma.TaskWhereInput'a
+  indirger, board/list sayfalarındaki tekrarlı where-clause kodu kaldırıldı; Hızlı Filtre çipleri
+  (Bana Atananlar/Acil Görevler/Gecikmişler/Tamamlanmamışlar) tek tıkla toggle eder; Kayıtlı
+  Görünümler useSavedViews hook'u ile localStorage'da proje bazlı saklanır
+  (pulse:saved-views:{projectId}), serializeBoardFilters/parseBoardFilters roundtrip ile URL query
+  string'e dönüşür, "Benim Görevlerim" gibi varsayılan görünümler __me__ yer tutucusunu
+  resolveSavedViewQuery ile oturumdaki kullanıcı ID'sine çözer
 
 ## Test Konvansiyonu
 - Konum: src/lib/__tests__/*.test.ts
@@ -137,12 +147,14 @@ OAuth + E-posta bildirimleri → Backlog'a alındı.
   search-logic.test.ts (24 test)
 - **U** [TAMAMLANDI] Dashboard Yenileme & Analytics — 4 istatistik kartı, Bana Atananlar widget'ı,
   Son Aktiviteler akışı, Sprint Hızı paneli, analytics-logic.ts + dashboard-analytics.test.ts (25 test)
-- **V** [BEKLEYEN]  Gelişmiş Filtreler & Kayıtlı Görünümler
+- **V** [TAMAMLANDI] Gelişmiş Filtreler & Kayıtlı Görünümler — group/due/q filtreleri,
+  buildTaskWhereFromFilters, Hızlı Filtre çipleri, useSavedViews (localStorage) +
+  advanced-filters.test.ts (36 test)
 - **W** [BEKLEYEN]  Task Relations (Blocks/Relates To)
 - **X** [BEKLEYEN]  Kullanıcı Profili & Şifre Değiştirme
 
 ## Her Prompt Sonrası Doğrulama
-npm test          # tüm testler geçmeli (şu an: 255 test)
+npm test          # tüm testler geçmeli (şu an: 291 test)
 npx tsc --noEmit  # TypeScript hatası olmamalı
 
 <!-- BEGIN:nextjs-agent-rules -->

@@ -8,6 +8,9 @@ describe("board-filters utility", () => {
       priorities: [],
       labelIds: [],
       assigneeIds: [],
+      groups: [],
+      due: null,
+      query: "",
       sort: null,
       order: "desc",
     });

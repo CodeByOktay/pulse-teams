@@ -2,7 +2,7 @@
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
-Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt U tamamlandi).
+Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt V tamamlandi).
 
 ## Lokasyon & Calistirma
 - Proje: C:\Pulse
@@ -99,10 +99,28 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
     kalan gorev sayisi (calculateSprintBurndown) + ortalama hiz (calculateProjectVelocity, son 10
     tamamlanmis sprint) — harici grafik kutuphanesi kullanilmadi (src/components/dashboard/sprint-metrics-panel.tsx)
   - dashboard-analytics.test.ts (25 test)
-- 255 Vitest testi (%100 basari)
+- **[V] Gelismis Filtreler & Kayitli Gorunumler:**
+  - board-filters.ts genisletildi: BoardFilters { priorities, labelIds, assigneeIds, groups, due,
+    query, sort, order } — group (TODO/IN_PROGRESS/DONE/CANCELLED, BACKLOG haric), due
+    (overdue/today/this_week/no_date), q (baslik metin aramasi)
+  - resolveDueDateRange/matchesDueFilter: startOfDay/endOfDay/startOfWeek(Pazartesi)/endOfWeek saf
+    tarih fonksiyonlari; buildTaskWhereFromFilters tum filtreleri tek Prisma.TaskWhereInput'a
+    indirger (board/list sayfalarindaki tekrarli where-clause kodu kaldirildi)
+  - serializeBoardFilters/parseBoardFilters: filtre seti <-> URL query string roundtrip
+  - QuickFilterChips (src/components/filters/quick-filter-chips.tsx): "Bana Atananlar"/"Acil
+    Gorevler"/"Gecikmisler"/"Tamamlanmamislar" tek tikla toggle eden cipler
+  - GroupFilter/DueDateFilter/SearchInput (src/components/filters/): durum grubu multi-select,
+    tarih araligi select, debounce'li arama input'u
+  - saved-views-logic.ts (saf mantik) + use-saved-views.ts (localStorage hook'u,
+    pulse:saved-views:{projectId} anahtari): SavedViewsMenu ile gorunum kaydetme/silme/uygulama;
+    varsayilan gorunumler (Varsayilan/Benim Gorevlerim/Acil Durumlar) __me__ yer tutucusunu
+    resolveSavedViewQuery ile oturum kullanicisina cozer
+  - use-board-query.ts'e setParams (toplu param guncelleme) ve applyQueryString (tam query string
+    degistirme) eklendi
+  - advanced-filters.test.ts (36 test)
+- 291 Vitest testi (%100 basari)
 
 ## Faz 3 Bekleyen Promptlar
-- **V** [BEKLEYEN] Gelismis Filtreler & Kayitli Gorunumler
 - **W** [BEKLEYEN] Task Relations (Blocks/Relates To)
 - **X** [BEKLEYEN] Kullanici Profili & Sifre Degistirme
 
@@ -111,7 +129,11 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 - requireAdmin(projectId, userId) -> state action'larinda role==="ADMIN" kontrolu (src/actions/state.ts)
 - getNextSequenceId(projectId, tx) -> proje bazli artan ID (src/lib/sequence.ts)
 - getAvatarColor(name) -> bitwise hash -> 10 renkten biri (src/lib/colors.ts)
-- parseBoardFilters(searchParams) -> URL param -> Prisma where (src/lib/board-filters.ts)
+- parseBoardFilters(searchParams) -> URL param -> BoardFilters, buildTaskWhereFromFilters(filters) ->
+  Prisma.TaskWhereInput (src/lib/board-filters.ts); serializeBoardFilters ile ters yonde URL query
+  string uretilir (Kayitli Gorunumler icin)
+- useSavedViews(projectId, filters) -> localStorage tabanli kayitli gorunum hook'u
+  (src/lib/use-saved-views.ts), saf mantik src/lib/saved-views-logic.ts'de
 - Float siralama: araya ekleme = (ust.sortOrder + alt.sortOrder) / 2
 - calculateStateSequences(count) -> [1000, 2000, ...] (src/lib/settings-logic.ts)
 - logActivity(tx, data) -> try/catch ile sarili, transaction'i asla fail ettirmez (src/lib/activity-logger.ts)
@@ -145,7 +167,8 @@ sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.
 sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15),
 activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21),
 settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19),
-backlog-logic.test.ts (23), search-logic.test.ts (24), dashboard-analytics.test.ts (25) = 255 toplam
+backlog-logic.test.ts (23), search-logic.test.ts (24), dashboard-analytics.test.ts (25),
+**advanced-filters.test.ts (36)** = 291 toplam
 
 ## Her Prompt Sonrasi Dogrulama
 npm test
@@ -154,7 +177,7 @@ npm run build
 
 ## Yeni Chat Baslangic Sablonu
 Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
-Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt U tamamlandi).
-255 Vitest testi %100 geciyor.
-Simdi Faz 3 Prompt [V/W/X...] uygulayacagiz.
+Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt V tamamlandi).
+291 Vitest testi %100 geciyor.
+Simdi Faz 3 Prompt [W/X...] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]
