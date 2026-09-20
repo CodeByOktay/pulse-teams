@@ -2,14 +2,14 @@
 
 > Next.js 16 (App Router), PostgreSQL, Prisma ORM, NextAuth ve @dnd-kit kullanılarak geliştirilmiş modern, hızlı ve kurumsal seviyede proje yönetim (PM) sistemi.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v0.2.0-blue.svg)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v0.3.0-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?logo=tailwind-css)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)
-![Testler](https://img.shields.io/badge/Vitest-136%20passed-success?logo=vitest)
+![Testler](https://img.shields.io/badge/Vitest-331%20passed-success?logo=vitest)
 
 ---
 
@@ -43,6 +43,16 @@ Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan a
 - ✍️ **Markdown Desteği:** Görev açıklamalarında Yaz/Önizle sekmeli editör, seçili metni saran araç çubuğu (kalın/italik/kod/liste/link), Kanban kartında düz metin önizleme.
 - ⚙️ **Proje Ayarları:** Yalnızca `ADMIN` rolüne açık durum (state) ve etiket yönetim paneli; sürükle-bırakla durum sıralama, renk seçici, kullanım sayısı gösterimi ve güvenli silme kısıtları.
 
+## 🎯 Yeni Özellikler (Faz 3 — v0.3.0)
+
+- 👥 **Üye Yönetimi & Davet Sistemi:** `ADMIN` yetkisiyle e-posta daveti (32 byte token, 7 gün geçerli), davet linki kopyalama, rol değiştirme ve üye çıkarma; proje sahibi çıkarılamaz ve rolü değiştirilemez.
+- 🎛️ **Görev Detayı Premium UX:** Satır içi durum/öncelik seçicileri (klavye ile gezinilebilir, iyimser güncelleme + geri alma), breadcrumb, tıkla-düzenle tarih alanları ve paylaşılabilir görev bağlantısı (`?task=`).
+- 📥 **Backlog Görünümü:** Hiçbir aktif/taslak sprint'e bağlı olmayan görevlerin listesi, sprint ilerleme kartları ve tek tıkla "Sprint'e Taşı"; tamamlanmış sprint geçmişi asla silinmez.
+- 🔎 **Global Arama & Komut Paleti:** `Ctrl+K` / `Cmd+K` ile açılan, görev başlığı ve `PRJ-12` tanımlayıcısıyla arama yapan, ok tuşlarıyla gezilebilen komut paleti ve proje bazlı hızlı aksiyonlar.
+- 📈 **Dashboard & Analytics:** 4 istatistik kartı, "Bana Atananlar" widget'ı, son aktivite akışı ve sprint hızı paneli (tamamlanma oranı, burndown, ortalama hız) — harici grafik kütüphanesi kullanılmadan, saf Tailwind ile.
+- 🧰 **Gelişmiş Filtreler & Kayıtlı Görünümler:** Durum grubu, bitiş tarihi (gecikmiş/bugün/bu hafta/tarihsiz) ve metin araması; tek tıklık hızlı filtre çipleri ve `localStorage` tabanlı, proje bazlı kayıtlı görünümler.
+- 🔗 **Görev İlişkileri & Bağımlılıklar:** `Engelliyor` / `Tarafından engelleniyor` / `İlişkili` / `Kopyası` ilişkileri; her ilişki tek yönlü tek kayıt olarak saklanır, aynı çift ikinci kez ilişkilendirilemez ve döngüsel `BLOCKS` bağımlılıkları sunucu tarafında iteratif DFS ile engellenir.
+
 ---
 
 ## 🏗️ Teknoloji Yığını (Tech Stack)
@@ -63,7 +73,7 @@ Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan a
 
 ## 🏛️ Mimari Varlık Modeli (Entity-Relationship)
 
-Veritabanında tanımlı 12 ana model ve ilişkileri:
+Veritabanında tanımlı 14 ana model ve ilişkileri:
 
 ```mermaid
 erDiagram
@@ -72,12 +82,14 @@ erDiagram
     User ||--o{ TaskAssignee : "atanır"
     User ||--o{ Comment : "yazar"
     User ||--o{ Activity : "gerçekleştirir"
+    User ||--o{ ProjectInvite : "davet gönderir"
 
     Project ||--o{ ProjectMember : "barındırır"
     Project ||--o{ State : "tanımlar"
     Project ||--o{ Task : "içerir"
     Project ||--o{ Label : "kapsar"
     Project ||--o{ Sprint : "planlar"
+    Project ||--o{ ProjectInvite : "davet açar"
 
     State ||--o{ Task : "gruplar (Restrict)"
 
@@ -86,6 +98,8 @@ erDiagram
     Task ||--o{ Comment : "içerir"
     Task ||--o{ SprintTask : "bağlanır"
     Task ||--o{ Activity : "kaydeder"
+    Task ||--o{ TaskRelation : "kaynak (Blocks/Relates/Duplicates)"
+    Task ||--o{ TaskRelation : "hedef"
 
     Label ||--o{ TaskLabel : "etiketler"
 
@@ -140,7 +154,7 @@ Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini açın.
 
 ## 🧪 Testleri Çalıştırma
 
-Kritik iş kurallarını (Filtreler, Sıra Numaraları, Kayan Noktalı Sıralama, Renk Motoru, Sprint, Aktivite Logu, Toplu İşlemler, Markdown, Ayarlar) test etmek için:
+Kritik iş kurallarını (Filtreler, Sıra Numaraları, Kayan Noktalı Sıralama, Renk Motoru, Sprint, Aktivite Logu, Toplu İşlemler, Markdown, Ayarlar, Üye Yönetimi, Backlog, Arama, Analytics, Görev İlişkileri) test etmek için:
 
 ```bash
 npm test
@@ -173,10 +187,19 @@ npm run build
   - [x] Görev Açıklamasında Markdown Desteği
   - [x] Proje Ayarları (Durum & Etiket Yönetimi)
   - [x] 136 Adet Vitest Otomatik Testi
-- [ ] **Faz 3: Entegrasyonlar, Bildirimler & AI (v0.3.0)**
+- [x] **Faz 3: UX/UI Kalitesi & Proje Yönetimi Yetenekleri (v0.3.0)** — *Tamamlandı*
+  - [x] Üye Yönetimi & Proje Davet Sistemi
+  - [x] Görev Detayı Premium UX (satır içi seçiciler, breadcrumb, bağlantı kopyalama)
+  - [x] Backlog Görünümü & Sprint Entegrasyonu
+  - [x] Global Arama & Komut Paleti (Ctrl+K)
+  - [x] Dashboard Yenileme & Analytics
+  - [x] Gelişmiş Filtreler & Kayıtlı Görünümler
+  - [x] Görev İlişkileri (Engelliyor / İlişkili / Kopyası) ve döngü tespiti
+- [ ] **Backlog (Gelecek Fikirler)**
   - [ ] E-posta ve uygulama içi bildirimler
-  - [ ] OAuth entegrasyonu (Google & GitHub)
   - [ ] Yapay Zekâ Destekli Görev Özeti ve Otomasyon
+
+> **Kimlik doğrulama kapsamı:** Pulse yalnızca NextAuth **CredentialsProvider** (e-posta/şifre + bcrypt) mimarisiyle devam eder. Harici kimlik sağlayıcı entegrasyonu proje kapsamı dışındadır ve yol haritasında yer almaz.
 
 ---
 

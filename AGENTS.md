@@ -3,7 +3,7 @@
 ## Proje Kimliği
 - **Ad:** Pulse — Kanban-first Proje Yönetim Uygulaması
 - **Konum:** `C:\Pulse`
-- **Versiyon:** v0.3.0-dev (Faz 3 devam ediyor — Prompt U tamamlandı)
+- **Versiyon:** v0.3.0 (Faz 3 tamamlandı — Prompt Q–W)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -12,6 +12,7 @@
 - **Dil:** TypeScript (strict mode)
 - **DB ORM:** Prisma v6.19.3 + PostgreSQL 16
 - **Auth:** NextAuth.js v4 — CredentialsProvider + JWT + bcryptjs (salt:12)
+  (tek kimlik doğrulama yöntemi; harici kimlik sağlayıcı entegrasyonu kapsam dışıdır)
 - **Stil:** Tailwind CSS v4
 - **Sürükle-Bırak:** @dnd-kit/core + @dnd-kit/sortable
 - **Markdown:** react-markdown + remark-gfm
@@ -145,9 +146,11 @@ O: [TAMAMLANDI] Markdown Desteği + markdown-utils.test.ts (21 test)
 P: [TAMAMLANDI] Proje Ayarları + settings-validation.test.ts (30 test)
 Sonuç: 136 Vitest testi (hedef 100+ aşıldı), npm run build hatasız
 
-## Aktif Görev — Faz 3 (v0.3.0) — Devam Ediyor
+## Tamamlanan Görev — Faz 3 (v0.3.0) — Tamamlandı
 Faz 3 odak alanları: UX/UI kalitesi · Proje yönetimi yetenekleri · Jira/Linear deneyimi
-OAuth + E-posta bildirimleri → Backlog'a alındı.
+E-posta bildirimleri → Backlog'a alındı.
+Kimlik doğrulama kapsamı sabittir: yalnızca CredentialsProvider (e-posta/şifre + bcrypt).
+Harici kimlik sağlayıcı entegrasyonu proje kapsamından çıkarılmıştır, planlanmaz.
 
 ### Faz 3 Prompt Durumu
 - **Q** [TAMAMLANDI] Üye Yönetimi & Davet Sistemi — ProjectInvite + 5 action + /invite/[token] + 28 test
@@ -167,7 +170,7 @@ OAuth + E-posta bildirimleri → Backlog'a alındı.
   relation-logic.ts (iteratif DFS döngü tespiti), addTaskRelation/removeTaskRelation/
   searchTasksForRelation, TaskRelations bileşeni (4 grup + İlişki Ekle popover) +
   task-relations.test.ts (40 test)
-- **X** [BEKLEYEN]  Kullanıcı Profili & Şifre Değiştirme
+Sonuç: Faz 3 kapandı — 331 Vitest testi %100 geçiyor, npx tsc --noEmit ve npm run build hatasız.
 
 ## Her Prompt Sonrası Doğrulama
 npm test          # tüm testler geçmeli (şu an: 331 test)

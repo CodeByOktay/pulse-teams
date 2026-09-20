@@ -1,8 +1,8 @@
-# CONTEXT - Pulse (v0.3.0-dev -> Faz 3 devam ediyor)
+# CONTEXT - Pulse (v0.3.0 -> Faz 3 tamamlandi)
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
-Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, Faz 3 devam ediyor (Prompt V tamamlandi).
+Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1, Faz 2 ve Faz 3 tamamlandi (son prompt: W).
 
 ## Lokasyon & Calistirma
 - Proje: C:\Pulse
@@ -13,6 +13,9 @@ Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, 
 ## Stack
 Next.js 16 App Router (Turbopack) + TypeScript + Tailwind v4 + Prisma v6 + PostgreSQL 16
 NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm + Vitest + lucide-react
+
+Kimlik dogrulama kapsami: yalnizca CredentialsProvider (e-posta/sifre + bcrypt salt:12).
+Harici kimlik saglayici entegrasyonu proje kapsami disindadir, yol haritasinda yer almaz.
 
 ## Faz 1 Tamamlanan Ozellikler (v0.1.0)
 - E-posta/sifre kimlik dogrulama (NextAuth + bcryptjs salt:12)
@@ -34,7 +37,7 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 - **Proje Ayarlari:** /projects/[id]/settings (sadece ADMIN rolu), StatesManager (surukle-birak siralama, renk secici, StateGroup badge, silme kisitlari), LabelsManager (kullanim sayisi, inline duzenleme), ColorPicker (hex <-> color input senkron)
 - 136 Vitest testi (%100 basari), npm run build hatasiz
 
-## Faz 3 Tamamlanan Ozellikler (v0.3.0-dev)
+## Faz 3 Tamamlanan Ozellikler (v0.3.0)
 - **[Q] Uye Yonetimi & Proje Davet Sistemi:**
   - ProjectInvite modeli (token, email, role, InviteStatus enum: PENDING/ACCEPTED/EXPIRED, expiresAt 7 gun)
   - 5 server action (src/actions/member.ts): inviteMember, acceptInvite, removeMember, changeMemberRole, cancelInvite
@@ -145,9 +148,6 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
   - task-relations.test.ts (40 test)
 - 331 Vitest testi (%100 basari)
 
-## Faz 3 Bekleyen Promptlar
-- **X** [BEKLEYEN] Kullanici Profili & Sifre Degistirme
-
 ## Kritik Teknikler
 - requireMembership(projectId, userId) -> her server action'da yetki kontrolu
 - requireAdmin(projectId, userId) -> state action'larinda role==="ADMIN" kontrolu (src/actions/state.ts)
@@ -205,7 +205,7 @@ npm run build
 
 ## Yeni Chat Baslangic Sablonu
 Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
-Faz 1 (v0.1.0), Faz 2 (v0.2.0) tamamlandi. Faz 3 devam ediyor (Prompt V tamamlandi).
-291 Vitest testi %100 geciyor.
-Simdi Faz 3 Prompt [W/X...] uygulayacagiz.
+Faz 1 (v0.1.0), Faz 2 (v0.2.0), Faz 3 (v0.3.0) tamamlandi.
+331 Vitest testi %100 geciyor.
+Simdi [yeni faz / ozellik] uygulayacagiz.
 [Ilgili prompt blogunu buraya yapistir]
