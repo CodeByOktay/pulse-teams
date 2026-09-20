@@ -3,6 +3,64 @@
 
 Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](https://keepachangelog.com/) standardına uygundur.
 
+## [0.3.0] - 2026-09-20 (Faz 3 — UX/UI Kalitesi & Proje Yönetimi Yetenekleri)
+
+### Eklendi (Added)
+- **Üye Yönetimi & Davet Sistemi (Prompt Q):**
+  - `ProjectInvite` modeli ve `InviteStatus` enum'u (`PENDING`/`ACCEPTED`/`EXPIRED`); 32 byte hex token, 7 gün geçerlilik.
+  - `src/actions/member.ts`: `inviteMember`, `acceptInvite`, `removeMember`, `changeMemberRole`, `cancelInvite` — tümü `ADMIN` kontrolü ile korunur; proje sahibi çıkarılamaz ve rolü değiştirilemez.
+  - `/invite/[token]` sayfası: token geçerliliği, e-posta eşleşmesi ve oturum durumu için ayrı ayrı UI senaryoları.
+  - `MembersManager` bileşeni ve Ayarlar sayfasına "Üyeler" sekmesi.
+  - `member-management.test.ts` (28 test).
+- **Görev Detayı Premium UX (Prompt R):**
+  - `InlineSelectPopover` ortak bileşeni üzerine kurulu `StatusPicker` / `PriorityPicker` — klavye navigasyonu, iyimser güncelleme ve hata halinde geri alma (`resolveOptimisticState`); aynı değer tekrar seçilirse mutasyon atlanır.
+  - `DateField` (tıkla-düzenle tarih seçici), `CopyLinkButton`, modal başlığında breadcrumb ve `resolveTaskSprintBadge` ile tek sprint rozeti (`ACTIVE` > `DRAFT` > Backlog).
+  - Board ve Liste görünümleri `?task=` query param'ı ile derin bağlantı desteği kazandı.
+  - `task-detail-ux.test.ts` (19 test).
+- **Backlog Görünümü & Sprint Entegrasyonu (Prompt S):**
+  - `/projects/[projectId]/backlog` route'u; backlog tanımı "hiçbir `ACTIVE`/`DRAFT` sprint'e bağlı olmayan görev".
+  - `moveTaskToSprint` / `moveTaskToBacklog` server action'ları — `$transaction` içinde çalışır ve `COMPLETED` sprint geçmişini asla silmez (`getRemovableSprintIds`).
+  - `SprintProgressCard` ilerleme kartları ve `MoveToSprintMenu`.
+  - `backlog-logic.test.ts` (23 test).
+- **Global Arama & Komut Paleti (Prompt T):**
+  - `globalSearch` server action'ı — görev başlığı substring'i veya `PRJ-12` tanımlayıcısı ile eşleşme; kullanıcı üyeliği her zaman `where` cümlesinde filtrelenir.
+  - `CommandPalette` bileşeni: `Ctrl+K` / `Cmd+K` kısayolu, kategorize sonuçlar, ok tuşlarıyla döngüsel gezinme ve proje bazlı hızlı aksiyonlar.
+  - `search-logic.test.ts` (24 test).
+- **Dashboard Yenileme & Analytics (Prompt U):**
+  - `analytics-logic.ts`: `isTaskOverdue`/`countOverdueTasks`, `calculateCompletionRate`, `calculateSprintBurndown`, `calculateProjectVelocity`, `formatRelativeTime`.
+  - 4 istatistik kartı (tümü `prisma.count` ile), "Bana Atananlar" widget'ı, "Son Aktiviteler" akışı ve "Sprint Hızı" paneli — harici grafik kütüphanesi kullanılmadan, saf Tailwind ile.
+  - `dashboard-analytics.test.ts` (25 test).
+- **Gelişmiş Filtreler & Kayıtlı Görünümler (Prompt V):**
+  - `BoardFilters` genişletildi: durum grubu, bitiş tarihi (`overdue`/`today`/`this_week`/`no_date`) ve metin araması; `resolveDueDateRange` ile tarih sınırları (hafta Pazartesi başlar).
+  - `QuickFilterChips`, `GroupFilter`, `DueDateFilter`, `SearchInput` bileşenleri.
+  - `useSavedViews` hook'u ile `localStorage` tabanlı, proje bazlı kayıtlı görünümler; `__me__` yer tutucusu oturum kullanıcısına çözülür.
+  - `advanced-filters.test.ts` (36 test).
+- **Görev İlişkileri & Bağımlılıklar (Prompt W):**
+  - `TaskRelation` modeli ve `RelationType` enum'u (`BLOCKS`/`RELATES_TO`/`DUPLICATES`); her ilişki tek yönlü **tek** kayıttır — "Tarafından engelleniyor" ayrı bir tip değil, `BLOCKS` kaydının hedef tarafındaki görünümüdür.
+  - `relation-logic.ts`: `getRelationLabel`, `hasExistingRelation` (tek çift kuralı — yönden ve tipten bağımsız), `wouldCreateBlockCycle` (**iteratif DFS**; rekürsiyon yok, 1000+ düğümlü zincirde stack overflow olmaz, mevcut veride döngü olsa bile `visited` seti sonsuz döngüyü engeller), `groupRelationsForTask`.
+  - `src/actions/relation.ts`: `addTaskRelation`, `removeTaskRelation`, `searchTasksForRelation` — `projectId` istemciden değil, doğrulanmış görev kaydından alınır; iki görevin aynı projede olması zorunludur.
+  - `TaskRelations` bileşeni: 4 gruplu görünüm, iyimser silme ve debounce'lu arama içeren "İlişki Ekle" popover'ı; ilişkili göreve tıklanınca modal o göreve geçer.
+  - `task-relations.test.ts` (40 test).
+
+### Değişti (Changed)
+- `ActivityType` enum'u 15'ten 17 değere çıktı (`TASK_RELATION_ADDED`, `TASK_RELATION_REMOVED`).
+- `getTaskDetail` sorgusuna `project.name`, `sprints` ve `sourceRelations`/`targetRelations` ilişkileri eklendi.
+- `buildTaskWhereFromFilters` tüm filtreleri tek `Prisma.TaskWhereInput`'a indirger; Board ve Liste sayfalarındaki tekrarlı `where` cümlesi kodu kaldırıldı.
+- `formatRelativeTime` ortak fonksiyona taşındı; `task-activity.tsx` içindeki kopyası kaldırıldı.
+
+### Kaldırıldı (Removed)
+- OAuth / harici kimlik sağlayıcı entegrasyonu (Google, GitHub, Microsoft) proje kapsamından ve yol haritasından tamamen çıkarıldı. Kimlik doğrulama yalnızca NextAuth `CredentialsProvider` (e-posta/şifre + bcrypt) ile yapılır.
+
+### Veritabanı (Migrations)
+- `20260919213140_add_project_invite` — `ProjectInvite` tablosu ve `InviteStatus` enum'u.
+- `20260920004710_add_task_relations` — `RelationType` enum'u, `TaskRelation` tablosu, indeksler ve `ActivityType` genişletmesi. Yalnızca ekleme yapar, veri kaybı yoktur.
+
+### Test
+- Toplam Vitest testi 136'dan **331**'e çıktı (18 test dosyası), tamamı geçiyor.
+- `npx tsc --noEmit` ve `npm run build` hatasız doğrulandı.
+
+---
+
 ## [0.2.0] - 2026-09-18 (Faz 2 — Sprint, Görünümler & Ayarlar)
 
 ### Eklendi (Added)
