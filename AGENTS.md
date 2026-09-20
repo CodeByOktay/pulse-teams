@@ -28,19 +28,21 @@
 - `npx prisma generate` — Client yeniden üret
 - `npx tsc --noEmit` — TypeScript tip kontrolü
 
-## Veritabanı Modelleri (Faz 1 + Faz 2 + Faz 3-Q — 13 model)
+## Veritabanı Modelleri (Faz 1 + Faz 2 + Faz 3-Q/W — 14 model)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
-Sprint, SprintTask, Activity, **ProjectInvite**
+Sprint, SprintTask, Activity, ProjectInvite, **TaskRelation**
 
-Enum'lar (5):
+Enum'lar (6):
 - StateGroup (BACKLOG/TODO/IN_PROGRESS/DONE/CANCELLED)
 - Priority (NONE/LOW/MEDIUM/HIGH/URGENT)
 - SprintStatus (DRAFT/ACTIVE/COMPLETED)
-- ActivityType (15 değer: TASK_CREATED, TASK_TITLE_UPDATED, TASK_DESCRIPTION_UPDATED,
+- ActivityType (17 değer: TASK_CREATED, TASK_TITLE_UPDATED, TASK_DESCRIPTION_UPDATED,
   TASK_STATE_CHANGED, TASK_PRIORITY_CHANGED, TASK_DUE_DATE_CHANGED, TASK_START_DATE_CHANGED,
   TASK_ASSIGNEE_ADDED, TASK_ASSIGNEE_REMOVED, TASK_LABEL_ADDED, TASK_LABEL_REMOVED,
-  TASK_SPRINT_ADDED, TASK_SPRINT_REMOVED, COMMENT_ADDED, COMMENT_DELETED)
-- **InviteStatus** (PENDING/ACCEPTED/EXPIRED)
+  TASK_SPRINT_ADDED, TASK_SPRINT_REMOVED, COMMENT_ADDED, COMMENT_DELETED,
+  **TASK_RELATION_ADDED, TASK_RELATION_REMOVED**)
+- InviteStatus (PENDING/ACCEPTED/EXPIRED)
+- **RelationType** (BLOCKS/RELATES_TO/DUPLICATES)
 
 ## Kritik Mimari Kararlar
 - Prisma singleton: src/lib/prisma.ts — globalThis pattern (hot-reload güvenli)
@@ -99,6 +101,16 @@ Enum'lar (5):
   (pulse:saved-views:{projectId}), serializeBoardFilters/parseBoardFilters roundtrip ile URL query
   string'e dönüşür, "Benim Görevlerim" gibi varsayılan görünümler __me__ yer tutucusunu
   resolveSavedViewQuery ile oturumdaki kullanıcı ID'sine çözer
+- Görev İlişkileri: TaskRelation her zaman TEK yönlü TEK kayıttır — "Tarafından engelleniyor"
+  ayrı bir tip değil, BLOCKS kaydının hedef tarafındaki görünümüdür (ters kayıt asla yazılmaz);
+  getRelationLabel(type, direction) perspektif etiketini verir, groupRelationsForTask kaynak/hedef
+  kayıtlarını blocks/blockedBy/relatesTo/duplicates olarak dörde ayırır (src/lib/relation-logic.ts);
+  tek çift kuralı: hasExistingRelation ile aynı iki görev arasında yönden ve tipten bağımsız
+  yalnızca bir ilişki kurulabilir; döngü kontrolü YALNIZCA BLOCKS için geçerlidir
+  (requiresCycleCheck) — wouldCreateBlockCycle stack + visited ile İTERATİF DFS yapar
+  (rekürsiyon yok: 1000+ düğümlü zincirde stack overflow olmaz, mevcut veride döngü olsa bile
+  visited seti sonsuz döngüyü engeller); addTaskRelation projectId'yi istemciden değil doğrulanmış
+  görev kaydından alır, iki görevin aynı projede olmasını şart koşar
 
 ## Test Konvansiyonu
 - Konum: src/lib/__tests__/*.test.ts
@@ -112,8 +124,9 @@ Enum'lar (5):
   - sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15)
   - activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21)
   - settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19)
-  - backlog-logic.test.ts (23), search-logic.test.ts (24), **dashboard-analytics.test.ts (25)**
-- Toplam: **255 test**, %100 geçiyor
+  - backlog-logic.test.ts (23), search-logic.test.ts (24), dashboard-analytics.test.ts (25)
+  - advanced-filters.test.ts (36), **task-relations.test.ts (40)**
+- Toplam: **331 test**, %100 geçiyor
 
 ## Kod Stili
 - Import alias: @/* → src/*
@@ -150,11 +163,14 @@ OAuth + E-posta bildirimleri → Backlog'a alındı.
 - **V** [TAMAMLANDI] Gelişmiş Filtreler & Kayıtlı Görünümler — group/due/q filtreleri,
   buildTaskWhereFromFilters, Hızlı Filtre çipleri, useSavedViews (localStorage) +
   advanced-filters.test.ts (36 test)
-- **W** [BEKLEYEN]  Task Relations (Blocks/Relates To)
+- **W** [TAMAMLANDI] Task Relations (Blocks/Relates To) — TaskRelation modeli + RelationType enum,
+  relation-logic.ts (iteratif DFS döngü tespiti), addTaskRelation/removeTaskRelation/
+  searchTasksForRelation, TaskRelations bileşeni (4 grup + İlişki Ekle popover) +
+  task-relations.test.ts (40 test)
 - **X** [BEKLEYEN]  Kullanıcı Profili & Şifre Değiştirme
 
 ## Her Prompt Sonrası Doğrulama
-npm test          # tüm testler geçmeli (şu an: 291 test)
+npm test          # tüm testler geçmeli (şu an: 331 test)
 npx tsc --noEmit  # TypeScript hatası olmamalı
 
 <!-- BEGIN:nextjs-agent-rules -->

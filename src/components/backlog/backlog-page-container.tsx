@@ -37,6 +37,12 @@ export function BacklogPageContainer({
     if (searchParams.get("task")) setParam("task", null);
   }
 
+  /** İlişkili bir göreve tıklanınca modal o göreve geçer, derin bağlantı varsa URL de güncellenir. */
+  function navigateToTask(nextTaskId: string) {
+    setSelectedTaskId(nextTaskId);
+    if (searchParams.get("task")) setParam("task", nextTaskId);
+  }
+
   const sprintOptions: MoveToSprintOption[] = activeDraftSprints.map((sprint) => ({
     id: sprint.id,
     name: sprint.name,
@@ -87,6 +93,7 @@ export function BacklogPageContainer({
           availableLabels={availableLabels}
           members={members}
           onClose={closeTaskDetail}
+          onNavigateToTask={navigateToTask}
         />
       ) : null}
     </div>

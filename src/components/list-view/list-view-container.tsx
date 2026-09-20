@@ -51,6 +51,12 @@ export function ListViewContainer({
     if (searchParams.get("task")) setParam("task", null);
   }
 
+  /** İlişkili bir göreve tıklanınca modal o göreve geçer, derin bağlantı varsa URL de güncellenir. */
+  function navigateToTask(nextTaskId: string) {
+    setSelectedTaskId(nextTaskId);
+    if (searchParams.get("task")) setParam("task", nextTaskId);
+  }
+
   function runBulkUpdate(data: { stateId?: string; priority?: Priority }) {
     const ids = [...bulk.selectedIds];
     startTransition(async () => {
@@ -171,6 +177,7 @@ export function ListViewContainer({
           availableLabels={availableLabels}
           members={members}
           onClose={closeTaskDetail}
+          onNavigateToTask={navigateToTask}
         />
       ) : null}
     </div>

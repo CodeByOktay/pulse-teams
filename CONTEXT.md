@@ -8,7 +8,7 @@ Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1 ve Faz 2 tamamlandi, 
 - Proje: C:\Pulse
 - DB: PostgreSQL 16 Docker (docker start pulse-postgres)
 - Sunucu: cd C:\Pulse && npm run dev  ->  http://localhost:3000
-- Test: npm test (255 test, %100 geciyor)
+- Test: npm test (331 test, %100 geciyor)
 
 ## Stack
 Next.js 16 App Router (Turbopack) + TypeScript + Tailwind v4 + Prisma v6 + PostgreSQL 16
@@ -118,10 +118,34 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
   - use-board-query.ts'e setParams (toplu param guncelleme) ve applyQueryString (tam query string
     degistirme) eklendi
   - advanced-filters.test.ts (36 test)
-- 291 Vitest testi (%100 basari)
+- **[W] Task Relations (Iliskiler & Bagimliliklar):**
+  - TaskRelation modeli (sourceTaskId/targetTaskId/type, @@unique([sourceTaskId, targetTaskId, type]),
+    onDelete: Cascade) + RelationType enum (BLOCKS/RELATES_TO/DUPLICATES) +
+    ActivityType'a TASK_RELATION_ADDED/TASK_RELATION_REMOVED eklendi
+    (migration: 20260920004710_add_task_relations, yalnizca ekleme yapar, veri kaybi yok)
+  - Tek yonlu kayit: bir iliski DB'de TEK kayittir; "Tarafindan engelleniyor" ayri bir tip degil,
+    BLOCKS kaydinin hedef tarafindaki gorunumudur (ters kayit asla yazilmaz)
+  - relation-logic.ts (saf mantik): getRelationLabel(type, direction), isSelfRelation,
+    hasExistingRelation (tek cift kurali - yonden ve tipten bagimsiz), requiresCycleCheck
+    (yalnizca BLOCKS), collectBlockEdges, wouldCreateBlockCycle (ITERATIF DFS: stack + visited,
+    rekursiyon yok), groupRelationsForTask (blocks/blockedBy/relatesTo/duplicates),
+    countGroupedRelations, formatTaskIdentifier
+  - 3 server action (src/actions/relation.ts): addTaskRelation (kendine iliski engeli, ayni proje
+    zorunlu, projectId dogrulanmis gorev kaydindan alinir, requireMembership, mukerrer iliski ve
+    dongu kontrolu, $transaction + logActivity), removeTaskRelation, searchTasksForRelation
+    (mevcut iliskili gorevler ve gorevin kendisi id: { notIn } ile haric tutulur, bos sorguda
+    en guncel 10 gorev)
+  - getTaskDetail sorgusuna sourceRelations/targetRelations include edildi
+  - TaskRelations bileseni (src/components/task-detail/task-relations.tsx): 4 grup gorunumu
+    (Engelliyor / Tarafindan engelleniyor / Iliskili / Yinelenen-Kopyasi), identifier rozeti +
+    durum rengi + hover'da beliren X butonu (optimistic silme, hatada geri alinir),
+    "Iliski Ekle" popover'i (tip secici + 250ms debounce'li arama)
+  - Iliskili goreve tiklaninca modal o goreve gecer (onNavigateToTask: board/list/backlog
+    container'larinda ?task= derin baglantisi da guncellenir)
+  - task-relations.test.ts (40 test)
+- 331 Vitest testi (%100 basari)
 
 ## Faz 3 Bekleyen Promptlar
-- **W** [BEKLEYEN] Task Relations (Blocks/Relates To)
 - **X** [BEKLEYEN] Kullanici Profili & Sifre Degistirme
 
 ## Kritik Teknikler
@@ -150,6 +174,10 @@ NextAuth.js (JWT, CredentialsProvider) + @dnd-kit + react-markdown + remark-gfm 
 - isTaskOverdue(dueDate, stateGroup, now?) -> yalnizca DONE haric tutulur (CANCELLED de gecikmis
   sayilabilir), formatRelativeTime(date, now?) -> "az once/X dakika once/X saat once/dun/X gun once"
   (src/lib/analytics-logic.ts)
+- wouldCreateBlockCycle(edges, newSourceId, newTargetId) -> X BLOCKS Y eklenirken Y'den baslayip
+  X'e ulasilabiliyorsa true; stack + visited ile iteratif DFS (src/lib/relation-logic.ts)
+- hasExistingRelation(existingRelations, a, b) -> ayni iki gorev arasinda yonden/tipten bagimsiz
+  ikinci bir iliski kurulmasini engeller (tek cift kurali)
 
 ## Mevcut Route Haritasi
 /                           → Dashboard (istatistik kartlari, Bana Atananlar, Son Aktiviteler, Sprint Hizi, proje listesi)
@@ -168,7 +196,7 @@ sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (
 activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21),
 settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19),
 backlog-logic.test.ts (23), search-logic.test.ts (24), dashboard-analytics.test.ts (25),
-**advanced-filters.test.ts (36)** = 291 toplam
+advanced-filters.test.ts (36), **task-relations.test.ts (40)** = 331 toplam
 
 ## Her Prompt Sonrasi Dogrulama
 npm test

@@ -61,6 +61,12 @@ export function KanbanBoard({
     if (searchParams.get("task")) setParam("task", null);
   }
 
+  /** İlişkili bir göreve tıklanınca modal o göreve geçer, derin bağlantı varsa URL de güncellenir. */
+  function navigateToTask(nextTaskId: string) {
+    setSelectedTaskId(nextTaskId);
+    if (searchParams.get("task")) setParam("task", nextTaskId);
+  }
+
   useEffect(() => {
     setColumns(initialStates);
   }, [initialStates]);
@@ -245,6 +251,7 @@ export function KanbanBoard({
           availableLabels={availableLabels}
           members={members}
           onClose={closeTaskDetail}
+          onNavigateToTask={navigateToTask}
         />
       ) : null}
     </DndContext>

@@ -32,6 +32,12 @@ enum SprintStatus {
   COMPLETED
 }
 
+enum RelationType {
+  BLOCKS
+  RELATES_TO
+  DUPLICATES
+}
+
 enum ActivityType {
   TASK_CREATED
   TASK_TITLE_UPDATED
@@ -48,6 +54,8 @@ enum ActivityType {
   TASK_SPRINT_REMOVED
   COMMENT_ADDED
   COMMENT_DELETED
+  TASK_RELATION_ADDED
+  TASK_RELATION_REMOVED
 }
 
 model User {
@@ -137,10 +145,28 @@ model Task {
   sprints    SprintTask[]
   activities Activity[]
 
+  sourceRelations TaskRelation[] @relation("SourceRelations")
+  targetRelations TaskRelation[] @relation("TargetRelations")
+
   @@unique([projectId, sequenceId])
   @@index([projectId])
   @@index([stateId])
   @@index([projectId, stateId, sortOrder])
+}
+
+model TaskRelation {
+  id           String       @id @default(cuid())
+  sourceTaskId String
+  targetTaskId String
+  type         RelationType
+  createdAt    DateTime     @default(now())
+
+  sourceTask Task @relation("SourceRelations", fields: [sourceTaskId], references: [id], onDelete: Cascade)
+  targetTask Task @relation("TargetRelations", fields: [targetTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceTaskId, targetTaskId, type])
+  @@index([sourceTaskId])
+  @@index([targetTaskId])
 }
 
 model Label {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { X, Loader2 } from "lucide-react";
@@ -10,8 +10,13 @@ import { TaskDescription } from "@/components/task-detail/task-description";
 import { TaskComments, type CommentItem } from "@/components/task-detail/task-comments";
 import { TaskActivity } from "@/components/task-detail/task-activity";
 import { TaskProperties, type StateOption } from "@/components/task-detail/task-properties";
+import { TaskRelations } from "@/components/task-detail/task-relations";
 import { CopyLinkButton } from "@/components/task-detail/copy-link-button";
 import { buildTaskBreadcrumb, type TaskSprintInfo } from "@/lib/task-detail-ux";
+import type {
+  SourceRelationRecord,
+  TargetRelationRecord,
+} from "@/lib/relation-logic";
 import type { LabelOption } from "@/components/labels/label-picker";
 import type { AssigneeOption } from "@/components/assignees/assignee-picker";
 import type { Priority } from "@prisma/client";
@@ -31,7 +36,64 @@ type TaskDetail = {
   comments: CommentItem[];
   projectName: string;
   sprints: TaskSprintInfo[];
+  sourceRelations: SourceRelationRecord[];
+  targetRelations: TargetRelationRecord[];
 };
+
+type TaskDetailPayload = Awaited<ReturnType<typeof getTaskDetail>>;
+
+type RelatedTaskPayload = TaskDetailPayload["sourceRelations"][number]["targetTask"];
+
+function toRelatedTaskSummary(task: RelatedTaskPayload) {
+  return {
+    id: task.id,
+    sequenceId: task.sequenceId,
+    title: task.title,
+    stateName: task.state.name,
+    stateColor: task.state.color,
+    projectIdentifier: task.project.identifier,
+  };
+}
+
+function toTaskDetail(task: TaskDetailPayload): TaskDetail {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    sequenceId: task.sequenceId,
+    stateId: task.stateId,
+    startDate: task.startDate ? task.startDate.toISOString() : null,
+    dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+    createdAt: task.createdAt.toISOString(),
+    labelIds: task.labels.map((tl) => tl.label.id),
+    assigneeIds: task.assignees.map((ta) => ta.user.id),
+    comments: task.comments.map((c) => ({
+      id: c.id,
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+      author: c.author,
+    })),
+    projectName: task.project.name,
+    sprints: task.sprints.map((st) => ({
+      id: st.sprint.id,
+      name: st.sprint.name,
+      status: st.sprint.status,
+    })),
+    sourceRelations: task.sourceRelations.map((relation) => ({
+      id: relation.id,
+      type: relation.type,
+      sourceTaskId: relation.sourceTaskId,
+      targetTask: toRelatedTaskSummary(relation.targetTask),
+    })),
+    targetRelations: task.targetRelations.map((relation) => ({
+      id: relation.id,
+      type: relation.type,
+      targetTaskId: relation.targetTaskId,
+      sourceTask: toRelatedTaskSummary(relation.sourceTask),
+    })),
+  };
+}
 
 export function TaskDetailModal({
   taskId,
@@ -41,6 +103,7 @@ export function TaskDetailModal({
   availableLabels,
   members,
   onClose,
+  onNavigateToTask,
 }: {
   taskId: string;
   projectId: string;
@@ -49,6 +112,7 @@ export function TaskDetailModal({
   availableLabels: LabelOption[];
   members: AssigneeOption[];
   onClose: () => void;
+  onNavigateToTask?: (taskId: string) => void;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -58,37 +122,20 @@ export function TaskDetailModal({
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"activity" | "comments">("activity");
 
+  /** İlişki eklendikten/kaldırıldıktan sonra detayı sessizce tazeler. */
+  const reloadDetail = useCallback(async () => {
+    const task = await getTaskDetail(taskId);
+    setDetail(toTaskDetail(task));
+    setTitleValue(task.title);
+  }, [taskId]);
+
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
 
     getTaskDetail(taskId).then((task) => {
       if (cancelled) return;
-      setDetail({
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        priority: task.priority,
-        sequenceId: task.sequenceId,
-        stateId: task.stateId,
-        startDate: task.startDate ? task.startDate.toISOString() : null,
-        dueDate: task.dueDate ? task.dueDate.toISOString() : null,
-        createdAt: task.createdAt.toISOString(),
-        labelIds: task.labels.map((tl) => tl.label.id),
-        assigneeIds: task.assignees.map((ta) => ta.user.id),
-        comments: task.comments.map((c) => ({
-          id: c.id,
-          content: c.content,
-          createdAt: c.createdAt.toISOString(),
-          author: c.author,
-        })),
-        projectName: task.project.name,
-        sprints: task.sprints.map((st) => ({
-          id: st.sprint.id,
-          name: st.sprint.name,
-          status: st.sprint.status,
-        })),
-      });
+      setDetail(toTaskDetail(task));
       setTitleValue(task.title);
       setIsLoading(false);
     });
@@ -188,6 +235,18 @@ export function TaskDetailModal({
               )}
 
               <TaskDescription taskId={taskId} initialDescription={detail.description ?? ""} />
+
+              <TaskRelations
+                taskId={taskId}
+                projectId={projectId}
+                sourceRelations={detail.sourceRelations}
+                targetRelations={detail.targetRelations}
+                onNavigateToTask={onNavigateToTask}
+                onChanged={() => {
+                  reloadDetail();
+                  router.refresh();
+                }}
+              />
 
               <div className="flex flex-col gap-3">
                 <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-800">

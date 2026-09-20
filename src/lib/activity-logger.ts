@@ -89,6 +89,10 @@ export function formatActivityMessage(activity: ActivityWithActor): string {
       return `${actor} yorum ekledi.`;
     case "COMMENT_DELETED":
       return `${actor} yorumu sildi.`;
+    case "TASK_RELATION_ADDED":
+      return `${actor} göreve '${metadataString(activity, "targetIdentifier")}' ile ilişki ekledi.`;
+    case "TASK_RELATION_REMOVED":
+      return `${actor} görevin '${metadataString(activity, "targetIdentifier")}' ile olan ilişkisini kaldırdı.`;
     default:
       return `${actor} bu görevde bir değişiklik yaptı.`;
   }

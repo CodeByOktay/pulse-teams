@@ -272,6 +272,34 @@ export async function getTaskDetail(taskId: string) {
         orderBy: { createdAt: "asc" },
         include: { author: { select: { id: true, name: true } } },
       },
+      sourceRelations: {
+        orderBy: { createdAt: "asc" },
+        include: {
+          targetTask: {
+            select: {
+              id: true,
+              sequenceId: true,
+              title: true,
+              state: { select: { name: true, color: true } },
+              project: { select: { identifier: true } },
+            },
+          },
+        },
+      },
+      targetRelations: {
+        orderBy: { createdAt: "asc" },
+        include: {
+          sourceTask: {
+            select: {
+              id: true,
+              sequenceId: true,
+              title: true,
+              state: { select: { name: true, color: true } },
+              project: { select: { identifier: true } },
+            },
+          },
+        },
+      },
     },
   });
 
