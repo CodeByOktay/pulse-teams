@@ -1,180 +1,110 @@
 # Pulse — Agent Development Guide
 
-## Proje Kimliği
-- **Ad:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint Tabanlı Proje Yönetim Uygulaması
-- **Konum:** `C:\Pulse`
-- **Versiyon:** v0.3.0 (Faz 3 tamamlandı — Faz 3.01–3.07)
+## Project Identity
+- **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
+- **Location:** `C:\Pulse`
+- **Version:** v0.3.0 (Phase 3 completed — Steps 3.01–3.07)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
-## Teknoloji Yığını
+## AI Agent Division of Labor & Guides
+- **Antigravity (Lead Architect, QA & Test Authority):** `ANTIGRAVITY.md` — Feature analysis, trade-offs, Claude prompt formulation, exclusive author of all tests (`src/lib/__tests__/`), ADR authoring, and `docs/ai-context/` management.
+- **Claude Code (Builder & Subagent Orchestrator):** `CLAUDE.md` — Layered implementation (`postgres-pro`, `backend-developer`, `react-specialist`, `nextjs-developer`, `debugger`). Does not write tests; runs Antigravity's tests and fixes code without modifying test files.
+
+## Technology Stack
 - **Framework:** Next.js 16 (App Router, Turbopack)
-- **Dil:** TypeScript (strict mode)
-- **DB ORM:** Prisma v6.19.3 + PostgreSQL 16
-- **Auth:** NextAuth.js v4 — CredentialsProvider + JWT + bcryptjs (salt:12)
-  (tek kimlik doğrulama yöntemi; harici kimlik sağlayıcı entegrasyonu kapsam dışıdır)
-- **Stil:** Tailwind CSS v4
-- **Sürükle-Bırak:** @dnd-kit/core + @dnd-kit/sortable
+- **Language:** TypeScript (strict mode)
+- **Database ORM:** Prisma v6.19.3 + PostgreSQL 16
+- **Authentication:** NextAuth.js v4 — CredentialsProvider + JWT + bcryptjs (salt:12)
+  (sole authentication method; external identity provider integration is strictly out of scope)
+- **Styling:** Tailwind CSS v4
+- **Drag-and-Drop:** @dnd-kit/core + @dnd-kit/sortable
 - **Markdown:** react-markdown + remark-gfm
-- **İkonlar:** lucide-react
-- **Test:** Vitest v5 (`npm test` → `vitest run`)
+- **Icons:** lucide-react
+- **Testing:** Vitest v5 (`npm test` → `vitest run`)
 
-## Komutlar
-- `npm run dev` — Geliştirme sunucusu (localhost:3000)
-- `npm test` — Tüm Vitest testleri çalıştır
-- `npm run build` — Production build
-- `npx prisma studio` — DB GUI arayüzü
-- `npx prisma db push` — Şemayı DB'ye uygula
-- `npx prisma migrate dev --name <isim>` — Migration oluştur
-- `npx prisma generate` — Client yeniden üret
-- `npx tsc --noEmit` — TypeScript tip kontrolü
+## Commands
+- `npm run dev` — Start development server (localhost:3000)
+- `npm test` — Run all Vitest unit and integration suites
+- `npm run build` — Production build check
+- `npx prisma studio` — Open Prisma database GUI
+- `npx prisma db push` — Apply schema changes to database
+- `npx prisma migrate dev --name <name>` — Create and apply migrations
+- `npx prisma generate` — Regenerate Prisma client
+- `npx tsc --noEmit` — Run TypeScript type checking
 
-## Veritabanı Modelleri (Faz 1 + Faz 2 + Faz 3-Q/W — 14 model)
+## Database Models (14 Models across Phases 1, 2, and 3)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
 Sprint, SprintTask, Activity, ProjectInvite, **TaskRelation**
 
-Enum'lar (6):
-- StateGroup (BACKLOG/TODO/IN_PROGRESS/DONE/CANCELLED)
-- Priority (NONE/LOW/MEDIUM/HIGH/URGENT)
-- SprintStatus (DRAFT/ACTIVE/COMPLETED)
-- ActivityType (17 değer: TASK_CREATED, TASK_TITLE_UPDATED, TASK_DESCRIPTION_UPDATED,
+Enums (6):
+- StateGroup (BACKLOG, TODO, IN_PROGRESS, DONE, CANCELLED)
+- Priority (NONE, LOW, MEDIUM, HIGH, URGENT)
+- SprintStatus (DRAFT, ACTIVE, COMPLETED)
+- ActivityType (17 values: TASK_CREATED, TASK_TITLE_UPDATED, TASK_DESCRIPTION_UPDATED,
   TASK_STATE_CHANGED, TASK_PRIORITY_CHANGED, TASK_DUE_DATE_CHANGED, TASK_START_DATE_CHANGED,
   TASK_ASSIGNEE_ADDED, TASK_ASSIGNEE_REMOVED, TASK_LABEL_ADDED, TASK_LABEL_REMOVED,
   TASK_SPRINT_ADDED, TASK_SPRINT_REMOVED, COMMENT_ADDED, COMMENT_DELETED,
   **TASK_RELATION_ADDED, TASK_RELATION_REMOVED**)
-- InviteStatus (PENDING/ACCEPTED/EXPIRED)
-- **RelationType** (BLOCKS/RELATES_TO/DUPLICATES)
+- InviteStatus (PENDING, ACCEPTED, EXPIRED)
+- **RelationType** (BLOCKS, RELATES_TO, DUPLICATES)
 
-## Kritik Mimari Kararlar
-- Prisma singleton: src/lib/prisma.ts — globalThis pattern (hot-reload güvenli)
-- Server Actions: src/actions/ altında — "use server" directive ile
-- Üyelik doğrulama: Her action'da requireMembership(projectId, userId) çağrılır
-- Rol doğrulama: State (ayarlar) action'larında requireAdmin(projectId, userId) — role==="ADMIN"
-- Float sıralama: sortOrder / State.sequence Float — araya ekleme: (üst + alt) / 2
-- Sequence ID: getNextSequenceId() — proje bazlı artan tamsayı (PRJ-1, PRJ-2)
-- Avatar rengi: getAvatarColor(name) — bitwise hash → 10 renk palet
-- Filtreleme: URL search params tabanlı, server-side (Prisma where clause)
-- Optimistic updates: Kanban sürükle-bırakta — hata halinde rollback
-- State silinmesi: onDelete: Restrict — görevler başka state'e taşınmadan silinemez;
-  canDeleteState() ile son state de silinemez
-- Aktivite logu: logActivity(tx, data) — her zaman ilgili prisma.$transaction içinde çağrılır,
-  kendi try/catch'i ile sarılıdır, ana işlemi asla başarısız yapmaz
-- Sprint kısıtı: projede aynı anda yalnızca bir ACTIVE sprint olabilir (canStartSprint)
-- Bulk action limitleri: bulkUpdateTasks ≤100 görev, bulkDeleteTasks ≤50 görev,
-  tüm taskId'lerin aynı projeye ait olduğu her zaman sunucuda doğrulanır
-- Markdown güvenli kesme: truncateMarkdown kelime sınırında keser ve dengesiz ** / ` bırakmaz
-- Davet sistemi: inviteMember — ADMIN kontrolü, token (32 byte hex, 7 gün geçerli), PENDING/ACCEPTED/EXPIRED
-  e-posta eşleşme zorunlu (acceptInvite), proje sahibi çıkartılamaz/rolü değiştirilemez
-- Task Detail inline seçiciler: StatusPicker/PriorityPicker InlineSelectPopover üzerine kurulu,
-  optimistic update + resolveOptimisticState ile rollback, shouldUpdateState/shouldUpdatePriority
-  ile aynı değer tekrar seçilirse mutation atlanır
-- Sprint rozetü: resolveTaskSprintBadge — ACTIVE > DRAFT > Backlog önceliğiyle tek rozet seçer
-- Görev paylaşım linki: buildTaskShareUrl(window.location.origin, pathname, taskId) — board/list
-  görünümleri ?task= query param'ını okuyup ilgili görevi otomatik açar
-- Backlog: isTaskInBacklog — görev hiçbir ACTIVE/DRAFT sprint'e bağlı değilse backlog'dadır
-  (COMPLETED sprint geçmişi backlog sayılır); moveTaskToSprint/moveTaskToBacklog yalnızca
-  ACTIVE/DRAFT SprintTask bağlantılarını siler, COMPLETED geçmişi asla silinmez
-  (canDeleteSprintTaskLink/getRemovableSprintIds)
-- Global Arama: globalSearch(query) — sorgu ≥2 karakter, kullanıcının üyesi olduğu projelerdeki
-  görev (başlık substring veya PRJ-12 identifier eşleşmesi) ve proje (ad/identifier) sonuçlarını
-  döner (görev ≤10, proje ≤5); parseTaskIdentifier ile identifier ayrıştırma src/lib/search-logic.ts'de
-  saf fonksiyon; CommandPalette (Ctrl+K/Cmd+K) klavye navigasyonu (moveActiveIndex ile döngüsel
-  yukarı/aşağı) ve proje bazlı Hızlı Aksiyon komutları (yalnızca /projects/[id]/... sayfasındayken
-  gösterilir) içerir
-- Dashboard Analytics: src/lib/analytics-logic.ts saf fonksiyonlar — isTaskOverdue/countOverdueTasks
-  (yalnızca DONE hariç tutulur, CANCELLED de gecikmiş sayılabilir), calculateCompletionRate
-  (0 görevde division-by-zero engellenir), calculateSprintBurndown(totalTasks, completedTasksByDate),
-  calculateProjectVelocity (tamamlanan sprintlerin ortalama görev sayısı, 1 ondalık basamağa
-  yuvarlanır), formatRelativeTime(date, now?) — task-activity.tsx da aynı fonksiyonu kullanır
-  (kod tekrarı kaldırıldı); Dashboard (/) 4 istatistik kartı (aktif proje/bana atanan açık görev/
-  gecikmiş görev/aktif sprint — tümü prisma.count ile optimize sorgu), "Bana Atananlar" widget'ı
-  (en güncel 5 açık görev), "Son Aktiviteler" akışı (projelerdeki son 8 aktivite,
-  formatActivityMessage + formatRelativeTime), "Sprint Hızı" paneli (aktif sprintlerin ilerleme
-  çubuğu + ortalama hız) gösterir; harici grafik kütüphanesi kullanılmaz, tamamı Tailwind CSS
-  tabanlı
-- Gelişmiş Filtreler: BoardFilters { priorities, labelIds, assigneeIds, groups, due, query, sort, order } —
-  board-filters.ts; group filtresi 4 değer alır (TODO/IN_PROGRESS/DONE/CANCELLED, BACKLOG hariç),
-  due filtresi (overdue/today/this_week/no_date) resolveDueDateRange ile Date sınırlarına çevrilir
-  (hafta Pazartesi başlar); buildTaskWhereFromFilters tüm filtreleri tek Prisma.TaskWhereInput'a
-  indirger, board/list sayfalarındaki tekrarlı where-clause kodu kaldırıldı; Hızlı Filtre çipleri
-  (Bana Atananlar/Acil Görevler/Gecikmişler/Tamamlanmamışlar) tek tıkla toggle eder; Kayıtlı
-  Görünümler useSavedViews hook'u ile localStorage'da proje bazlı saklanır
-  (pulse:saved-views:{projectId}), serializeBoardFilters/parseBoardFilters roundtrip ile URL query
-  string'e dönüşür, "Benim Görevlerim" gibi varsayılan görünümler __me__ yer tutucusunu
-  resolveSavedViewQuery ile oturumdaki kullanıcı ID'sine çözer
-- Görev İlişkileri: TaskRelation her zaman TEK yönlü TEK kayıttır — "Tarafından engelleniyor"
-  ayrı bir tip değil, BLOCKS kaydının hedef tarafındaki görünümüdür (ters kayıt asla yazılmaz);
-  getRelationLabel(type, direction) perspektif etiketini verir, groupRelationsForTask kaynak/hedef
-  kayıtlarını blocks/blockedBy/relatesTo/duplicates olarak dörde ayırır (src/lib/relation-logic.ts);
-  tek çift kuralı: hasExistingRelation ile aynı iki görev arasında yönden ve tipten bağımsız
-  yalnızca bir ilişki kurulabilir; döngü kontrolü YALNIZCA BLOCKS için geçerlidir
-  (requiresCycleCheck) — wouldCreateBlockCycle stack + visited ile İTERATİF DFS yapar
-  (rekürsiyon yok: 1000+ düğümlü zincirde stack overflow olmaz, mevcut veride döngü olsa bile
-  visited seti sonsuz döngüyü engeller); addTaskRelation projectId'yi istemciden değil doğrulanmış
-  görev kaydından alır, iki görevin aynı projede olmasını şart koşar
+## Critical Architectural Decisions
+- **Prisma Singleton:** `src/lib/prisma.ts` — `globalThis` pattern (hot-reload safe in development).
+- **Server Actions:** Located under `src/actions/` with `"use server"` directive.
+- **Membership Authorization:** Every action enforces `requireMembership(projectId, userId)`.
+- **Role-Based Authorization:** State and project configuration actions require `requireAdmin(projectId, userId)` (`role === "ADMIN"`).
+- **Float-Based Ordering:** `sortOrder` / `State.sequence` are Floats. Midpoint insertion: `(upper + lower) / 2`.
+- **Monotonic Sequence IDs:** `getNextSequenceId()` — project-scoped incrementing integer (`PRJ-1`, `PRJ-2`).
+- **Avatar Color Generation:** `getAvatarColor(name)` — bitwise hash mapping to a 10-color curated Tailwind palette.
+- **Server-Side Filtering:** URL search params based, directly compiled into Prisma where clauses.
+- **Optimistic UI:** Kanban drag-and-drop applies optimistic state with automatic rollback on server error.
+- **State Deletion Safety:** `onDelete: Restrict` — tasks must be moved to another state prior to deletion; `canDeleteState()` ensures the last remaining state cannot be deleted.
+- **Non-blocking Activity Logging:** `logActivity(tx, data)` runs inside transaction blocks with internal try/catch; logging failure never rolls back the primary operation.
+- **Single Active Sprint Constraint:** A project can have at most one ACTIVE sprint at any time (`canStartSprint`).
+- **Bulk Action Guardrails:** `bulkUpdateTasks` capped at ≤100 tasks, `bulkDeleteTasks` capped at ≤50 tasks; same-project ownership of all task IDs is strictly validated on the server.
+- **Markdown Safe Clipping:** `truncateMarkdown` clips text at word boundaries and balances unclosed `**` and ``` tokens.
+- **Invitation Lifecycle:** `inviteMember` requires ADMIN role, generates 32-byte hex token valid for 7 days (`expiresAt`). `acceptInvite` enforces recipient email matching. Project owner (`ownerId`) cannot be removed or demoted.
+- **Task Detail Popovers:** `StatusPicker` and `PriorityPicker` built on `InlineSelectPopover` with optimistic UI and keyboard navigation; mutations skipped if the same value is selected.
+- **Sprint Badge Hierarchy:** `resolveTaskSprintBadge` resolves ACTIVE > DRAFT > Backlog.
+- **Deep Linking:** `buildTaskShareUrl` generates URLs with `?task=` query parameter, auto-opening task slide-over on board and list views.
+- **Backlog Invariants:** `isTaskInBacklog` checks if a task is not linked to any ACTIVE or DRAFT sprint (COMPLETED sprint history is preserved as backlog); `moveTaskToSprint` / `moveTaskToBacklog` only modify ACTIVE/DRAFT links, never deleting COMPLETED sprint history.
+- **Global Search & Command Palette:** `globalSearch(query)` requires ≥2 characters, searches task titles / `PRJ-X` identifiers (max 10) and projects (max 5) across member projects. `CommandPalette` provides Ctrl+K / Cmd+K keyboard navigation and context-aware quick actions.
+- **Dashboard Analytics:** Pure logic in `src/lib/analytics-logic.ts` (`isTaskOverdue`, `countOverdueTasks`, `calculateCompletionRate`, `calculateSprintBurndown`, `calculateProjectVelocity`, `formatRelativeTime`). Dashboard renders 4 count cards, "Assigned to Me" widget, "Recent Activity Feed", and "Sprint Velocity" CSS progress bars without external charting libraries.
+- **Advanced Filters & Saved Views:** `BoardFilters` unified via `buildTaskWhereFromFilters` into a single Prisma where input. Quick filter chips provide 1-click toggles. `useSavedViews` manages localStorage persistence (`pulse:saved-views:{projectId}`) with `__me__` dynamic placeholder resolution.
+- **Task Relations (Dependency Graph):** `TaskRelation` is strictly a SINGLE row in the DB. "Blocked By" is an inverted perspective of a BLOCKS record (reverse rows are never inserted). `hasExistingRelation` enforces the single-pair rule across both directions. Cycle detection is strictly enforced for BLOCKS via `wouldCreateBlockCycle` (iterative DFS with stack + visited set, non-recursive, safe against stack overflows). `addTaskRelation` derives `projectId` from verified task records, ensuring both tasks reside in the same project.
 
-## Test Konvansiyonu
-- Konum: src/lib/__tests__/*.test.ts
-- Framework: Vitest — import { describe, it, expect, vi } from "vitest"
-- Kural: Server action'lar doğrudan test edilmez → business logic saf fonksiyona çıkarılır
-  (örn. sprint-logic.ts, settings-logic.ts, list-view-sort.ts, bulk-selection-logic.ts,
-  markdown-utils.ts, activity-logger.ts'nin formatActivityMessage'ı)
-- Mock: vi.fn().mockResolvedValue() ile Prisma client mock'lanır
-- Mevcut testler:
-  - sequence.test.ts (2), sort-order.test.ts (4), colors.test.ts (3), board-filters.test.ts (5)
-  - sprint-utils.test.ts (13), sprint-actions.test.ts (11), list-view-sort.test.ts (15)
-  - activity-logger.test.ts (14), bulk-selection.test.ts (18), markdown-utils.test.ts (21)
-  - settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux.test.ts (19)
-  - backlog-logic.test.ts (23), search-logic.test.ts (24), dashboard-analytics.test.ts (25)
-  - advanced-filters.test.ts (36), **task-relations.test.ts (40)**
-- Toplam: **331 test**, %100 geçiyor
+## Testing Conventions
+- **Location:** `src/lib/__tests__/*.test.ts`
+- **Framework:** Vitest — `import { describe, it, expect, vi } from "vitest"`
+- **Rule:** Server actions are not directly executed in unit tests; business logic is isolated into pure domain functions (`src/lib/*.ts`).
+- **Mocks:** `vi.fn().mockResolvedValue()` used for Prisma client mocking where applicable.
+- **Suites:**
+  - `sequence.test.ts` (2), `sort-order.test.ts` (4), `colors.test.ts` (3), `board-filters.test.ts` (5)
+  - `sprint-utils.test.ts` (13), `sprint-actions.test.ts` (11), `list-view-sort.test.ts` (15)
+  - `activity-logger.test.ts` (14), `bulk-selection.test.ts` (18), `markdown-utils.test.ts` (21)
+  - `settings-validation.test.ts` (30), `member-management.test.ts` (28), `task-detail-ux.test.ts` (19)
+  - `backlog-logic.test.ts` (23), `search-logic.test.ts` (24), `dashboard-analytics.test.ts` (25)
+  - `advanced-filters.test.ts` (36), `task-relations.test.ts` (40)
+- **Total:** **331 tests, 100% passing**
 
-## Kod Stili
-- Import alias: @/* → src/*
-- Bileşenler: PascalCase, Server Component default (gerekirse "use client")
-- Actions: camelCase, "use server" directive zorunlu
-- Hata: throw new Error("Türkçe mesaj")
-- revalidatePath: Her mutasyondan sonra zorunlu
+## Code Style
+- **Import Alias:** `@/*` maps to `src/*`
+- **Components:** PascalCase, Server Component by default (use `"use client"` only when interactive)
+- **Actions:** camelCase with mandatory `"use server"` directive
+- **Errors:** Descriptive error throwing (`throw new Error("...")`)
+- **Cache Revalidation:** Mandatory `revalidatePath()` after every mutation
 
-## Tamamlanan Görev — Faz 2 (v0.2.0) — Faz Adım Sırası
-Faz 2.01: [TAMAMLANDI] Sprint/Cycle Şeması + sprint-utils.test.ts (13 test)
-Faz 2.02: [TAMAMLANDI] Sprint Yönetim Sayfası + sprint-actions.test.ts (11 test)
-Faz 2.03: [TAMAMLANDI] Liste Görünümü + list-view-sort.test.ts (15 test)
-Faz 2.04: [TAMAMLANDI] Aktivite/Audit Log + activity-logger.test.ts (14 test)
-Faz 2.05: [TAMAMLANDI] Toplu İşlemler + bulk-selection.test.ts (18 test)
-Faz 2.06: [TAMAMLANDI] Markdown Desteği + markdown-utils.test.ts (21 test)
-Faz 2.07: [TAMAMLANDI] Proje Ayarları + settings-validation.test.ts (30 test)
-Sonuç: 136 Vitest testi (hedef 100+ aşıldı), npm run build hatasız
+## Completed Phases
+- **Phase 1 (v0.1.0):** Core Kanban, Auth, CRUD, Slide-over (14 tests)
+- **Phase 2 (v0.2.0):** Sprints/Cycles, List View, Audit Log, Bulk Actions, Markdown Editor, Settings (136 tests)
+- **Phase 3 (v0.3.0):** Member Invites, Task Detail UX, Backlog View, Global Search Cmd+K, Dashboard Analytics, Advanced Filters, Task Relations (331 tests)
 
-## Tamamlanan Görev — Faz 3 (v0.3.0) — Tamamlandı
-Faz 3 odak alanları: UX/UI kalitesi · Proje yönetimi yetenekleri · Jira/Linear deneyimi
-E-posta bildirimleri → Backlog'a alındı.
-Kimlik doğrulama kapsamı sabittir: yalnızca CredentialsProvider (e-posta/şifre + bcrypt).
-Harici kimlik sağlayıcı entegrasyonu proje kapsamından çıkarılmıştır, planlanmaz.
-
-### Faz 3 Adım Durumu
-- **Faz 3.01** [TAMAMLANDI] Üye Yönetimi & Davet Sistemi — ProjectInvite + 5 action + /invite/[token] + 28 test
-- **Faz 3.02** [TAMAMLANDI] Task Detail Premium UX — inline durum/öncelik seçiciler, breadcrumb, bağlantı
-  kopyalama, sprint rozeti + task-detail-ux.test.ts (19 test)
-- **Faz 3.03** [TAMAMLANDI] Backlog Görünümü & Sprint Entegrasyonu — /backlog route, moveTaskToSprint/
-  moveTaskToBacklog, sprint ilerleme kartları + backlog-logic.test.ts (23 test)
-- **Faz 3.04** [TAMAMLANDI] Global Arama & Komut Paleti (Cmd+K) — globalSearch server action,
-  CommandPalette bileşeni (Ctrl+K/Cmd+K, klavye navigasyonu), Sidebar'a arama butonu +
-  search-logic.test.ts (24 test)
-- **Faz 3.05** [TAMAMLANDI] Dashboard Yenileme & Analytics — 4 istatistik kartı, Bana Atananlar widget'ı,
-  Son Aktiviteler akışı, Sprint Hızı paneli, analytics-logic.ts + dashboard-analytics.test.ts (25 test)
-- **Faz 3.06** [TAMAMLANDI] Gelişmiş Filtreler & Kayıtlı Görünümler — group/due/q filtreleri,
-  buildTaskWhereFromFilters, Hızlı Filtre çipleri, useSavedViews (localStorage) +
-  advanced-filters.test.ts (36 test)
-- **Faz 3.07** [TAMAMLANDI] Task Relations (Blocks/Relates To) — TaskRelation modeli + RelationType enum,
-  relation-logic.ts (iteratif DFS döngü tespiti), addTaskRelation/removeTaskRelation/
-  searchTasksForRelation, TaskRelations bileşeni (4 grup + İlişki Ekle popover) +
-  task-relations.test.ts (40 test)
-Sonuç: Faz 3 kapandı — 331 Vitest testi %100 geçiyor, npx tsc --noEmit ve npm run build hatasız.
-
-## Her Adım Sonrası Doğrulama
-npm test          # tüm testler geçmeli (şu an: 331 test)
-npx tsc --noEmit  # TypeScript hatası olmamalı
+## Verification Rule After Every Step
+```bash
+npm test          # All test suites must pass 100% (331 tests)
+npx tsc --noEmit  # Zero TypeScript compilation errors
+```
 
 <!-- BEGIN:nextjs-agent-rules -->
 
