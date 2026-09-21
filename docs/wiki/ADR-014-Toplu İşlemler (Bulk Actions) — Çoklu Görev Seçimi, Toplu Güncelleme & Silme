@@ -1,8 +1,8 @@
-# 📑 Prompt N — Teknik Değerlendirme ve Test Raporu
+# Faz 2.05 — Toplu İşlemler (Bulk Actions) — Çoklu Görev Seçimi, Toplu Güncelleme & Silme: Teknik Rapor
 
 > **Faz:** 2 (v0.2.0 Hazırlığı)  
 > **Başlık:** Toplu İşlemler (Bulk Actions) — Çoklu Görev Seçimi, Toplu Güncelleme & Silme  
-> **Proje:** `C:\Staj_Project`  
+> **Proje:** Pulse Project Manager (`C:\Pulse`)  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri ve testler karşılandı  
 > **Tarih:** 18 Eylül 2026  
 
@@ -10,9 +10,9 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-**Prompt N**, Staj PM platformunun Liste Görünümü (List View) üzerinde birden fazla görevin aynı anda seçilerek tek tıkla toplu olarak güncellenmesini (durum, öncelik, sprint ataması) ve güvenli biçimde silinmesini sağlayan **Toplu İşlemler (Bulk Actions)** yeteneğini sisteme kazandırmıştır.
+**Faz 2.05**, Pulse Project Manager platformunun Liste Görünümü (List View) üzerinde birden fazla görevin aynı anda seçilerek tek tıkla toplu olarak güncellenmesini (durum, öncelik, sprint ataması) ve güvenli biçimde silinmesini sağlayan **Toplu İşlemler (Bulk Actions)** yeteneğini sisteme kazandırmıştır.
 
-Bu prompt kapsamında;
+Bu faz adımı kapsamında;
 - `src/actions/task.ts` içerisine atomik `$transaction` batch mekanizmasıyla çalışan `bulkUpdateTasks` ve `bulkDeleteTasks` Server Action'ları eklendi,
 - Proje içi görev izolasyonunu denetleyen `requireSameProjectTasks` güvenlik katmanı entegre edildi,
 - Durum yönetimini hafifleten ve reaktif çalışan `useBulkSelection` custom React hook'u geliştirildi,
@@ -97,7 +97,7 @@ Toplu veri operasyonları için yüksek performanslı ve güvenlik kontrollü 2 
 Terminal komutu: `npx vitest run src/lib/__tests__/bulk-selection.test.ts`
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/bulk-selection.test.ts (18 tests) 10ms
 
@@ -137,7 +137,7 @@ Terminal komutu: `npx vitest run src/lib/__tests__/bulk-selection.test.ts`
 Terminal komutu: `npm test`
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/activity-logger.test.ts (14 tests) 12ms
  ✓ src/lib/__tests__/sprint-actions.test.ts (11 tests) 11ms
@@ -176,9 +176,9 @@ Terminal komutu: `npm test`
 
 ---
 
-## 7. Faz 2 Yol Haritası & Sonraki Adım: Prompt O
+## 7. Faz 2 Yol Haritası & Sonraki Adım: Faz 2.06
 
-Prompt N'in tamamlanmasıyla birlikte Faz 2'nin 5. adımı başarıyla geride bırakılmıştır.
+Faz 2.05'in tamamlanmasıyla birlikte Faz 2'nin 5. adımı başarıyla geride bırakılmıştır.
 
-- **Sıradaki Adım:** **Prompt O — Markdown Açıklama Desteği (Rich Text & Preview)**
+- **Sıradaki Adım:** **Faz 2.06 — Markdown Açıklama Desteği (Rich Text & Preview)**
 - **Hedef:** Görev açıklamalarında `react-markdown` ile kalın yazı, başlıklar, listeler, kod blokları ve canlı önizleme sekmesi (Düzenle / Önizle) yeteneğinin kazandırılması.

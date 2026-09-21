@@ -1,7 +1,7 @@
-# Faz F — Etiketler, Kullanıcı Atama & Renk Motoru Mimarisi: Teknik Rapor
+# Faz 1.06 — Etiketler, Kullanıcı Atama & Renk Motoru Mimarisi: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** F (Label CRUD, TaskAssignee, Deterministik Renkler & Seçici Bileşenler)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.06 (Label CRUD, TaskAssignee, Deterministik Renkler & Seçici Bileşenler)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı & Doğrulandı
 
@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz F kapsamında, görevlerin kategorize edilmesini sağlayan **Etiketleme (Labels)** ve iş yükünün dağıtılmasını sağlayan **Kullanıcı Atama (Assignees)** sistemleri uçtan uca hayata geçirilmiştir.
+Faz 1.06 kapsamında, görevlerin kategorize edilmesini sağlayan **Etiketleme (Labels)** ve iş yükünün dağıtılmasını sağlayan **Kullanıcı Atama (Assignees)** sistemleri uçtan uca hayata geçirilmiştir.
 
 Bu fazın öne çıkan teknik kazanımları:
 1. **İdempotent Çoka-Çok (M2M) İşlemleri:** Kompozit birincil anahtarlar (`@@id`) ve `try/catch` mekanizması ile mükerrer veya çakışan atama isteklerinin veritabanı seviyesinde sessizce ve güvenle yönetilmesi.
@@ -180,9 +180,9 @@ export function getAvatarColor(seed: string): string {
 
 ---
 
-## 8. Sonraki Adımlarla (Faz G & H) Entegrasyon
+## 8. Sonraki Adımlarla (Faz 1.07 & H) Entegrasyon
 
-- **Faz G (Kanban Panosu):** Görev kartlarının alt satırında `LabelBadge`'ler (maksimum 2 adet + "+N" sayacı) ve `Avatar`'lar (üst üste binen halkalar halinde) başarıyla render edilmiştir.
-- **Faz H (Detay Modalı):** Sağ taraftaki "Properties" panelinde hem `LabelPicker` hem de `AssigneePicker` görev özelliklerini doğrudan yönetmek üzere kullanılmıştır.
+- **Faz 1.07 (Kanban Panosu):** Görev kartlarının alt satırında `LabelBadge`'ler (maksimum 2 adet + "+N" sayacı) ve `Avatar`'lar (üst üste binen halkalar halinde) başarıyla render edilmiştir.
+- **Faz 1.08 (Detay Modalı):** Sağ taraftaki "Properties" panelinde hem `LabelPicker` hem de `AssigneePicker` görev özelliklerini doğrudan yönetmek üzere kullanılmıştır.
 
-*Rapor Faz F gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*
+*Rapor Faz 1.06 gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

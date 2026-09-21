@@ -1,8 +1,8 @@
-# 📑 Prompt L — Teknik Değerlendirme ve Test Raporu
+# Faz 2.03 — Liste Görünümü (List View) — Tablo Stili Düz Liste & Sıralama Motoru: Teknik Rapor
 
 > **Faz:** 2 (v0.2.0 Hazırlığı)  
 > **Başlık:** Liste Görünümü (List View) — Tablo Stili Düz Liste & Sıralama Motoru  
-> **Proje:** `C:\Staj_Project`  
+> **Proje:** Pulse Project Manager (`C:\Pulse`)  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri ve testler karşılandı  
 > **Tarih:** 18 Eylül 2026  
 
@@ -10,9 +10,9 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-**Prompt L**, Staj PM platformuna Kanban panosu görünümüne alternatif olarak modern, tablo stili bir **Liste Görünümü (List View)** kazandırmak amacıyla hayata geçirilmiştir. Kullanıcıların görevleri Excel benzeri satırlar halinde incelemesine, durum bazında gruplandırmasına (collapsible accordion) ve çok boyutlu sıralamasına olanak tanır.
+**Faz 2.03**, Pulse Project Manager platformuna Kanban panosu görünümüne alternatif olarak modern, tablo stili bir **Liste Görünümü (List View)** kazandırmak amacıyla hayata geçirilmiştir. Kullanıcıların görevleri Excel benzeri satırlar halinde incelemesine, durum bazında gruplandırmasına (collapsible accordion) ve çok boyutlu sıralamasına olanak tanır.
 
-Bu prompt kapsamında;
+Bu faz adımı kapsamında;
 - Yeni sunucu rotası oluşturuldu: `/projects/[projectId]/list` (`ProjectListPage`),
 - 4 adet yeni modüler Client bileşeni (`ListViewContainer`, `ListTable`, `ListRow`, `ListGroupByState`) geliştirildi,
 - Board ve List görünümleri arasında pürüzsüz geçiş sağlayan `ViewSwitcher` bileşeni inşa edildi ve `FilterBar` ile entegre edildi,
@@ -57,7 +57,7 @@ Bu prompt kapsamında;
   - Gelecek tarihler: Yeşil (`text-green-600`)
 - **Etiket & Görevli Yoğunluğu:** İlk 2 etiket rozet olarak gösterilir; kalanı `+X` sayacı ile özetlenir.
 - **Satır İçi Aksiyonlar (⋮):** Tıklanabilir üç nokta menüsü ile `Düzenle` ve `Sil` (`deleteTask` action çağrısı).
-- **Toplu Seçim Hazırlığı:** Satır başındaki seçim checkbox'ı `Prompt N` (Bulk Actions) için hazır prop arayüzü (`isSelected`, `onSelect`) ile donatılmıştır.
+- **Toplu Seçim Hazırlığı:** Satır başındaki seçim checkbox'ı `Faz 2.05` (Bulk Actions) için hazır prop arayüzü (`isSelected`, `onSelect`) ile donatılmıştır.
 
 ### 3.4. `ListGroupByState` (`list-group-by-state.tsx`)
 - Görevleri ait oldukları `State` (Kanban sütun durumu) altında gruplandırır.
@@ -109,7 +109,7 @@ Veritabanına yük bindirmeden istemci tarafında anlık sıralama ve gruplama s
 Terminal komutu: `npx vitest run src/lib/__tests__/list-view-sort.test.ts`
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/list-view-sort.test.ts (15 tests) 20ms
 

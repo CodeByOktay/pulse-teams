@@ -1,5 +1,5 @@
-Pulse — Faz 3 Prompt R: Teknik Rapor (Task Detail Premium UX)
-Bu rapor, Pulse projesinin en kritik etkileşim noktalarından biri olan Task Detail Slide-over Modal bileşeninin Linear standartlarında modern, kompakt, hızlı ve mikro-etkileşimleri zengin bir kullanıcı deneyimine dönüştürülmesini kapsayan Prompt R mimari ve teknik analizini sunar.
+# Faz 3.02 — Task Detail Premium UX: Teknik Rapor
+Bu rapor, Pulse projesinin en kritik etkileşim noktalarından biri olan Task Detail Slide-over Modal bileşeninin Linear standartlarında modern, kompakt, hızlı ve mikro-etkileşimleri zengin bir kullanıcı deneyimine dönüştürülmesini kapsayan Faz 3.02 mimari ve teknik analizini sunar.
 
 1. Giriş ve Amaç
 1.1 Problem Tanımı
@@ -121,7 +121,7 @@ Pure business logic katmanında 19 test yazılmış ve %100 başarı sağlanmı�
 		○ Başarısız işlemde önceki değere geri dönülmesi (rollback).
 
 6. Doğrulama ve Kalite Kontrol Sonuçları
-Prompt R geliştirildikten sonra sırasıyla çalıştırılan doğrulama komutları:
+Faz 3.02 geliştirildikten sonra sırasıyla çalıştırılan doğrulama komutları:
 	1. Test Doğrulaması:
 
 bash
@@ -141,7 +141,7 @@ npm run build
 
 
 7. Sonuç ve Mimari Kazanımlar
-Prompt R ile birlikte Pulse'ın görev detay paneli:
+Faz 3.02 ile birlikte Pulse'ın görev detay paneli:
 	1. %40 Daha Az Tıklama ve Hareket: Kullanıcı durum veya öncelik değiştirmek için hantal seçim menüleriyle uğraşmak yerine tek tıkla doğrudan istediği değere ulaşabilmektedir.
 	2. Sıfır Gereksiz Ağ Trafiği: Aynı durum/öncelik seçimleri sunucuya gitmeden istemci katmanında filtrelenmektedir.
 	3. Sprint & Backlog Netliği: Görevin panoda hangi fazda olduğu anında anlaşılabilmektedir.

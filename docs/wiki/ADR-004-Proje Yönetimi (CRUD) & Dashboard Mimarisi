@@ -1,7 +1,7 @@
-# Faz D — Proje Yönetimi (CRUD) & Dashboard Mimarisi: Teknik Rapor
+# Faz 1.04 — Proje Yönetimi (CRUD) & Dashboard Mimarisi: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** D (Proje Oluşturma, Listeleme, Silme, Sidebar & Dashboard)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.04 (Proje Oluşturma, Listeleme, Silme, Sidebar & Dashboard)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı & Doğrulandı
 
@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz D kapsamında, `C:\Staj_Project` uygulamasına çalışma alanlarının (projelerin) uçtan uca yönetilmesini sağlayan **Proje CRUD** katmanı inşa edilmiştir.
+Faz 1.04 kapsamında, `C:\Pulse` uygulamasına çalışma alanlarının (projelerin) uçtan uca yönetilmesini sağlayan **Proje CRUD** katmanı inşa edilmiştir.
 
 Bu fazın en kritik başarısı; yeni bir proje açıldığında **tek bir atomik veritabanı işlemi (interactive transaction)** içerisinde projenin oluşturulması, 5 varsayılan Kanban sütununun (`Backlog`, `Todo`, `In Progress`, `Done`, `Cancelled`) tohumlanması ve oluşturan kullanıcının `ADMIN` rolüyle projeye bağlanmasıdır.
 
@@ -59,7 +59,7 @@ Veri mutasyonları için harici REST API route'ları yazmak yerine, Next.js App 
 - **Tekillik Kontrolü:** Tanımlayıcının veritabanında daha önce alınıp alınmadığı sorgulanır.
 - **Atomik Bütünlük (`prisma.$transaction`):**
   1. `Project` kaydı oluşturulur (`ownerId: session.user.id`).
-  2. Faz B'de geliştirilen `seedDefaultStates(created.id, tx)` fonksiyonu çağrılarak projeye ait 5 varsayılan sütun aralıklı `sequence` değerleriyle (`15000` - `55000`) basılır.
+  2. Faz 1.02'de geliştirilen `seedDefaultStates(created.id, tx)` fonksiyonu çağrılarak projeye ait 5 varsayılan sütun aralıklı `sequence` değerleriyle (`15000` - `55000`) basılır.
   3. Projeyi açan kullanıcı `ProjectMember` tablosuna `role: "ADMIN"` olarak eklenir.
 - **Yönlendirme:** `revalidatePath("/")` ile dashboard önbelleği temizlenir ve kullanıcı doğrudan `/projects/${project.id}/board` rotasına yönlendirilir.
 
@@ -83,7 +83,7 @@ Veri mutasyonları için harici REST API route'ları yazmak yerine, Next.js App 
 │ ┌──────────────────┐ ┌──────────────────────────────────────┐ │
 │ │  Sidebar (256px) │ │  Main Content Area                   │ │
 │ │                  │ │                                      │ │
-│ │  Staj PM         │ │  (main)/page.tsx (Dashboard)         │ │
+│ │  Pulse           │ │  (main)/page.tsx (Dashboard)         │ │
 │ │  [+ Yeni Proje]  │ │  ┌─────────────────────────────────┐ │ │
 │ │                  │ │  │ Projeler                        │ │ │
 │ │  PROJELER        │ │  │                                 │ │ │
@@ -107,7 +107,7 @@ Veri mutasyonları için harici REST API route'ları yazmak yerine, Next.js App 
 
 ### 4.3 Kenar Çubuğu (`src/components/layout/sidebar.tsx`)
 - Koyu tema (`bg-slate-900`, 256px sabit genişlik).
-- Üstte "Staj PM" logosu ve doğrudan modal açan `+` butonu.
+- Üstte "Pulse" logosu ve doğrudan modal açan `+` butonu.
 - Proje listesinde her projenin kodundan (`identifier`) deterministik olarak türetilen renkli durum noktası.
 - `usePathname()` hook'u ile o an görüntülenen aktif projenin otomatik olarak arka plan rengiyle vurgulanması (`bg-slate-800`).
 - Alt kısımda oturum açmış kullanıcının adı/e-postası ve `signOut({ callbackUrl: "/login" })` çıkış butonu.
@@ -151,11 +151,11 @@ Veri mutasyonları için harici REST API route'ları yazmak yerine, Next.js App 
 
 ---
 
-## 7. Sonraki Adımlarla (Faz E - Görev CRUD) Entegrasyon
+## 7. Sonraki Adımlarla (Faz 1.05 - Görev CRUD) Entegrasyon
 
-Faz D'nin tamamlanmasıyla birlikte sistem, görev oluşturma aşamasına hazır hale gelmiştir:
-- **`project.identifier`:** Faz E'de görevlere verilecek `PRJ-1`, `PRJ-2` formatındaki sequence kodlarının ön ekini sağlamıştır.
-- **Tohumlanan Varsayılan State'ler:** Faz E'de yeni açılan bir görevin `isDefault: true` olan sütuna (`Backlog`) otomatik düşmesi bu altyapıya dayanmıştır.
+Faz 1.04'nin tamamlanmasıyla birlikte sistem, görev oluşturma aşamasına hazır hale gelmiştir:
+- **`project.identifier`:** Faz 1.05'de görevlere verilecek `PRJ-1`, `PRJ-2` formatındaki sequence kodlarının ön ekini sağlamıştır.
+- **Tohumlanan Varsayılan State'ler:** Faz 1.05'de yeni açılan bir görevin `isDefault: true` olan sütuna (`Backlog`) otomatik düşmesi bu altyapıya dayanmıştır.
 - **Proje Üyelikleri (`ProjectMember`):** Görev oluşturma ve atama işlemlerindeki güvenlik duvarını oluşturmuştur.
 
-*Rapor Faz D gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*
+*Rapor Faz 1.04 gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

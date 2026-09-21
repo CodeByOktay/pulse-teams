@@ -1,3 +1,5 @@
+# Faz 3.07 — Görev İlişkileri ve Bağımlılık Mimarisi: Teknik Rapor
+
 1. Yapılan değişiklikler
 Veritabanı: RelationType enum (BLOCKS/RELATES_TO/DUPLICATES), TaskRelation modeli (@@unique([sourceTaskId, targetTaskId, type]), iki indeks, onDelete: Cascade), Task modeline sourceRelations/targetRelations ters ilişkileri, ActivityType'a 2 yeni değer.
 İş mantığı (src/lib/relation-logic.ts) — tamamı saf fonksiyon:
@@ -24,14 +26,14 @@ npx tsc --noEmit	✅ exit 0, hata yok
 npm run build	✅ exit 0, 12 route derlendi
 Ek olarak npm run lint çalıştırdım: depoda zaten mevcut olan 18 hata var (sequence.test.ts'te any, use-saved-views.ts/kanban-board.tsx'te react-hooks/set-state-in-effect). Yeni dosyalarım bu sayıya hiçbir şey eklemiyor — ilk yazımda popover'ın debounce effect'i bir ihlal üretiyordu, setIsSearching çağrısını timer callback'ine taşıyarak giderdim.
 7. Git commit
-9a7a5db — feat: (Prompt W) add task relations, cycle detection, relations UI and tests (15 dosya, +1344/−364)
+9a7a5db — feat: (Faz 3.07) add task relations, cycle detection, relations UI and tests (15 dosya, +1344/−364)
 8. Bilinen sınırlamalar
 	• Prisma engine binary'si yenilenemedi. npx prisma generate çalışan next dev sunucusu query_engine-windows.dll.node dosyasını kilitlediği için EPERM verdi. TypeScript tipleri ve client JS'i tam olarak yeniden üretildi (index.d.ts içinde 618 TaskRelation referansı) ve engine sürümü değişmediği için çalışma zamanı doğrulandı. Sunucuyu durdurup yeniden generate etmeyi denedim ancak süreç sonlandırma izni reddedildi — dev sunucusunu yeniden başlatmanız gerekiyor ki yeni şema client'ı yüklensin. node_modules/.prisma/client/ altında 6 adet artık .tmp* dosyası birikmiş (her biri ~21MB, bir kısmı benden önceki denemelerden); temizlik isterseniz sunucu kapalıyken silinebilir.
 	• FAZ3_PROMPTS.md silinmesi commit'e dahil oldu — bu silme ben başlamadan önce sizin tarafınızdan staged edilmişti, git add . talimatı gereği commit'e girdi.
-	• Kapsam dışı bırakılanlar (prompt gereği): ilişkiye göre kanban durum geçişi bloklama ve board kartlarında bağımlılık rozeti.
+	• Kapsam dışı bırakılanlar (kapsam gereği): ilişkiye göre kanban durum geçişi bloklama ve board kartlarında bağımlılık rozeti.
 	• İlişki ekleme sırasında iki eşzamanlı istek teorik olarak yarışabilir; @@unique kısıtı aynı yön+tip için korur, ters yöndeki nadir yarış ise uygulama katmanı kontrolüne bağlı.
 9. Sonraki özellikle entegrasyon noktaları
-	• Prompt X (Profil): relation.ts içindeki requireMembership kalıbı aynen kullanılabilir; ilişki aktiviteleri zaten profil aktivite akışına düşer.
+	• Faz 4 (Profil / Gelecek Fazlar): relation.ts içindeki requireMembership kalıbı aynen kullanılabilir; ilişki aktiviteleri zaten profil aktivite akışına düşer.
 	• wouldCreateBlockCycle hazır: ileride "engelleyen görev tamamlanmadan DONE'a taşınamaz" kuralı için blockedBy grubu doğrudan kullanılabilir.
-	• searchTasksForRelation, parseTaskIdentifier'ı Prompt T'den yeniden kullanıyor — komut paletine "ilişki ekle" aksiyonu eklemek kolay.
+	• searchTasksForRelation, parseTaskIdentifier'ı Faz 3.04'den yeniden kullanıyor — komut paletine "ilişki ekle" aksiyonu eklemek kolay.
 	• groupRelationsForTask çıktısı board kartı rozetleri için hazır veri sağlıyor (yalnızca sayı gerekiyorsa countGroupedRelations).

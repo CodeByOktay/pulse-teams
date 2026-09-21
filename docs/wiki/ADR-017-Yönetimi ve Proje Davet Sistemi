@@ -1,5 +1,5 @@
-Pulse — Faz 3 Prompt Q: Teknik Rapor (Üye Yönetimi ve Proje Davet Sistemi)
-Bu teknik rapor, Pulse projesine takım çalışması, rol tabanlı erişim denetimi (RBAC) ve güvenli proje davet mekanizmasını kazandıran Prompt Q geliştirmesinin mimari, veri modeli, güvenlik kuralları ve test stratejisini sunar.
+# Faz 3.01 — Üye Yönetimi ve Proje Davet Sistemi: Teknik Rapor
+Bu teknik rapor, Pulse projesine takım çalışması, rol tabanlı erişim denetimi (RBAC) ve güvenli proje davet mekanizmasını kazandıran Faz 3.01 geliştirmesinin mimari, veri modeli, güvenlik kuralları ve test stratejisini sunar.
 
 1. Giriş ve Amaç
 1.1 Problem Tanımı
@@ -135,11 +135,11 @@ Sayfa sunucu tarafında token durumunu analiz eder ve 6 farklı duruma göre öz
 		○ Projedeki üyelerin rollerine göre gruplanması ve sayımı (countMembersByRole).
 
 7. Doğrulama ve Sistem Durumu
-Prompt Q geliştirildikten sonra sırasıyla çalıştırılan doğrulama adımları:
+Faz 3.01 geliştirildikten sonra sırasıyla çalıştırılan doğrulama adımları:
 	• Vitest Testleri: 12 test dosyasında 164 testin tamamı %100 başarılı olarak geçti (28 yeni test eklendi).
 	• TypeScript: npx tsc --noEmit hatasız tamamlandı.
 	• Production Build: npm run build ile /invite/[token] sayfası dahil tüm sayfalar başarıyla derlendi.
-	• Git Commit: 2168f24 feat: (Prompt Q) add member management, project invite system and 28 new tests olarak sürümlendi.
+	• Git Commit: 2168f24 feat: (Faz 3.01) add member management, project invite system and 28 new tests olarak sürümlendi.
 
 8. Sonuç
-Prompt Q ile Pulse; davet bağlantılarının kopyalanıp Slack, WhatsApp veya e-posta üzerinden paylaşılabildiği, rol bazlı yetkilendirmenin uygulandığı ve e-posta eşleşme güvencesiyle yetkisiz katılımların engellendiği sağlam ve güvenli bir takım çalışma altyapısına kavuşmuştur.
+Faz 3.01 ile Pulse; davet bağlantılarının kopyalanıp Slack, WhatsApp veya e-posta üzerinden paylaşılabildiği, rol bazlı yetkilendirmenin uygulandığı ve e-posta eşleşme güvencesiyle yetkisiz katılımların engellendiği sağlam ve güvenli bir takım çalışma altyapısına kavuşmuştur.

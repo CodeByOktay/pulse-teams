@@ -1,7 +1,7 @@
-# Faz I — Filtreleme, Sıralama & UX İyileştirmeleri: Teknik Rapor
+# Faz 1.09 — Filtreleme, Sıralama & UX İyileştirmeleri: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** I (Filtre Çubuğu, Sıralama Seçici, Header, Breadcrumb & Empty State)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.09 (Filtre Çubuğu, Sıralama Seçici, Header, Breadcrumb & Empty State)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı & Doğrulandı (Faz 1 Finali)
 
@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz I, projenin ilk geliştirme maratonunun (Faz 1) son ve taçlandırıcı adımıdır. Bu fazda, panodaki görevlerin kolayca bulunabilmesi için **URL Arama Parametreleri (Search Params) Tabanlı Filtreleme ve Sıralama Sistemi** geliştirilmiş, uygulamanın genel navigasyon ve boş durum (empty-state) deneyimi kurumsal seviyeye yükseltilmiştir.
+Faz 1.09, projenin ilk geliştirme maratonunun (Faz 1) son ve taçlandırıcı adımıdır. Bu fazda, panodaki görevlerin kolayca bulunabilmesi için **URL Arama Parametreleri (Search Params) Tabanlı Filtreleme ve Sıralama Sistemi** geliştirilmiş, uygulamanın genel navigasyon ve boş durum (empty-state) deneyimi kurumsal seviyeye yükseltilmiştir.
 
 Bu fazın en büyük mimari başarısı; filtre durumunun (state) istemci belleğinde kaybolan geçici değişkenler yerine **doğrudan tarayıcı URL'inde saklanmasıdır**. Bu sayede kullanıcılar filtreli görünümleri yer imlerine ekleyebilir, bağlantıyı ekip arkadaşlarıyla paylaşabilir ve sayfa yenilendiğinde filtrelerini kaybetmezler.
 
@@ -97,7 +97,7 @@ Filtreler için ortak tasarlanmış popover bileşenidir:
 ---
 
 ### 4.3 Navigasyon ve Üst Başlık (`src/components/layout/header.tsx` & `breadcrumb.tsx`)
-- **Breadcrumb (Ekmek Kırıntısı):** `Staj PM / Proje Adı / Board` yolunu hiyerarşik linkler halinde sunar. Son öğe bold ve tıklanamaz olarak aktif sayfayı belirtir.
+- **Breadcrumb (Ekmek Kırıntısı):** `Pulse / Proje Adı / Board` yolunu hiyerarşik linkler halinde sunar. Son öğe bold ve tıklanamaz olarak aktif sayfayı belirtir.
 - **Kullanıcı Menüsü:** Sağ üst köşede oturum açan kullanıcının renkli `Avatar`'ı yer alır. Tıklandığında açılan menüden kullanıcı adı/e-postası görüntülenir ve güvenli `Çıkış yap` aksiyonu tetiklenir.
 
 ---
@@ -166,7 +166,7 @@ Bu yapı sayesinde veritabanı sunucusu istemciye yalnızca eşleşen kayıtlar�
 | 5 | Sıralama seçilince kart sırası değişiyor | ✅ | `sort=dueDate&order=asc` ile kartların dizilimi doğrulandı |
 | 6 | Filtreler URL'de tutuluyor (Bookmarkable) | ✅ | Sayfa yenilendiğinde URL parametrelerinin korunduğu teyit edildi |
 | 7 | "Filtreleri temizle" butonu tüm filtreleri kaldırıyor | ✅ | Butona tıklandığında `pathname`'e temiz yönlendirme sağlandı |
-| 8 | Header ve Breadcrumb doğru yolu gösteriyor | ✅ | `Staj PM / Proje Adı / Board` yolu DOM'da doğrulandı |
+| 8 | Header ve Breadcrumb doğru yolu gösteriyor | ✅ | `Pulse / Proje Adı / Board` yolu DOM'da doğrulandı |
 | 9 | Boş durumlar için EmptyState gösteriliyor | ✅ | Filtre sonucu boş olduğunda açıklayıcı kart render edildi |
 | 10 | `npm run build` hatasız tamamlanıyor | ✅ | 7/7 statik/dinamik sayfa başarıyla derlendi |
 
@@ -174,7 +174,7 @@ Bu yapı sayesinde veritabanı sunucusu istemciye yalnızca eşleşen kayıtlar�
 
 ## 8. Faz 1 Kapanış Değerlendirmesi
 
-Faz I'nın tamamlanmasıyla birlikte **Faz 1 (MVP - Temel Proje ve Kanban Sistemi)** %100 oranında eksiksiz ve doğrulanmış olarak tamamlanmıştır:
+Faz 1.09'nın tamamlanmasıyla birlikte **Faz 1 (MVP - Temel Proje ve Kanban Sistemi)** %100 oranında eksiksiz ve doğrulanmış olarak tamamlanmıştır:
 
 - **Mimari:** Next.js 16 App Router + Tailwind v4 + PostgreSQL + Prisma ORM.
 - **Güvenlik:** NextAuth.js JWT oturumu, bcryptjs şifreleme ve proje bazlı RBAC yetkilendirmesi.

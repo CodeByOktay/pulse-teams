@@ -6,36 +6,36 @@ Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](ht
 ## [0.3.0] - 2026-09-20 (Faz 3 — UX/UI Kalitesi & Proje Yönetimi Yetenekleri)
 
 ### Eklendi (Added)
-- **Üye Yönetimi & Davet Sistemi (Prompt Q):**
+- **Üye Yönetimi & Davet Sistemi (Faz 3.01):**
   - `ProjectInvite` modeli ve `InviteStatus` enum'u (`PENDING`/`ACCEPTED`/`EXPIRED`); 32 byte hex token, 7 gün geçerlilik.
   - `src/actions/member.ts`: `inviteMember`, `acceptInvite`, `removeMember`, `changeMemberRole`, `cancelInvite` — tümü `ADMIN` kontrolü ile korunur; proje sahibi çıkarılamaz ve rolü değiştirilemez.
   - `/invite/[token]` sayfası: token geçerliliği, e-posta eşleşmesi ve oturum durumu için ayrı ayrı UI senaryoları.
   - `MembersManager` bileşeni ve Ayarlar sayfasına "Üyeler" sekmesi.
   - `member-management.test.ts` (28 test).
-- **Görev Detayı Premium UX (Prompt R):**
+- **Görev Detayı Premium UX (Faz 3.02):**
   - `InlineSelectPopover` ortak bileşeni üzerine kurulu `StatusPicker` / `PriorityPicker` — klavye navigasyonu, iyimser güncelleme ve hata halinde geri alma (`resolveOptimisticState`); aynı değer tekrar seçilirse mutasyon atlanır.
   - `DateField` (tıkla-düzenle tarih seçici), `CopyLinkButton`, modal başlığında breadcrumb ve `resolveTaskSprintBadge` ile tek sprint rozeti (`ACTIVE` > `DRAFT` > Backlog).
   - Board ve Liste görünümleri `?task=` query param'ı ile derin bağlantı desteği kazandı.
   - `task-detail-ux.test.ts` (19 test).
-- **Backlog Görünümü & Sprint Entegrasyonu (Prompt S):**
+- **Backlog Görünümü & Sprint Entegrasyonu (Faz 3.03):**
   - `/projects/[projectId]/backlog` route'u; backlog tanımı "hiçbir `ACTIVE`/`DRAFT` sprint'e bağlı olmayan görev".
   - `moveTaskToSprint` / `moveTaskToBacklog` server action'ları — `$transaction` içinde çalışır ve `COMPLETED` sprint geçmişini asla silmez (`getRemovableSprintIds`).
   - `SprintProgressCard` ilerleme kartları ve `MoveToSprintMenu`.
   - `backlog-logic.test.ts` (23 test).
-- **Global Arama & Komut Paleti (Prompt T):**
+- **Global Arama & Komut Paleti (Faz 3.04):**
   - `globalSearch` server action'ı — görev başlığı substring'i veya `PRJ-12` tanımlayıcısı ile eşleşme; kullanıcı üyeliği her zaman `where` cümlesinde filtrelenir.
   - `CommandPalette` bileşeni: `Ctrl+K` / `Cmd+K` kısayolu, kategorize sonuçlar, ok tuşlarıyla döngüsel gezinme ve proje bazlı hızlı aksiyonlar.
   - `search-logic.test.ts` (24 test).
-- **Dashboard Yenileme & Analytics (Prompt U):**
+- **Dashboard Yenileme & Analytics (Faz 3.05):**
   - `analytics-logic.ts`: `isTaskOverdue`/`countOverdueTasks`, `calculateCompletionRate`, `calculateSprintBurndown`, `calculateProjectVelocity`, `formatRelativeTime`.
   - 4 istatistik kartı (tümü `prisma.count` ile), "Bana Atananlar" widget'ı, "Son Aktiviteler" akışı ve "Sprint Hızı" paneli — harici grafik kütüphanesi kullanılmadan, saf Tailwind ile.
   - `dashboard-analytics.test.ts` (25 test).
-- **Gelişmiş Filtreler & Kayıtlı Görünümler (Prompt V):**
+- **Gelişmiş Filtreler & Kayıtlı Görünümler (Faz 3.06):**
   - `BoardFilters` genişletildi: durum grubu, bitiş tarihi (`overdue`/`today`/`this_week`/`no_date`) ve metin araması; `resolveDueDateRange` ile tarih sınırları (hafta Pazartesi başlar).
   - `QuickFilterChips`, `GroupFilter`, `DueDateFilter`, `SearchInput` bileşenleri.
   - `useSavedViews` hook'u ile `localStorage` tabanlı, proje bazlı kayıtlı görünümler; `__me__` yer tutucusu oturum kullanıcısına çözülür.
   - `advanced-filters.test.ts` (36 test).
-- **Görev İlişkileri & Bağımlılıklar (Prompt W):**
+- **Görev İlişkileri & Bağımlılıklar (Faz 3.07):**
   - `TaskRelation` modeli ve `RelationType` enum'u (`BLOCKS`/`RELATES_TO`/`DUPLICATES`); her ilişki tek yönlü **tek** kayıttır — "Tarafından engelleniyor" ayrı bir tip değil, `BLOCKS` kaydının hedef tarafındaki görünümüdür.
   - `relation-logic.ts`: `getRelationLabel`, `hasExistingRelation` (tek çift kuralı — yönden ve tipten bağımsız), `wouldCreateBlockCycle` (**iteratif DFS**; rekürsiyon yok, 1000+ düğümlü zincirde stack overflow olmaz, mevcut veride döngü olsa bile `visited` seti sonsuz döngüyü engeller), `groupRelationsForTask`.
   - `src/actions/relation.ts`: `addTaskRelation`, `removeTaskRelation`, `searchTasksForRelation` — `projectId` istemciden değil, doğrulanmış görev kaydından alınır; iki görevin aynı projede olması zorunludur.
@@ -64,36 +64,36 @@ Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](ht
 ## [0.2.0] - 2026-09-18 (Faz 2 — Sprint, Görünümler & Ayarlar)
 
 ### Eklendi (Added)
-- **Sprint / Cycle Yönetimi (Prompt J, K):**
+- **Sprint / Cycle Yönetimi (Faz 2.01, Faz 2.02):**
   - `Sprint` ve `SprintTask` modelleri, `SprintStatus` enum'u (`DRAFT`/`ACTIVE`/`COMPLETED`) eklendi.
   - `createSprint`, `updateSprint`, `deleteSprint`, `startSprint`, `completeSprint`, `addTaskToSprint`, `removeTaskFromSprint` server action'ları; iş kuralları (`validateSprintDates`, `canDeleteSprint`, `canStartSprint`) saf fonksiyonlara çıkarıldı.
   - `/projects/[id]/sprints` sayfası: `SprintCard`, `CreateSprintModal`, `EditSprintModal`, `CompleteSprintDialog`, `SprintTaskPicker` bileşenleri; tek seferde yalnızca bir `ACTIVE` sprint kısıtı.
   - `sprint-utils.test.ts` (13 test) ve `sprint-actions.test.ts` (11 test).
-- **Liste Görünümü (Prompt L):**
+- **Liste Görünümü (Faz 2.03):**
   - `/projects/[id]/list` sayfası: sıralanabilir sütun başlıkları (Başlık, Durum, Öncelik, Bitiş Tarihi), state'e göre collapsible gruplama.
   - `ViewSwitcher` bileşeni ile Board ↔ Liste geçişi, `FilterBar`'ın her iki görünümde yeniden kullanılması.
   - `sortTasksByField` / `groupTasksByState` saf fonksiyonları — null `dueDate` değerleri her zaman sona alınır.
   - `list-view-sort.test.ts` (15 test).
-- **Aktivite / Audit Log (Prompt M):**
+- **Aktivite / Audit Log (Faz 2.04):**
   - `Activity` modeli ve 15 değerli `ActivityType` enum'u; `task`/`actor` ilişkileri, `taskId` ve `taskId+createdAt` indeksleri.
   - `logActivity(tx, data)` — çağrıldığı `prisma.$transaction` içinde kayıt atar, kendi hatasını yutar ve ana işlemi asla başarısız yapmaz.
   - `formatActivityMessage` — her `ActivityType` için Türkçe okunabilir mesaj üretir, eksik/bilinmeyen veriler için güvenli fallback döner.
   - `createTask`, `updateTask`, `assignUserToTask`/`unassignUserFromTask`, `addLabelToTask`/`removeLabelFromTask`, `createComment`/`deleteComment`, `addTaskToSprint`/`removeTaskFromSprint` aktivite logu üretecek şekilde güncellendi.
   - `TaskDetailModal`'a Aktivite/Yorumlar sekmeleri eklendi; `TaskActivity` bileşeni son 20 aktiviteyi getirir, "Tüm geçmişi göster" ile sayfalanır.
   - `activity-logger.test.ts` (14 test).
-- **Toplu İşlemler / Bulk Actions (Prompt N):**
+- **Toplu İşlemler / Bulk Actions (Faz 2.05):**
   - `bulkUpdateTasks` (≤100 görev, durum/öncelik/atanan toplu güncelleme) ve `bulkDeleteTasks` (≤50 görev) server action'ları; tüm `taskId`'lerin aynı projeye ait olduğu ve kullanıcının o projede üye olduğu her zaman sunucuda doğrulanır.
   - `useBulkSelection` hook'u ve saf `bulk-selection-logic.ts` (`toggleItem`, `selectAll`, `isAllSelected`, limit doğrulayıcılar).
   - `BulkActionBar` (durum/öncelik/sprint toplu değiştirme, kırmızı toplu silme butonu) ve yeniden kullanılabilir `ConfirmDialog` bileşeni.
   - Liste görünümü satır/başlık checkbox'ları (header'da "tümünü seç" + indeterminate durum desteği).
   - `bulk-selection.test.ts` (18 test).
-- **Markdown Desteği (Prompt O):**
+- **Markdown Desteği (Faz 2.06):**
   - `react-markdown` + `remark-gfm` entegrasyonu (Next.js 16 Turbopack ile ek yapılandırma gerekmeden native ESM çözümlemesi).
   - `MarkdownEditor` (Yaz/Önizle sekmeleri, auto-resize textarea, Tab → 2 boşluk, seçili metni saran B/I/kod/liste/link araç çubuğu) ve `MarkdownRenderer` (başlık, liste, kod bloğu, blockquote, link için özel stiller).
   - `TaskDescription` yeniden yazıldı: manuel "Kaydet" butonu + "Kaydedilmemiş değişiklikler" rozeti.
   - `stripMarkdown`, `truncateMarkdown` (kelime sınırında ve dengeli `**`/`` ` `` ile güvenli kesme), `countWords` saf fonksiyonları; Kanban kartında düz metin önizleme.
   - `markdown-utils.test.ts` (21 test).
-- **Proje Ayarları (Prompt P):**
+- **Proje Ayarları (Faz 2.07):**
   - `/projects/[id]/settings` sayfası — yalnızca `ADMIN` rolündeki üyelere açık, diğerlerine erişim engeli ekranı gösterir.
   - `src/actions/state.ts`: `createState`, `updateState`, `deleteState`, `reorderStates` — tümü `requireAdmin` ile korunur; `reorderStates` gönderilen ID kümesini projenin gerçek state'leriyle doğrulayıp `$transaction` içinde toplu günceller.
   - `label.ts`'e `updateLabel` eklendi; `createLabel`/`deleteLabel` ortak `settings-logic.ts` doğrulamalarını kullanacak şekilde güncellendi.
@@ -108,7 +108,7 @@ Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](ht
 
 ### Test
 - Toplam Vitest testi 14'ten **136**'ya çıktı (11 test dosyası), tamamı geçiyor.
-- `npx tsc --noEmit` ve `npm run build` her prompt sonrası hatasız doğrulandı.
+- `npx tsc --noEmit` ve `npm run build` her faz adımı sonrası hatasız doğrulandı.
 
 ---
 

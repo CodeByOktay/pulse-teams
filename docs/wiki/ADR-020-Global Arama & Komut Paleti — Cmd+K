@@ -1,5 +1,5 @@
-Pulse — Faz 3 Prompt T: Teknik Rapor (Global Arama & Komut Paleti — Cmd+K)
-Bu teknik rapor, Pulse projesine Linear, Raycast ve macOS Spotlight standartlarında klavye odaklı global arama ve komut paleti yeteneği kazandıran Prompt T geliştirmesinin mimari yapısını, arama ve filtreleme algoritmalarını, yetkilendirme katmanını ve test stratejisini sunar.
+# Faz 3.04 — Global Arama & Komut Paleti — Cmd+K: Teknik Rapor
+Bu teknik rapor, Pulse projesine Linear, Raycast ve macOS Spotlight standartlarında klavye odaklı global arama ve komut paleti yeteneği kazandıran Faz 3.04 geliştirmesinin mimari yapısını, arama ve filtreleme algoritmalarını, yetkilendirme katmanını ve test stratejisini sunar.
 
 1. Giriş ve Amaç
 1.1 Problem Tanımı
@@ -119,12 +119,12 @@ src/lib/__tests__/search-logic.test.ts dosyasında 24 adet bağımsız Vitest te
 		○ countTotalResults ve hasNoResults: Boş ve dolu durumların doğru tespiti.
 
 7. Doğrulama ve Sistem Durumu
-Prompt T uygulaması sonrası çalıştırılan kalite güvence adımları:
+Faz 3.04 uygulaması sonrası çalıştırılan kalite güvence adımları:
 	• Vitest Testleri: 17 test dosyasında 291 testin tamamı %100 başarılı olarak geçti.
 	• TypeScript Tip Denetimi: npx tsc --noEmit hatasız tamamlandı.
 	• Production Build: npm run build ile tüm statik ve dinamik rotalar başarıyla optimize edildi.
-	• Git Commit: 872fd27 feat: (Prompt T) add global search, command palette (Cmd+K) and tests olarak sürümlendi.
+	• Git Commit: 872fd27 feat: (Faz 3.04) add global search, command palette (Cmd+K) and tests olarak sürümlendi.
 
 8. Özet
-Prompt T ile Pulse; kullanıcıların projeler, görevler ve ekranlar arasında fareye dokunmadan saliseler içinde geçiş yapabilmesini sağlayan, veritabanı yükünü debouncing ve üyelik sınırlandırmalarıyla koruyan, üst düzey (Linear/Raycast kalitesinde) bir navigasyon omurgasına kavuşmuştur.
+Faz 3.04 ile Pulse; kullanıcıların projeler, görevler ve ekranlar arasında fareye dokunmadan saliseler içinde geçiş yapabilmesini sağlayan, veritabanı yükünü debouncing ve üyelik sınırlandırmalarıyla koruyan, üst düzey (Linear/Raycast kalitesinde) bir navigasyon omurgasına kavuşmuştur.
 11:57 PM

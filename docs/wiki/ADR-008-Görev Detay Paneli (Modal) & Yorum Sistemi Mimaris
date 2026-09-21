@@ -1,7 +1,7 @@
-# Faz H — Görev Detay Paneli (Modal) & Yorum Sistemi Mimarisi: Teknik Rapor
+# Faz 1.08 — Görev Detay Paneli (Modal) & Yorum Sistemi Mimarisi: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** H (Görev Detay Modalı, Inline Düzenleme, Özellikler Paneli & Yorumlar)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.08 (Görev Detay Modalı, Inline Düzenleme, Özellikler Paneli & Yorumlar)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı & Doğrulandı
 
@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz H kapsamında, Kanban panosundaki görev kartlarına tıklandığında açılan kapsamlı **Görev Detay Paneli (Task Detail Modal / Slide-Over)** ve görev içi **Tartışma/Yorum Sistemi (Comments)** inşa edilmiştir.
+Faz 1.08 kapsamında, Kanban panosundaki görev kartlarına tıklandığında açılan kapsamlı **Görev Detay Paneli (Task Detail Modal / Slide-Over)** ve görev içi **Tartışma/Yorum Sistemi (Comments)** inşa edilmiştir.
 
 Bu fazın temel amacı; kullanıcıların panodan ve çalışma bağlamından kopmadan görevle ilgili tüm meta verileri (başlık, açıklama, durum, öncelik, etiketler, atananlar, tarihler) tek bir ekranda anlık olarak inceleyebilmesini, düzenleyebilmesini ve ekip içi iletişimi yürütebilmesini sağlamaktır.
 
@@ -135,7 +135,7 @@ Sağ taraftaki 256px'lik sabit sütunda görev özellikleri satır satır (`Prop
 
 1. **State Seçici:** Projenin tüm durumlarını listeler. Seçim değiştiğinde `updateTask({ stateId })` çağrılır ve kart panoda hedef sütuna taşınır.
 2. **Öncelik Seçici:** Renkli ikonlarla (`🔴 Acil`, `🟠 Yüksek`, `🟡 Orta`, `🔵 Düşük`, `⚪ Yok`) öncelik seviyesini ayarlar.
-3. **Etiketler (Labels):** Görevdeki etiketleri `LabelBadge` olarak çizer; yanındaki `LabelPicker` (Faz F) popover'ı ile anında yeni etiket eklenebilir veya çıkarılabilir.
+3. **Etiketler (Labels):** Görevdeki etiketleri `LabelBadge` olarak çizer; yanındaki `LabelPicker` (Faz 1.06) popover'ı ile anında yeni etiket eklenebilir veya çıkarılabilir.
 4. **Atananlar (Assignees):** Görevli kullanıcıları renkli `Avatar`'ları ve isimleriyle gösterir; `AssigneePicker` ile çoklu atama yönetilir.
 5. **Tarih Alanları:** `<input type="date">` bileşenleri ile başlangıç (`startDate`) ve bitiş (`dueDate`) tarihleri doğrudan güncellenir.
 6. **Oluşturulma Tarihi:** `new Date(createdAt).toLocaleDateString("tr-TR")` ile salt-okunur bilgi sağlar.
@@ -206,9 +206,9 @@ await prisma.comment.delete({ where: { id: commentId } });
 
 ---
 
-## 7. Sonraki Adımlarla (Faz I - Filtreleme & Sıralama) Entegrasyon
+## 7. Sonraki Adımlarla (Faz 1.09 - Filtreleme & Sıralama) Entegrasyon
 
-Faz H ile görevlerin detay zenginliği tamamlanmıştır:
-- Eklenen öncelik (`priority`), etiketler (`labels`), atananlar (`assignees`) ve tarihler (`dueDate`), Faz I'da panonun üstüne yerleştirilecek olan çoklu filtreleme çubuğunun (`FilterBar`) doğrudan veri kaynaklarını oluşturmuştur.
+Faz 1.08 ile görevlerin detay zenginliği tamamlanmıştır:
+- Eklenen öncelik (`priority`), etiketler (`labels`), atananlar (`assignees`) ve tarihler (`dueDate`), Faz 1.09'da panonun üstüne yerleştirilecek olan çoklu filtreleme çubuğunun (`FilterBar`) doğrudan veri kaynaklarını oluşturmuştur.
 
-*Rapor Faz H gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*
+*Rapor Faz 1.08 gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

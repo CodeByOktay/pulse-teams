@@ -1,5 +1,5 @@
-Pulse — Faz 3 Prompt S: Teknik Rapor (Backlog Görünümü & Sprint Entegrasyonu)
-Bu teknik rapor, Pulse projesinde sprintlerden bağımsız görev havuzunun yönetilmesini, görevlerin sprintler ve backlog arasında güvenle taşınmasını ve sprint tamamlama ilerlemelerinin görselleştirilmesini sağlayan Prompt S geliştirmesinin mimari ve teknik detaylarını sunar.
+# Faz 3.03 — Backlog Görünümü & Sprint Entegrasyonu: Teknik Rapor
+Bu teknik rapor, Pulse projesinde sprintlerden bağımsız görev havuzunun yönetilmesini, görevlerin sprintler ve backlog arasında güvenle taşınmasını ve sprint tamamlama ilerlemelerinin görselleştirilmesini sağlayan Faz 3.03 geliştirmesinin mimari ve teknik detaylarını sunar.
 
 1. Giriş ve Amaç
 1.1 Problem Tanımı
@@ -123,11 +123,11 @@ src/lib/__tests__/backlog-logic.test.ts dosyasında toplam 23 adet Vitest testi 
 		○ Küsurlu oranlarda (1/3) tam sayıya yuvarlama (%33).
 
 7. Doğrulama ve Sistem Durumu
-Prompt S uygulaması tamamlandıktan sonra yapılan kontroller:
+Faz 3.03 uygulaması tamamlandıktan sonra yapılan kontroller:
 	• Vitest Testleri: 17 test dosyasında 291 testin tamamı %100 başarılı olarak geçti.
 	• TypeScript Tip Denetimi: npx tsc --noEmit sıfır hata ile tamamlandı.
 	• Production Build: npm run build ile /projects/[projectId]/backlog rotası başarıyla derlendi ve statik/dinamik optimizasyonlar sağlandı.
-	• Git Commit: 02271ea feat: (Prompt S) add backlog view, sprint task movement, progress bars and tests olarak sürümlendi.
+	• Git Commit: 02271ea feat: (Faz 3.03) add backlog view, sprint task movement, progress bars and tests olarak sürümlendi.
 
 8. Özet ve Kullanıcıya Sağlanan Değer
-Prompt S ile Pulse; görevlerin henüz sprint planına dahil edilmeden önce toplandığı, önceliklendirildiği ve tek tıkla aktif/taslak sprintlere aktarılabildiği eksiksiz bir Scrum & Kanban Planlama Deneyimi kazanmıştır. Geçmiş sprint verilerinin mimari olarak kilitlenmesi ise projede metrik güvenliğini garanti altına almıştır.
+Faz 3.03 ile Pulse; görevlerin henüz sprint planına dahil edilmeden önce toplandığı, önceliklendirildiği ve tek tıkla aktif/taslak sprintlere aktarılabildiği eksiksiz bir Scrum & Kanban Planlama Deneyimi kazanmıştır. Geçmiş sprint verilerinin mimari olarak kilitlenmesi ise projede metrik güvenliğini garanti altına almıştır.

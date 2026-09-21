@@ -1,8 +1,8 @@
-# 📑 Prompt K — Teknik Değerlendirme ve Uygulama Raporu
+# Faz 2.02 — Sprint Yönetim Sayfası, Görünümü & Görev-Sprint Entegrasyonu: Teknik Rapor
 
 > **Faz:** 2 (v0.2.0 Hazırlığı)  
 > **Başlık:** Sprint Yönetim Sayfası, Görünümü & Görev-Sprint Entegrasyonu  
-> **Proje:** `C:\Staj_Project`  
+> **Proje:** Pulse Project Manager (`C:\Pulse`)  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri ve testler karşılandı  
 > **Tarih:** 18 Eylül 2026  
 
@@ -10,9 +10,9 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-**Prompt K**, Prompt J ile veritabanı ve sunucu katmanı (`schema.prisma` ve `src/actions/sprint.ts`) kurulan Sprint/Cycle mekanizmasını **kullanıcı arayüzü (UI), etkileşim katmanı ve ön uç iş kuralları** ile buluşturan adımdır.
+**Faz 2.02**, Faz 2.01 ile veritabanı ve sunucu katmanı (`schema.prisma` ve `src/actions/sprint.ts`) kurulan Sprint/Cycle mekanizmasını **kullanıcı arayüzü (UI), etkileşim katmanı ve ön uç iş kuralları** ile buluşturan adımdır.
 
-Bu prompt kapsamında;
+Bu faz adımı kapsamında;
 - Proje bazlı Sprint yönetim rotası (`/projects/[projectId]/sprints`) Server Component olarak inşa edilmiş,
 - 5 yeni modüler Client bileşeni (`SprintCard`, `CreateSprintModal`, `EditSprintModal`, `CompleteSprintDialog`, `SprintTaskPicker`) geliştirilmiş,
 - Proje genel gezinimini sağlayan `Sidebar` güncellenerek her proje altına **Board** ve **Sprints** ikili rotalandırması entegre edilmiş,
@@ -108,7 +108,7 @@ Server action'lar içindeki iş kuralları saf (pure) fonksiyonlar haline getiri
 ### 6.1. Vitest Test Koşumu Sonucu (`npm test`)
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/sprint-actions.test.ts (11 tests) 11ms
  ✓ src/lib/__tests__/sprint-utils.test.ts (13 tests) 12ms
@@ -161,9 +161,9 @@ Server action'lar içindeki iş kuralları saf (pure) fonksiyonlar haline getiri
 
 ---
 
-## 8. Faz 2 Yol Haritası & Sonraki Adım: Prompt L
+## 8. Faz 2 Yol Haritası & Sonraki Adım: Faz 2.03
 
-Prompt K'nın başarıyla tamamlanmasıyla birlikte Faz 2'nin 2. etabı noktalanmıştır. Bir sonraki adım olan **Prompt L (Liste Görünümü - List View)** için zemin hazırdır:
+Faz 2.02'nın başarıyla tamamlanmasıyla birlikte Faz 2'nin 2. etabı noktalanmıştır. Bir sonraki adım olan **Faz 2.03 (Liste Görünümü - List View)** için zemin hazırdır:
 
-- **Prompt L Hedefi:** `/projects/[projectId]/list` rotası oluşturularak görevlerin Excel/tablo formatında sıralanabilir, filtrelenebilir düz bir liste halinde sunulması.
+- **Faz 2.03 Hedefi:** `/projects/[projectId]/list` rotası oluşturularak görevlerin Excel/tablo formatında sıralanabilir, filtrelenebilir düz bir liste halinde sunulması.
 - **Hazırlanacak Bileşenler:** `ListViewContainer`, `ListTable`, durum sütunları ve sıralanabilir başlıklar.

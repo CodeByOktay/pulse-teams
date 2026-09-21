@@ -1,7 +1,7 @@
-# Faz G — Kanban Panosu (Board) & Sürükle-Bırak Mimarisi: Teknik Rapor
+# Faz 1.07 — Kanban Panosu (Board) & Sürükle-Bırak Mimarisi: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** G (Kanban Board, @dnd-kit Sürükle-Bırak, Kolonlar & Görev Kartları)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.07 (Kanban Board, @dnd-kit Sürükle-Bırak, Kolonlar & Görev Kartları)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı & Doğrulandı
 
@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz G, Staj PM uygulamasının kalbi ve en karmaşık kullanıcı deneyimi olan **Sürükle-Bırak (Drag-and-Drop) Destekli Kanban Panosu** katmanını hayata geçirmiştir.
+Faz 1.07, Pulse Project Manager uygulamasının kalbi ve en karmaşık kullanıcı deneyimi olan **Sürükle-Bırak (Drag-and-Drop) Destekli Kanban Panosu** katmanını hayata geçirmiştir.
 
 Bu fazda, modern React ekosisteminin en gelişmiş sürükle-bırak motoru olan **`@dnd-kit`** (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) kullanılarak;
 - Kolon içi yeniden sıralama,
@@ -174,9 +174,9 @@ Bu matematiksel model sayesinde:
 
 ---
 
-## 8. Sonraki Adımlarla (Faz H & I) Entegrasyon
+## 8. Sonraki Adımlarla (Faz 1.08 & I) Entegrasyon
 
-- **Faz H (Detay Modalı):** Kart üzerine tıklandığında `onOpen(task.id)` geri çağırma fonksiyonu ile Faz H'deki sağdan kayan detay panelinin açılması sağlanmıştır.
-- **Faz I (Filtreleme & Sıralama):** Üst kısımdaki `FilterBar`'dan gelen kriterlere göre sütunlardaki görevlerin sunucu tarafında filtrelenmesi ve boş sonuçlarda `EmptyState` gösterimi bu panoya entegre edilmiştir.
+- **Faz 1.08 (Detay Modalı):** Kart üzerine tıklandığında `onOpen(task.id)` geri çağırma fonksiyonu ile Faz 1.08'deki sağdan kayan detay panelinin açılması sağlanmıştır.
+- **Faz 1.09 (Filtreleme & Sıralama):** Üst kısımdaki `FilterBar`'dan gelen kriterlere göre sütunlardaki görevlerin sunucu tarafında filtrelenmesi ve boş sonuçlarda `EmptyState` gösterimi bu panoya entegre edilmiştir.
 
-*Rapor Faz G gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*
+*Rapor Faz 1.07 gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

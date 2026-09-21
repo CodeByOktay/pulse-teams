@@ -1,8 +1,8 @@
-# CONTEXT - Pulse (v0.3.0 -> Faz 3 tamamlandi)
+# CONTEXT - Pulse Project Manager (v0.3.0 -> Faz 3 tamamlandi)
 Bu dosyayi yeni bir AI chat'ine yapistir. Agent projeyi aninda kavrar.
 
 ## Proje Nedir?
-Kanban-first Proje Yonetim Uygulamasi. Staj projesi. Faz 1, Faz 2 ve Faz 3 tamamlandi (son prompt: W).
+Pulse Project Manager. Modern, tam tesekkullu Kanban ve Sprint tabanli proje yonetim platformu. Faz 1, Faz 2 ve Faz 3 tamamlandi (son adim: Faz 3.07).
 
 ## Lokasyon & Calistirma
 - Proje: C:\Pulse
@@ -198,14 +198,14 @@ settings-validation.test.ts (30), member-management.test.ts (28), task-detail-ux
 backlog-logic.test.ts (23), search-logic.test.ts (24), dashboard-analytics.test.ts (25),
 advanced-filters.test.ts (36), **task-relations.test.ts (40)** = 331 toplam
 
-## Her Prompt Sonrasi Dogrulama
+## Her Faz / Adım Sonrası Doğrulama
 npm test
 npx tsc --noEmit
 npm run build
 
 ## Yeni Chat Baslangic Sablonu
-Proje: C:\Pulse - Pulse (Next.js 16 + Prisma + PostgreSQL Kanban uygulamasi)
+Proje: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL proje yonetim platformu)
 Faz 1 (v0.1.0), Faz 2 (v0.2.0), Faz 3 (v0.3.0) tamamlandi.
 331 Vitest testi %100 geciyor.
 Simdi [yeni faz / ozellik] uygulayacagiz.
-[Ilgili prompt blogunu buraya yapistir]
+[Ilgili faz / gorev blogunu buraya yapistir]

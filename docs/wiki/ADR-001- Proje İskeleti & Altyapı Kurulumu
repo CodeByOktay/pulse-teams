@@ -1,7 +1,7 @@
-# Faz A — Proje İskeleti & Altyapı Kurulumu: Teknik Rapor
+# Faz 1.01 — Proje İskeleti & Altyapı Kurulumu: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** A (Proje Altyapısı)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.01 (Proje Altyapısı)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı
 
@@ -9,7 +9,7 @@
 
 ## 1. Proje Genel Bakış
 
-Bu rapor, `C:\Staj_Project` klasöründe hayata geçirilen küçük ölçekli proje yönetim uygulamasının ilk altyapı fazını (Faz A) belgelemektedir. Hedef; üretim kalitesinde, sürdürülebilir ve ölçeklenebilir bir Next.js + PostgreSQL + Prisma yığını oluşturmaktır.
+Bu rapor, `C:\Pulse` klasöründe hayata geçirilen Pulse Project Manager uygulamasının ilk altyapı fazını (Faz 1.01) belgelemektedir. Hedef; üretim kalitesinde, sürdürülebilir ve ölçeklenebilir bir Next.js + PostgreSQL + Prisma yığını oluşturmaktır.
 
 ### Referans Alınan Açık Kaynak Projeler
 
@@ -41,7 +41,7 @@ Bu rapor, `C:\Staj_Project` klasöründe hayata geçirilen küçük ölçekli pr
 │               VERİTABANI KATMANI                │
 │  Prisma ORM (schema-first)                      │
 │  PostgreSQL 15                                  │
-│  Veritabanı: staj_pm                            │
+│  Veritabanı: pulse_db                            │
 ├─────────────────────────────────────────────────┤
 │                   PLATFORM                      │
 │  Node.js 20+ / pnpm                             │
@@ -56,7 +56,7 @@ Bu rapor, `C:\Staj_Project` klasöründe hayata geçirilen küçük ölçekli pr
 ### 3.1 Genel Mimari Diyagramı
 
 ```
-C:\Staj_Project\
+C:\Pulse\
 │
 ├── src/
 │   ├── app/                    ← Next.js App Router (sayfa ve API)
@@ -80,7 +80,7 @@ C:\Staj_Project\
 │   │
 │   ├── lib/                    ← Yardımcı modüller
 │   │   ├── prisma.ts           ← Prisma singleton (bu fazda oluşturuldu)
-│   │   └── auth.ts             ← NextAuth konfigürasyonu (Faz C)
+│   │   └── auth.ts             ← NextAuth konfigürasyonu (Faz 1.03)
 │   │
 │   ├── actions/                ← Next.js Server Actions
 │   │   ├── project.ts
@@ -149,7 +149,7 @@ if (process.env.NODE_ENV !== "production") {
 ### 4.2 Ortam Değişkenleri (`.env`)
 
 ```env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/staj_pm?schema=public"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/pulse_db?schema=public"
 NEXTAUTH_SECRET="super-secret-key-change-in-production"
 NEXTAUTH_URL="http://localhost:3000"
 ```
@@ -227,7 +227,7 @@ Kullanıcı Eylemi (tıklama, form submit)
          │
          ▼
   PostgreSQL Veritabanı
-  (staj_pm)
+  (pulse_db)
          │
          ▼
   revalidatePath() → Next.js cache temizlenir
@@ -254,12 +254,12 @@ Kullanıcı Eylemi (tıklama, form submit)
 ## 8. Bilinen Kısıtlamalar & Sonraki Adımlar
 
 ### Bu fazda kasıtlı olarak yapılmayanlar:
-- ❌ Veritabanı şema tanımı (Faz B'de yapılacak)
-- ❌ Kullanıcı arayüzü / sayfalar (Faz C-I'da yapılacak)
-- ❌ Auth sistemi (Faz C'de yapılacak)
+- ❌ Veritabanı şema tanımı (Faz 1.02'de yapılacak)
+- ❌ Kullanıcı arayüzü / sayfalar (Faz 1.03-I'da yapılacak)
+- ❌ Auth sistemi (Faz 1.03'de yapılacak)
 - ❌ Herhangi bir iş mantığı
 
-### Sonraki Adım — Faz B:
+### Sonraki Adım — Faz 1.02:
 - `prisma/schema.prisma` içine 9 tablo tanımlanacak
 - Seed script ile 5 varsayılan Kanban state'i oluşturulacak
 - `npx prisma db push` ile şema veritabanına uygulanacak
@@ -278,4 +278,4 @@ Kullanıcı Eylemi (tıklama, form submit)
 
 ---
 
-*Bu rapor Faz A tamamlandığında oluşturulmuştur. Faz B tamamlandığında güncellenecektir.*
+*Bu rapor Faz 1.01 tamamlandığında oluşturulmuştur. Faz 1.02 tamamlandığında güncellenecektir.*

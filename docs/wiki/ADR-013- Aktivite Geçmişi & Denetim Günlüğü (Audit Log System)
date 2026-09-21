@@ -1,8 +1,8 @@
-# 📑 Prompt M — Teknik Değerlendirme ve Test Raporu
+# Faz 2.04 — Aktivite Geçmişi & Denetim Günlüğü (Audit Log System): Teknik Rapor
 
 > **Faz:** 2 (v0.2.0 Hazırlığı)  
 > **Başlık:** Aktivite Geçmişi & Denetim Günlüğü (Audit Log System)  
-> **Proje:** `C:\Staj_Project`  
+> **Proje:** Pulse Project Manager (`C:\Pulse`)  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri ve testler karşılandı  
 > **Tarih:** 18 Eylül 2026  
 
@@ -10,9 +10,9 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-**Prompt M**, Staj PM platformunda görevler üzerinde gerçekleşen tüm operasyonel değişiklikleri izlenebilir, şeffaf ve denetlenebilir kılmak amacıyla **Aktivite ve Denetim Günlüğü (Audit Log)** altyapısını kurmuştur.
+**Faz 2.04**, Pulse Project Manager platformunda görevler üzerinde gerçekleşen tüm operasyonel değişiklikleri izlenebilir, şeffaf ve denetlenebilir kılmak amacıyla **Aktivite ve Denetim Günlüğü (Audit Log)** altyapısını kurmuştur.
 
-Bu prompt kapsamında;
+Bu faz adımı kapsamında;
 - Veritabanı şemasına 15 farklı eylemi kapsayan `ActivityType` enum'ı ve `Activity` modeli eklendi,
 - `20260918152206_add_activity_log` migration'ı veritabanına uygulandı,
 - İşlem bütünlüğünü güvenceye alan transaction-safe `logActivity` kayıt motoru geliştirildi,
@@ -129,7 +129,7 @@ Modalın sağ alt içerik gövdesi iki sekmeli yapıya dönüştürülmüştür:
 Terminal komutu: `npx vitest run src/lib/__tests__/activity-logger.test.ts`
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/activity-logger.test.ts (14 tests) 9ms
 

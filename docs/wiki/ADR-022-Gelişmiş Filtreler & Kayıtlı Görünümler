@@ -1,5 +1,5 @@
-Pulse — Faz 3 Prompt V: Teknik Rapor (Gelişmiş Filtreler & Kayıtlı Görünümler)
-Bu teknik rapor, Pulse projesinin pano ve liste görünümlerinde görevlerin çok boyutlu kriterlerle taranmasını sağlayan, filtreleme mantığını merkezileştiren ve kullanıcıların özel filtre kombinasyonlarını saklayabilmesini sağlayan Prompt V geliştirmesinin mimari yapısını, filtre dönüşüm algoritmalarını ve test stratejisini sunar.
+# Faz 3.06 — Gelişmiş Filtreler & Kayıtlı Görünümler: Teknik Rapor
+Bu teknik rapor, Pulse projesinin pano ve liste görünümlerinde görevlerin çok boyutlu kriterlerle taranmasını sağlayan, filtreleme mantığını merkezileştiren ve kullanıcıların özel filtre kombinasyonlarını saklayabilmesini sağlayan Faz 3.06 geliştirmesinin mimari yapısını, filtre dönüşüm algoritmalarını ve test stratejisini sunar.
 
 1. Giriş ve Amaç
 1.1 Problem Tanımı
@@ -122,11 +122,11 @@ src/lib/__tests__/advanced-filters.test.ts dosyasında 36 adet Vitest testi yer 
 		○ findMatchingSavedViewId ile aktif URL'ye uyan görünümün tespiti.
 
 7. Doğrulama ve Sistem Durumu
-Prompt V geliştirmesi sonrası gerçekleştirilen doğrulama sonuçları:
+Faz 3.06 geliştirmesi sonrası gerçekleştirilen doğrulama sonuçları:
 	• Vitest Testleri: 17 test dosyasında 291 testin tamamı %100 başarılı olarak geçti (36 yeni test eklendi).
 	• TypeScript Tip Denetimi: npx tsc --noEmit hatasız tamamlandı.
 	• Production Build: npm run build ile Board ve List sayfaları optimize biçimde derlendi.
-	• Git Commit: 30d48cf feat: (Prompt V) add advanced filters, quick filter chips, saved views and tests olarak sürümlendi.
+	• Git Commit: 30d48cf feat: (Faz 3.06) add advanced filters, quick filter chips, saved views and tests olarak sürümlendi.
 
 8. Özet ve Değerlendirme
-Prompt V ile Pulse; hem pano hem liste görünümlerinde saniyeler içinde hedeflenen görevlere ulaşmayı sağlayan esnek arama ve filtreleme araçlarına kavuşmuştur. Özellikle Hızlı Filtre Çipleri ve Kayıtlı Görünümler (Saved Views) yetenekleri, uygulamanın Jira ve Linear seviyesinde profesyonel bir üretkenlik aracına dönüşmesinde kilit rol oynamıştır.
+Faz 3.06 ile Pulse; hem pano hem liste görünümlerinde saniyeler içinde hedeflenen görevlere ulaşmayı sağlayan esnek arama ve filtreleme araçlarına kavuşmuştur. Özellikle Hızlı Filtre Çipleri ve Kayıtlı Görünümler (Saved Views) yetenekleri, uygulamanın Jira ve Linear seviyesinde profesyonel bir üretkenlik aracına dönüşmesinde kilit rol oynamıştır.

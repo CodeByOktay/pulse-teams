@@ -1,6 +1,6 @@
-# Pulse — Modern Kanban-First Proje Yönetim Uygulaması
+# Pulse Project Manager — Modern Proje Yönetim Sistemi
 
-> Next.js 16 (App Router), PostgreSQL, Prisma ORM, NextAuth ve @dnd-kit kullanılarak geliştirilmiş modern, hızlı ve kurumsal seviyede proje yönetim (PM) sistemi.
+> Next.js 16 (App Router), PostgreSQL, Prisma ORM, NextAuth ve @dnd-kit kullanılarak geliştirilmiş modern, hızlı ve kurumsal seviyede proje yönetim platformu.
 
 ![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v0.3.0-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)
@@ -203,6 +203,6 @@ npm run build
 
 ---
 
-## 📄 Lisans
+## 📄 Lisans & Vizyon
 
-Bu proje eğitim ve staj geliştirme amacıyla oluşturulmuştur.
+Pulse Project Manager kurumsal seviyede, modern ve açık kaynak mimarilerden ilham alan bir proje yönetim platformudur.

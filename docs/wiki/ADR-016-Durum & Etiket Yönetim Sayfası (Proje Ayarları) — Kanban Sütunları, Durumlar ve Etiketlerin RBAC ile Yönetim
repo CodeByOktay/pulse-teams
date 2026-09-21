@@ -1,8 +1,8 @@
-# 📑 Prompt P — Teknik Değerlendirme ve Test Raporu
+# Faz 2.07 — Durum & Etiket Yönetim Sayfası (Proje Ayarları): Teknik Rapor
 
 > **Faz:** 2 (v0.2.0 Tamamlanışı)  
 > **Başlık:** Durum & Etiket Yönetim Sayfası (Proje Ayarları) — Kanban Sütunları, Durumlar ve Etiketlerin RBAC ile Yönetimi  
-> **Proje:** `C:\Staj_Project`  
+> **Proje:** Pulse Project Manager (`C:\Pulse`)  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri, birim testler ve üretim derlemesi eksiksiz karşılandı  
 > **Tarih:** 18 Eylül 2026  
 
@@ -10,9 +10,9 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-**Prompt P**, Staj PM platformunun Faz 2 yol haritasının son ve kritik yapı taşlarından biridir. Proje yöneticilerinin (ADMIN rolündeki kullanıcılar) projeye ait Kanban sütunlarını (durumlar / states) ve görev etiketlerini (labels) esnek, modern ve güvenli bir şekilde yönetebilecekleri **Proje Ayarları (Settings)** sayfasını sisteme kazandırmıştır.
+**Faz 2.07**, Pulse Project Manager platformunun Faz 2 yol haritasının son ve kritik yapı taşlarından biridir. Proje yöneticilerinin (ADMIN rolündeki kullanıcılar) projeye ait Kanban sütunlarını (durumlar / states) ve görev etiketlerini (labels) esnek, modern ve güvenli bir şekilde yönetebilecekleri **Proje Ayarları (Settings)** sayfasını sisteme kazandırmıştır.
 
-Bu prompt kapsamında;
+Bu faz adımı kapsamında;
 - Proje bazlı rol doğrulaması (RBAC) ile korunan `/projects/[projectId]/settings` sayfası ve sekmeli yönetim arayüzü (`SettingsTabs`) geliştirildi,
 - Durum yönetimi için `createState`, `updateState`, `deleteState` ve toplu sıralama sunan `reorderStates` Server Action'ları (`src/actions/state.ts`) yazıldı,
 - Etiket yönetimi genişletilerek `createLabel`, `updateLabel`, `deleteLabel` Server Action'ları (`src/actions/label.ts`) entegre edildi,
@@ -160,7 +160,7 @@ Proje veritabanında durumların güvenli yönetimi için 4 temel aksiyon yazıl
 
 ## 3. Kabul Kriterleri Doğrulama Matrisi
 
-| No | Kabul Kriteri (Prompt P) | Durum | Doğrulama & Uygulama Detayı |
+| No | Kabul Kriteri (Faz 2.07) | Durum | Doğrulama & Uygulama Detayı |
 |:---|:---|:---:|:---|
 | 1 | `/projects/[id]/settings` sayfası ADMIN'e açılıyor | ✅ Karşılandı | `ProjectSettingsPage` sunucu tarafında rolü denetler, ADMIN'e sekmeli ayar panelini açar. |
 | 2 | ADMIN olmayan kullanıcı ayarlar sayfasına giremez | ✅ Karşılandı | Sayfa düzeyinde `ShieldAlert` ikonlu uyarı ekranı gösterilir, Server Actions düzeyinde `requireAdmin` engeller. |
@@ -182,7 +182,7 @@ Proje veritabanında durumların güvenli yönetimi için 4 temel aksiyon yazıl
 Terminal komutu: `npx vitest run src/lib/__tests__/settings-validation.test.ts`
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/settings-validation.test.ts (30 tests) 10ms
 
@@ -226,7 +226,7 @@ Terminal komutu: `npx vitest run src/lib/__tests__/settings-validation.test.ts`
 Terminal komutu: `npx vitest run`
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/bulk-selection.test.ts (18 tests) 13ms
  ✓ src/lib/__tests__/sprint-utils.test.ts (13 tests) 11ms
@@ -322,13 +322,13 @@ Sonuç: `/projects/[projectId]/settings` dinamik rotası başarıyla inşa edilm
 
 ## 7. Faz 2 Tamamlanış Özeti ve Değerlendirme
 
-Prompt P'nin başarıyla tamamlanmasıyla birlikte **Faz 2 (v0.2.0)** geliştirme süreci hedeflerine ulaşmıştır:
+Faz 2.07'nin başarıyla tamamlanmasıyla birlikte **Faz 2 (v0.2.0)** geliştirme süreci hedeflerine ulaşmıştır:
 
-- **Prompt J & K:** Sprint/Cycle altyapısı, veritabanı genişletmesi ve Sprint Yönetim Sayfası,
-- **Prompt L:** Tablo stili esnek Liste Görünümü (List View),
-- **Prompt M:** Görev değişikliklerini takip eden Aktivite Geçmişi (Audit Log),
-- **Prompt N:** Çoklu görev seçimi, toplu güncelleme ve silme (Bulk Actions),
-- **Prompt O:** Markdown zengin metin düzenleme, canlı önizleme ve temiz özetleme,
-- **Prompt P:** Proje ayarları, RBAC yetkilendirme, etiket ve sürükle-bırak durum yönetimi.
+- **Faz 2.01 & K:** Sprint/Cycle altyapısı, veritabanı genişletmesi ve Sprint Yönetim Sayfası,
+- **Faz 2.03:** Tablo stili esnek Liste Görünümü (List View),
+- **Faz 2.04:** Görev değişikliklerini takip eden Aktivite Geçmişi (Audit Log),
+- **Faz 2.05:** Çoklu görev seçimi, toplu güncelleme ve silme (Bulk Actions),
+- **Faz 2.06:** Markdown zengin metin düzenleme, canlı önizleme ve temiz özetleme,
+- **Faz 2.07:** Proje ayarları, RBAC yetkilendirme, etiket ve sürükle-bırak durum yönetimi.
 
 Tüm faz genelinde **136 birim test, %100 başarı oranı, 0 TypeScript hatası ve temiz üretim derlemesi** ile proje v0.2.0 sürümüne hazır hale getirilmiştir.

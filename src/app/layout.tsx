@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pulse",
-  description: "Kanban-first proje yönetim uygulaması",
+  title: "Pulse Project Manager",
+  description: "Pulse Project Manager — Modern, hızlı ve tam teşekküllü proje yönetim platformu",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

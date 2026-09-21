@@ -1,8 +1,8 @@
-# 📑 Prompt O — Teknik Değerlendirme ve Test Raporu
+# Faz 2.06 — Markdown Açıklama Desteği — Görev Detayında Zengin Metin Düzenleme & Önizleme: Teknik Rapor
 
 > **Faz:** 2 (v0.2.0 Hazırlığı)  
 > **Başlık:** Markdown Açıklama Desteği — Görev Detayında Zengin Metin Düzenleme & Önizleme  
-> **Proje:** `C:\Staj_Project`  
+> **Proje:** Pulse Project Manager (`C:\Pulse`)  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri, birim testler ve derleme testleri eksiksiz karşılandı  
 > **Tarih:** 18 Eylül 2026  
 
@@ -10,9 +10,9 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-**Prompt O**, Staj PM platformundaki görev yönetimi deneyimini ileri seviyeye taşıyarak görev açıklamalarına tam teşekküllü **Markdown (zengin metin) yazma, biçimlendirme ve canlı önizleme** kabiliyeti kazandırmıştır.
+**Faz 2.06**, Pulse Project Manager platformundaki görev yönetimi deneyimini ileri seviyeye taşıyarak görev açıklamalarına tam teşekküllü **Markdown (zengin metin) yazma, biçimlendirme ve canlı önizleme** kabiliyeti kazandırmıştır.
 
-Bu prompt kapsamında;
+Bu faz adımı kapsamında;
 - Hafif, güvenilir ve modern **`react-markdown` + `remark-gfm`** altyapısı projeye entegre edildi,
 - Markdown içeriklerini şık Tailwind CSS tipografi sınıflarıyla derleyen **`MarkdownRenderer`** istemci bileşeni geliştirildi,
 - İkili çalışma sekmesi ("Yaz" / "Önizle"), otomatik boyutlanan textarea, Tab (2 boşluk) girintileme ve hızlı biçimlendirme araç çubuğu (B, I, Kod, Liste, Link) barındıran **`MarkdownEditor`** oluşturuldu,
@@ -127,7 +127,7 @@ Kullanıcının metin üretmesini ve biçimlendirmesini kolaylaştıran modern b
 
 ## 3. Kabul Kriterleri Doğrulama Matrisi
 
-| No | Kabul Kriteri (Prompt O) | Durum | Doğrulama & Uygulama Detayı |
+| No | Kabul Kriteri (Faz 2.06) | Durum | Doğrulama & Uygulama Detayı |
 |:---|:---|:---:|:---|
 | 1 | Görev detay panelinde "Yaz" / "Önizle" sekmeleri | ✅ Karşılandı | `MarkdownEditor` bileşeninde `tab` state'i ile kontrol edilen geçiş sekmeleri mevcuttur. |
 | 2 | "Yaz" sekmesinde Markdown yazılabiliyor | ✅ Karşılandı | Otomatik büyüyen, Tab girintileme destekli `textarea` aktif olarak çalışmaktadır. |
@@ -147,7 +147,7 @@ Kullanıcının metin üretmesini ve biçimlendirmesini kolaylaştıran modern b
 Terminal komutu: `npx vitest run src/lib/__tests__/markdown-utils.test.ts`
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/markdown-utils.test.ts (21 tests) 8ms
 
@@ -192,7 +192,7 @@ Terminal komutu: `npx vitest run src/lib/__tests__/markdown-utils.test.ts`
 Terminal komutu: `npx vitest run`
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/board-filters.test.ts (5 tests) 10ms
  ✓ src/lib/__tests__/activity-logger.test.ts (14 tests) 11ms
@@ -211,7 +211,7 @@ Terminal komutu: `npx vitest run`
    Duration  1.13s
 ```
 
-> 💡 **Not:** Projenin toplam test sayısı Prompt N sonrasındaki 85 adetten **106 adede yükselmiştir**. Başarı oranı **%100**'dür.
+> 💡 **Not:** Projenin toplam test sayısı Faz 2.05 sonrasındaki 85 adetten **106 adede yükselmiştir**. Başarı oranı **%100**'dür.
 
 ---
 
@@ -280,8 +280,8 @@ Sonuç: Tüm sayfalar ve API rotaları Turbopack ile hatasız derlenmiş, SSR/is
 
 ## 7. Sonuç ve Sıradaki Adım
 
-**Prompt O başarıyla tamamlanmış**, tüm kabul kriterleri ve testler %100 oranında sağlanmıştır.
+**Faz 2.06 başarıyla tamamlanmış**, tüm kabul kriterleri ve testler %100 oranında sağlanmıştır.
 
 Sırada Faz 2'nin bir sonraki adımı bulunmaktadır:
-👉 **PROMPT P — Durum & Etiket Yönetim Sayfası (Proje Ayarları)**
+👉 **Faz 2.07 — Durum & Etiket Yönetim Sayfası (Proje Ayarları)**
 - Kanban sütunlarının (state) ve etiketlerin (labels) yönetileceği özel ayarlar sayfası.

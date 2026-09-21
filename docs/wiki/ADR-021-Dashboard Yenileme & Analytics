@@ -1,5 +1,5 @@
-Pulse — Faz 3 Prompt U: Teknik Rapor (Dashboard Yenileme & Analytics)
-Bu teknik rapor, Pulse ana dashboard sayfasının (/) sade bir proje listesinden kişiselleştirilmiş, performans odaklı ve karar vericilere yönelik bir Yönetici ve Odak Merkezine dönüştürülmesini sağlayan Prompt U geliştirmesinin mimari yapısını, analitik algoritmalarını, veritabanı sorgu optimizasyonlarını ve test stratejisini sunar.
+# Faz 3.05 — Dashboard Yenileme & Analytics: Teknik Rapor
+Bu teknik rapor, Pulse ana dashboard sayfasının (/) sade bir proje listesinden kişiselleştirilmiş, performans odaklı ve karar vericilere yönelik bir Yönetici ve Odak Merkezine dönüştürülmesini sağlayan Faz 3.05 geliştirmesinin mimari yapısını, analitik algoritmalarını, veritabanı sorgu optimizasyonlarını ve test stratejisini sunar.
 
 1. Giriş ve Amaç
 1.1 Problem Tanımı
@@ -113,11 +113,11 @@ src/lib/__tests__/dashboard-analytics.test.ts dosyasında 25 adet kapsamlı Vite
 		○ "az önce", "5 dakika önce", "3 saat önce", "dün", "5 gün önce" ve 30 gün üstü yerel tarih formatı kontrolleri.
 
 7. Doğrulama ve Sistem Durumu
-Prompt U geliştirmesi sonrası yapılan sistem denetimleri:
+Faz 3.05 geliştirmesi sonrası yapılan sistem denetimleri:
 	• Vitest Testleri: 17 test dosyasında 291 testin tamamı %100 başarılı olarak geçti.
 	• TypeScript: npx tsc --noEmit hatasız tamamlandı.
 	• Production Build: npm run build ile / sayfası Server-rendered Dynamic route olarak optimize biçimde derlendi.
-	• Git Commit: 82dfddf feat: (Prompt U) revamp dashboard with analytics, stats cards, my tasks and tests olarak sürümlendi.
+	• Git Commit: 82dfddf feat: (Faz 3.05) revamp dashboard with analytics, stats cards, my tasks and tests olarak sürümlendi.
 
 8. Özet ve Kullanıcı Kazanımları
-Prompt U ile Pulse; kullanıcının sabah ilk oturum açtığında "Bugün hangi işlere odaklanmalıyım?", "Geciken işim var mı?", "Takımım sprint hedeflerine ne kadar yakın?" sorularına tek bir ekranda, hiçbir ek tıklama yapmadan yanıt bulabildiği modern bir analitik merkezine kavuşmuştur.
+Faz 3.05 ile Pulse; kullanıcının sabah ilk oturum açtığında "Bugün hangi işlere odaklanmalıyım?", "Geciken işim var mı?", "Takımım sprint hedeflerine ne kadar yakın?" sorularına tek bir ekranda, hiçbir ek tıklama yapmadan yanıt bulabildiği modern bir analitik merkezine kavuşmuştur.

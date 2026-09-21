@@ -1,7 +1,7 @@
-# Faz C — Kimlik Doğrulama (Auth) & Oturum Yönetimi: Teknik Rapor
+# Faz 1.03 — Kimlik Doğrulama (Auth) & Oturum Yönetimi: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** C (Kayıt, Giriş, NextAuth.js & Güvenlik Mimarisi)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.03 (Kayıt, Giriş, NextAuth.js & Güvenlik Mimarisi)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı & Doğrulandı
 
@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz C kapsamında, `C:\Staj_Project` uygulamasına **NextAuth.js v4** tabanlı, e-posta ve şifreye dayalı güvenli kimlik doğrulama altyapısı entegre edilmiştir.
+Faz 1.03 kapsamında, `C:\Pulse` uygulamasına **NextAuth.js v4** tabanlı, e-posta ve şifreye dayalı güvenli kimlik doğrulama altyapısı entegre edilmiştir.
 
 Bu fazın temel amacı; sonraki adımlarda geliştirilecek olan proje sahipliği, üyelikler, görev atamaları ve yorum mekanizmalarının ihtiyaç duyduğu kullanıcı kimliğini (`session.user.id`) oturum boyunca güvenli ve kesintisiz biçimde sunmaktır.
 
@@ -223,9 +223,9 @@ export const config = {
 
 ## 7. Sonraki Fazlarla (D-I) Entegrasyon
 
-Faz C'de kurulan bu altyapı, sonraki tüm fazların çalışması için zorunlu zemini oluşturmuştur:
-- **Faz D (Proje Yönetimi):** Proje oluşturulurken `ownerId: session.user.id` ataması ve yetkilendirme bu oturumdan beslenmiştir.
-- **Faz E-F (Görev ve Atama):** Görevlere üye atama (`TaskAssignee`) ve üyelik kontrolleri bu kullanıcı kayıtlarına dayanmıştır.
-- **Faz H (Yorumlar):** Yorum silme işlemlerinde `comment.authorId === session.user.id` kuralı uygulanarak kullanıcıların yalnızca kendi yorumlarını silmesi bu sayede garanti edilmiştir.
+Faz 1.03'de kurulan bu altyapı, sonraki tüm fazların çalışması için zorunlu zemini oluşturmuştur:
+- **Faz 1.04 (Proje Yönetimi):** Proje oluşturulurken `ownerId: session.user.id` ataması ve yetkilendirme bu oturumdan beslenmiştir.
+- **Faz 1.05-F (Görev ve Atama):** Görevlere üye atama (`TaskAssignee`) ve üyelik kontrolleri bu kullanıcı kayıtlarına dayanmıştır.
+- **Faz 1.08 (Yorumlar):** Yorum silme işlemlerinde `comment.authorId === session.user.id` kuralı uygulanarak kullanıcıların yalnızca kendi yorumlarını silmesi bu sayede garanti edilmiştir.
 
-*Rapor Faz C gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*
+*Rapor Faz 1.03 gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

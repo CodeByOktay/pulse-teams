@@ -1,8 +1,8 @@
-# 📑 Prompt J — Teknik Değerlendirme ve Uygulama Raporu
+# Faz 2.01 — Sprint/Cycle Şeması, Veritabanı Genişletmesi & Temel Server Actions: Teknik Rapor
 
 > **Faz:** 2 (v0.2.0 Hazırlığı)  
 > **Başlık:** Sprint / Cycle Şeması, Veritabanı Genişletmesi & Temel Server Actions  
-> **Proje:** `C:\Staj_Project`  
+> **Proje:** Pulse Project Manager (`C:\Pulse`)  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri ve testler karşılandı  
 > **Tarih:** 18 Eylül 2026  
 
@@ -10,9 +10,9 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-**Prompt J**, Staj PM platformunun Faz 2 (v0.2.0) sürümüne geçişindeki **temel mimari omurgasını** oluşturur. Faz 1'de kurulan Kanban ve Görev (Task) altyapısının üzerine **Agile / Scrum döngülerini (Sprint / Cycle)** entegre etmek amacıyla gerçekleştirilmiştir.
+**Faz 2.01**, Pulse Project Manager platformunun Faz 2 (v0.2.0) sürümüne geçişindeki **temel mimari omurgasını** oluşturur. Faz 1'de kurulan Kanban ve Görev (Task) altyapısının üzerine **Agile / Scrum döngülerini (Sprint / Cycle)** entegre etmek amacıyla gerçekleştirilmiştir.
 
-Bu prompt kapsamında;
+Bu faz adımı kapsamında;
 - Veritabanı şeması `Sprint` ve `SprintTask` modelleri ile genişletilmiş,
 - Sıfır veri kaybı ile `20260918144432_add_sprint_cycle` PostgreSQL migration'ı uygulanmış,
 - 7 temel iş kuralını yöneten güvenli `Server Actions` katmanı yazılmış,
@@ -129,7 +129,7 @@ Yapılan değişiklikler `Vitest` test motoru ve `tsc` TypeScript denetleyicisi 
 ### 5.1. Test Koşum Raporu (`npm test`)
 
 ```text
- RUN  v5.0.1 C:/Staj_Project
+ RUN  v5.0.1 C:/Pulse
 
  ✓ src/lib/__tests__/sequence.test.ts (2 tests) 8ms
  ✓ src/lib/__tests__/board-filters.test.ts (5 tests) 10ms
@@ -179,9 +179,9 @@ Yapılan değişiklikler `Vitest` test motoru ve `tsc` TypeScript denetleyicisi 
 
 ---
 
-## 7. Sonraki Adım: Prompt K Hazırlığı
+## 7. Sonraki Adım: Faz 2.02 Hazırlığı
 
-Prompt J ile veritabanı, veri erişim katmanı ve iş mantığı tamamlanmıştır. Bir sonraki adım olan **Prompt K** için hazır hale gelinmiştir:
+Faz 2.01 ile veritabanı, veri erişim katmanı ve iş mantığı tamamlanmıştır. Bir sonraki adım olan **Faz 2.02** için hazır hale gelinmiştir:
 - **Hedef:** Sprint Yönetim Arayüzü (`/projects/[projectId]/sprints`)
 - **Geliştirilecek Bileşenler:**
   - `SprintCard`: Durum badge'i, ilerleme çubuğu, tarih aralığı ve eylem butonları.

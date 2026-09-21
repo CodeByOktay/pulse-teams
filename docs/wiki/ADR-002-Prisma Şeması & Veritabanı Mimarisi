@@ -1,7 +1,7 @@
-# Faz B — Prisma Şeması & Veritabanı Mimarisi: Teknik Rapor
+# Faz 1.02 — Prisma Şeması & Veritabanı Mimarisi: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** B (Veritabanı Şeması, Modeller & Seed Script)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.02 (Veritabanı Şeması, Modeller & Seed Script)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı & Doğrulandı
 
@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz B kapsamında, `C:\Staj_Project` projesinin omurgasını oluşturan ilişkisel veri modeli tasarlanmış, **Prisma ORM (v6.19.3)** üzerinde tanımlanmış ve **PostgreSQL 16** veritabanına uygulanmıştır.
+Faz 1.02 kapsamında, `C:\Pulse` projesinin omurgasını oluşturan ilişkisel veri modeli tasarlanmış, **Prisma ORM (v6.19.3)** üzerinde tanımlanmış ve **PostgreSQL 16** veritabanına uygulanmıştır.
 
 Bu fazın temel amacı; açık kaynak proje yönetim sistemlerinden (özellikle **Plane**) edinilen mimari desenleri benimseyerek, küçük ölçekli ancak yüksek performanslı, esnek ve tip güvenli bir Kanban veri altyapısı kurmaktır.
 
@@ -167,7 +167,7 @@ export async function seedDefaultStates(
 ```
 
 ### Neden Bu Yapı?
-1. **Dinamik Proje Oluşturma Entegrasyonu:** Fonksiyon hem `PrismaClient` hem de interactive transaction (`TransactionClient`) kabul eder. Bu sayede Faz D'de kullanıcı arayüzünden yeni bir proje açıldığında bu 5 sütun **tek bir atomik veritabanı transaction'ı içinde** anında oluşturulur.
+1. **Dinamik Proje Oluşturma Entegrasyonu:** Fonksiyon hem `PrismaClient` hem de interactive transaction (`TransactionClient`) kabul eder. Bu sayede Faz 1.04'de kullanıcı arayüzünden yeni bir proje açıldığında bu 5 sütun **tek bir atomik veritabanı transaction'ı içinde** anında oluşturulur.
 2. **Aralıklı Sıralama (`sequence: 15000, 25000...`):** Sayılar arasında 10.000'er birim boşluk bırakılarak, gelecekte araya yeni bir sütun eklendiğinde (örn. `20000`) mevcut kolonların sıra değerlerine dokunulmaz.
 
 ---
@@ -176,10 +176,10 @@ export async function seedDefaultStates(
 
 Yerel makinede kurulu bağımsız bir PostgreSQL servisi bulunmadığı için, geliştirme ortamı konteynerleştirilmiştir:
 
-- **Altyapı:** Docker Desktop konteyneri (`staj-pm-postgres`)
+- **Altyapı:** Docker Desktop konteyneri (`pulse-postgres`)
 - **İmaj:** `postgres:16`
 - **Port:** `5432`
-- **Veritabanı Adı:** `staj_pm`
+- **Veritabanı Adı:** `pulse_db`
 - **Şema Dağıtımı:** `npx prisma db push` komutu ile uygulandı.
 - **Doğrulama:** `npx prisma studio` (Port 5555) ve doğrudan PostgreSQL CLI (`psql`) üzerinden 9 tablonun ve kısıtların eksiksiz oluştuğu teyit edildi.
 
@@ -201,8 +201,8 @@ Yerel makinede kurulu bağımsız bir PostgreSQL servisi bulunmadığı için, g
 ## 8. Sonraki Adımlarla İlişkisi
 
 Bu fazda kurulan veritabanı şeması, sonraki fazların doğrudan temelidir:
-- **Faz C (Auth):** `User` tablosunu kullanarak kayıt ve JWT oturumu yönetti.
-- **Faz D (Project CRUD):** `Project` ve `ProjectMember` modellerini, `seedDefaultStates` fonksiyonuyla bağladı.
-- **Faz E-F-G (Kanban & Görevler):** `Task`, `State`, `Label` ve `TaskAssignee` modellerini ekrandaki sürükle-bırak panosuna dönüştürdü.
+- **Faz 1.03 (Auth):** `User` tablosunu kullanarak kayıt ve JWT oturumu yönetti.
+- **Faz 1.04 (Project CRUD):** `Project` ve `ProjectMember` modellerini, `seedDefaultStates` fonksiyonuyla bağladı.
+- **Faz 1.05-F-G (Kanban & Görevler):** `Task`, `State`, `Label` ve `TaskAssignee` modellerini ekrandaki sürükle-bırak panosuna dönüştürdü.
 
-*Rapor Faz B gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*
+*Rapor Faz 1.02 gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

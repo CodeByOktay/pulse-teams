@@ -1,7 +1,7 @@
-# Faz E — Görev Yönetimi (CRUD), Sequence ID & Sıralama Mimarisi: Teknik Rapor
+# Faz 1.05 — Görev Yönetimi (CRUD), Sequence ID & Sıralama Mimarisi: Teknik Rapor
 
-> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
-> **Faz:** E (Görev CRUD, Sequence ID, Varsayılan State & Sıralama Mantığı)  
+> **Proje:** Pulse Project Manager  
+> **Faz:** 1.05 (Görev CRUD, Sequence ID, Varsayılan State & Sıralama Mantığı)  
 > **Tarih:** 17 Eylül 2026  
 > **Durum:** ✅ Tamamlandı & Doğrulandı
 
@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz E kapsamında, uygulamanın ana iş birimi olan **Görevlerin (Task)** oluşturulması, güncellenmesi, silinmesi ve sıralanmasını sağlayan sunucu katmanı inşa edilmiştir.
+Faz 1.05 kapsamında, uygulamanın ana iş birimi olan **Görevlerin (Task)** oluşturulması, güncellenmesi, silinmesi ve sıralanmasını sağlayan sunucu katmanı inşa edilmiştir.
 
 Bu fazda, kurumsal proje yönetim araçlarının (Jira, Linear ve özellikle açık kaynak **Plane**) standardı olan iki kritik mimari desen başarıyla hayata geçirilmiştir:
 1. **Proje Kapsamlı Sıra Numarası (Sequence ID):** Her görevin projenin kısa koduna göre artan bir numara alması (örn. `PRJ-1`, `PRJ-2`).
@@ -112,12 +112,12 @@ Bu sayede oturum açmış olsa bile projenin üyesi olmayan bir kullanıcının 
 - Görevi silerken `onDelete: Cascade` sayesinde göreve bağlı `TaskLabel` (etiketler), `TaskAssignee` (atamalar) ve `Comment` (yorumlar) tabloları ilişkisel bütünlük bozulmadan PostgreSQL tarafından anında temizlenir.
 
 ### 4.5 `reorderTask(taskId, newStateId, newSortOrder)`
-- Faz G'de devreye girecek olan sürükle-bırak (DnD) sistemi için optimize edilmiştir.
+- Faz 1.07'de devreye girecek olan sürükle-bırak (DnD) sistemi için optimize edilmiştir.
 - Kart taşındığında tek bir SQL sorgusu ile yeni durum ve yeni sıralama güncellenir:
   `prisma.task.update({ where: { id: taskId }, data: { stateId: newStateId, sortOrder: newSortOrder } })`.
 
 ### 4.6 `getTaskDetail(taskId)`
-- Faz H'deki detay modalı için görevin tüm ilişkisel verilerini (`project.identifier`, `labels`, `assignees`, `comments.author`) tek sorguda çeker.
+- Faz 1.08'deki detay modalı için görevin tüm ilişkisel verilerini (`project.identifier`, `labels`, `assignees`, `comments.author`) tek sorguda çeker.
 
 ---
 
@@ -165,10 +165,10 @@ Kanban panosunda kartların sıralanması için **Plane** projesinin kullandığ
 
 ---
 
-## 7. Sonraki Adımlarla (Faz F & G) Entegrasyon
+## 7. Sonraki Adımlarla (Faz 1.06 & G) Entegrasyon
 
-Faz E'de kurulan iş mantığı, sonraki adımlara tam uyumlu bir zemin hazırlamıştır:
-- **Faz F (Etiketler & Atamalar):** `Task` modeline bağlı `TaskLabel` ve `TaskAssignee` ara tablolarını yöneten eylemler bu görev kimlikleri üzerinden bağlanmıştır.
-- **Faz G (Kanban Panosu):** `sortOrder` değerleri, `@dnd-kit` ile oluşturulan sütunlarda kartların dikey sıralanmasını ve sürükleme sonrası `reorderTask` ile anında kaydedilmesini sağlamıştır.
+Faz 1.05'de kurulan iş mantığı, sonraki adımlara tam uyumlu bir zemin hazırlamıştır:
+- **Faz 1.06 (Etiketler & Atamalar):** `Task` modeline bağlı `TaskLabel` ve `TaskAssignee` ara tablolarını yöneten eylemler bu görev kimlikleri üzerinden bağlanmıştır.
+- **Faz 1.07 (Kanban Panosu):** `sortOrder` değerleri, `@dnd-kit` ile oluşturulan sütunlarda kartların dikey sıralanmasını ve sürükleme sonrası `reorderTask` ile anında kaydedilmesini sağlamıştır.
 
-*Rapor Faz E gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*
+*Rapor Faz 1.05 gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

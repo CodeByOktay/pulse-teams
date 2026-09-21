@@ -1,9 +1,9 @@
 # Pulse — Agent Development Guide
 
 ## Proje Kimliği
-- **Ad:** Pulse — Kanban-first Proje Yönetim Uygulaması
+- **Ad:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint Tabanlı Proje Yönetim Uygulaması
 - **Konum:** `C:\Pulse`
-- **Versiyon:** v0.3.0 (Faz 3 tamamlandı — Prompt Q–W)
+- **Versiyon:** v0.3.0 (Faz 3 tamamlandı — Faz 3.01–3.07)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -136,14 +136,14 @@ Enum'lar (6):
 - Hata: throw new Error("Türkçe mesaj")
 - revalidatePath: Her mutasyondan sonra zorunlu
 
-## Tamamlanan Görev — Faz 2 (v0.2.0) — Prompt Sırası
-J: [TAMAMLANDI] Sprint/Cycle Şeması + sprint-utils.test.ts (13 test)
-K: [TAMAMLANDI] Sprint Yönetim Sayfası + sprint-actions.test.ts (11 test)
-L: [TAMAMLANDI] Liste Görünümü + list-view-sort.test.ts (15 test)
-M: [TAMAMLANDI] Aktivite/Audit Log + activity-logger.test.ts (14 test)
-N: [TAMAMLANDI] Toplu İşlemler + bulk-selection.test.ts (18 test)
-O: [TAMAMLANDI] Markdown Desteği + markdown-utils.test.ts (21 test)
-P: [TAMAMLANDI] Proje Ayarları + settings-validation.test.ts (30 test)
+## Tamamlanan Görev — Faz 2 (v0.2.0) — Faz Adım Sırası
+Faz 2.01: [TAMAMLANDI] Sprint/Cycle Şeması + sprint-utils.test.ts (13 test)
+Faz 2.02: [TAMAMLANDI] Sprint Yönetim Sayfası + sprint-actions.test.ts (11 test)
+Faz 2.03: [TAMAMLANDI] Liste Görünümü + list-view-sort.test.ts (15 test)
+Faz 2.04: [TAMAMLANDI] Aktivite/Audit Log + activity-logger.test.ts (14 test)
+Faz 2.05: [TAMAMLANDI] Toplu İşlemler + bulk-selection.test.ts (18 test)
+Faz 2.06: [TAMAMLANDI] Markdown Desteği + markdown-utils.test.ts (21 test)
+Faz 2.07: [TAMAMLANDI] Proje Ayarları + settings-validation.test.ts (30 test)
 Sonuç: 136 Vitest testi (hedef 100+ aşıldı), npm run build hatasız
 
 ## Tamamlanan Görev — Faz 3 (v0.3.0) — Tamamlandı
@@ -152,27 +152,27 @@ E-posta bildirimleri → Backlog'a alındı.
 Kimlik doğrulama kapsamı sabittir: yalnızca CredentialsProvider (e-posta/şifre + bcrypt).
 Harici kimlik sağlayıcı entegrasyonu proje kapsamından çıkarılmıştır, planlanmaz.
 
-### Faz 3 Prompt Durumu
-- **Q** [TAMAMLANDI] Üye Yönetimi & Davet Sistemi — ProjectInvite + 5 action + /invite/[token] + 28 test
-- **R** [TAMAMLANDI] Task Detail Premium UX — inline durum/öncelik seçiciler, breadcrumb, bağlantı
+### Faz 3 Adım Durumu
+- **Faz 3.01** [TAMAMLANDI] Üye Yönetimi & Davet Sistemi — ProjectInvite + 5 action + /invite/[token] + 28 test
+- **Faz 3.02** [TAMAMLANDI] Task Detail Premium UX — inline durum/öncelik seçiciler, breadcrumb, bağlantı
   kopyalama, sprint rozeti + task-detail-ux.test.ts (19 test)
-- **S** [TAMAMLANDI] Backlog Görünümü & Sprint Entegrasyonu — /backlog route, moveTaskToSprint/
+- **Faz 3.03** [TAMAMLANDI] Backlog Görünümü & Sprint Entegrasyonu — /backlog route, moveTaskToSprint/
   moveTaskToBacklog, sprint ilerleme kartları + backlog-logic.test.ts (23 test)
-- **T** [TAMAMLANDI] Global Arama & Komut Paleti (Cmd+K) — globalSearch server action,
+- **Faz 3.04** [TAMAMLANDI] Global Arama & Komut Paleti (Cmd+K) — globalSearch server action,
   CommandPalette bileşeni (Ctrl+K/Cmd+K, klavye navigasyonu), Sidebar'a arama butonu +
   search-logic.test.ts (24 test)
-- **U** [TAMAMLANDI] Dashboard Yenileme & Analytics — 4 istatistik kartı, Bana Atananlar widget'ı,
+- **Faz 3.05** [TAMAMLANDI] Dashboard Yenileme & Analytics — 4 istatistik kartı, Bana Atananlar widget'ı,
   Son Aktiviteler akışı, Sprint Hızı paneli, analytics-logic.ts + dashboard-analytics.test.ts (25 test)
-- **V** [TAMAMLANDI] Gelişmiş Filtreler & Kayıtlı Görünümler — group/due/q filtreleri,
+- **Faz 3.06** [TAMAMLANDI] Gelişmiş Filtreler & Kayıtlı Görünümler — group/due/q filtreleri,
   buildTaskWhereFromFilters, Hızlı Filtre çipleri, useSavedViews (localStorage) +
   advanced-filters.test.ts (36 test)
-- **W** [TAMAMLANDI] Task Relations (Blocks/Relates To) — TaskRelation modeli + RelationType enum,
+- **Faz 3.07** [TAMAMLANDI] Task Relations (Blocks/Relates To) — TaskRelation modeli + RelationType enum,
   relation-logic.ts (iteratif DFS döngü tespiti), addTaskRelation/removeTaskRelation/
   searchTasksForRelation, TaskRelations bileşeni (4 grup + İlişki Ekle popover) +
   task-relations.test.ts (40 test)
 Sonuç: Faz 3 kapandı — 331 Vitest testi %100 geçiyor, npx tsc --noEmit ve npm run build hatasız.
 
-## Her Prompt Sonrası Doğrulama
+## Her Adım Sonrası Doğrulama
 npm test          # tüm testler geçmeli (şu an: 331 test)
 npx tsc --noEmit  # TypeScript hatası olmamalı
 
