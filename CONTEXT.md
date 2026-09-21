@@ -1,14 +1,14 @@
-# CONTEXT - Pulse Project Manager (v0.3.1 -> Phase 4.01 Completed)
+# CONTEXT - Pulse Project Manager (v0.4.2 -> Phase 4.02 Completed)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, and 3 are fully completed; Phase 4.1 realistic analytics mock dataset seeding is completed.
+Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, and 3 are fully completed; Phase 4.01 (Analytics Dataset) and Phase 4.02 (In-App Notifications with Polling) are completed.
 
 ## Location & Execution
 - **Project Path:** `C:\Pulse`
 - **Database:** PostgreSQL 16 in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (348 tests across 19 suites, 100% passing)
+- **Tests:** `npm test` (364 tests across 20 suites, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, 500 tasks, 1000 comments, 3000 activities)
 
 ## AI Agent Division of Labor & Guides
@@ -99,12 +99,20 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - Total Phase 3: 331 Vitest tests (100% pass).
 
 ## Phase 4 In-Progress Features (v0.4.0)
-- **[Step 4.01] Realistic Analytics Dataset & Generators (v0.3.1):**
+- **[Step 4.01] Realistic Analytics Dataset & Generators (v0.4.1):**
   - `seed-data-generators.ts`: Pure domain module, deterministic `mulberry32` PRNG (seed: 42), weighted task-type/priority distributions, GFM checklist (~40%) and simulated attachment link (~30%) generators, and 14-day sprint window calculators.
   - `seed-realistic-data.ts`: Idempotent bulk insertion script (`npm run db:seed-rich` via `prisma/tsconfig.seed.json`). Reuses `wouldCreateBlockCycle` and `hasExistingRelation` to guarantee zero dependency cycles, and preserves the backlog invariant (`isTaskInBacklog`).
   - Dataset counts: 10 user personas (all `password123`), 5 projects (`CORE`, `ANL`, `AI`, `ADM`, `MOB`), 40 states, 150 labels, 50 sprints, 500 tasks, 1,000 comments, 3,000 activities, 100 task relations.
   - `seed-data-generators.test.ts` (17 tests).
-- Total: 348 Vitest tests (100% pass).
+- **[Step 4.02] In-App Notifications with Client Polling (v0.4.2):**
+  - `Notification` model & `NotificationType` enum (`TASK_ASSIGNED`, `COMMENT_ADDED`, `SPRINT_COMPLETED`).
+  - `notification-logic.ts`: Pure functions for delivery checks (`shouldDeliverNotification` suppressing self-notifications), markdown stripping & snippet truncation (`formatNotificationSnippet`), deep link generation (`buildNotificationDeepLink`), and unread counting.
+  - `notification.ts` server actions: `getNotifications`, `getUnreadNotificationCount`, `markNotificationAsRead`, `markAllNotificationsAsRead`, with non-blocking `createNotification` helpers.
+  - Event triggers integrated into `assignUserToTask`, `createComment`, and `completeSprint`.
+  - Client polling hook (`useNotificationPolling`) with 30s interval and tab visibility awareness (`document.visibilityState`).
+  - Header UI: `<NotificationBell />` with badge count and `<NotificationPopover />` with optimistic read status updates.
+  - `notification-logic.test.ts` (16 tests).
+- Total: 364 Vitest tests (100% pass).
 
 ## Critical Technical Invariants
 - `requireMembership(projectId, userId)` -> Enforced in every server action.
@@ -159,11 +167,12 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `advanced-filters.test.ts` (36)
 - `task-relations.test.ts` (40)
 - `seed-data-generators.test.ts` (17)
-Total: **348 tests, 100% passing**
+- `notification-logic.test.ts` (16)
+Total: **364 tests, 100% passing**
 
 ## Mandatory Verification Commands
 ```bash
-npm test          # Must pass 100% (348 tests)
+npm test          # Must pass 100% (364 tests)
 npx tsc --noEmit  # Zero TypeScript errors
 npm run build     # Production build validation
 ```
@@ -171,8 +180,8 @@ npm run build     # Production build validation
 ## New Chat Starter Template
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
-Phases 1 (v0.1.0), 2 (v0.2.0), and 3 (v0.3.0) are fully completed; Phase 4.1 mock dataset seeding is complete.
-348 Vitest tests are passing 100%.
+Phases 1 (v0.1.0), 2 (v0.2.0), and 3 (v0.3.0) are fully completed; Phase 4.01 (Dataset) and Phase 4.02 (In-App Notifications) are complete.
+364 Vitest tests are passing 100%.
 We are now ready to implement [new phase / feature].
 [Paste specific task or requirements here]
 ```

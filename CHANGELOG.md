@@ -3,6 +3,25 @@
 
 Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](https://keepachangelog.com/) standardına uygundur.
 
+## [0.4.2] - 2026-09-21 (Faz 4.02 — Uygulama İçi Bildirimler & İstemci Polling)
+
+### Eklendi (Added)
+- **Uygulama İçi Bildirim Modeli:** `Notification` tablosu ve `NotificationType` enum'u (`TASK_ASSIGNED`, `COMMENT_ADDED`, `SPRINT_COMPLETED`); `[userId, read]` ve `[userId, createdAt]` indeksleri.
+- **Saf Bildirim Mantığı (`src/lib/notification-logic.ts`):** `shouldDeliverNotification` (kendi kendine bildirim engeli), `formatNotificationSnippet` (Markdown temizleme ve 80 karakter kelime sınırında kesme), `buildNotificationDeepLink`, `buildSprintNotificationDeepLink`, `countUnreadNotifications`.
+- **Server Actions (`src/actions/notification.ts`):** `getNotifications`, `getUnreadNotificationCount`, `markNotificationAsRead`, `markAllNotificationsAsRead`, ve dayanıklı (hata yutan) `createNotification` / `createNotifications` yardımcıları.
+- **Otomatik Tetikleyiciler:** `assignUserToTask` (`TASK_ASSIGNED`), `createComment` (`COMMENT_ADDED`), `completeSprint` (`SPRINT_COMPLETED`) aksiyonlarına bildirim kancaları bağlandı.
+- **İstemci Polling Hook'u (`src/lib/use-notification-polling.ts`):** 30 saniyelik hafif sorgulama, sekme gizlendiğinde (`document.hidden`) duraklama, sekmeye dönüldüğünde anında tazeleme.
+- **Header Bildirim Bileşeni:** `NotificationBell` (kırmızı sayaç rozeti, `9+` desteği), `NotificationPopover` (360px açılır liste, "Tümünü Okundu İşaretle", göreve doğrudan geçiş linki).
+- **Test:** `notification-logic.test.ts` (16 test). Toplam test sayısı 364'e çıktı.
+
+## [0.4.1] - 2026-09-21 (Faz 4.01 — Gerçekçi Analitik Veri Seti & Jeneratörler)
+
+### Eklendi (Added)
+- **Deterministik Tohumlama Motoru (`prisma/seed-data-generators.ts`):** `mulberry32` PRNG (seed: 42), 10 kullanıcı personası (`password123`), 5 proje (`CORE`, `ANL`, `AI`, `ADM`, `MOB`), 8 Kanban durumu, 30 etiket, ağırlıklı görev tipleri ve öncelikler, GFM checklist (~%40) ve ek dosya (~%30) üreticileri.
+- **Prisma Orkestrasyonu (`prisma/seed-realistic-data.ts`):** Idempotent temizlik, toplu ekleme (`createMany`), `wouldCreateBlockCycle` ile döngüsüz bağımlılıklar, 10 sprintlik (Ocak-Mayıs) tarihsel dağılım ve tek aktif sprint kısıtına tam uyum.
+- **Cross-Platform Script:** `prisma/tsconfig.seed.json` ile `npm run db:seed-rich` komutu.
+- **Test:** `seed-data-generators.test.ts` (17 test). Toplam test sayısı 348'e çıktı.
+
 ## [0.3.0] - 2026-09-20 (Faz 3 — UX/UI Kalitesi & Proje Yönetimi Yetenekleri)
 
 ### Eklendi (Added)

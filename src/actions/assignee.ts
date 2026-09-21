@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
+import { createNotification } from "@/actions/notification";
+import { buildNotificationDeepLink, shouldDeliverNotification } from "@/lib/notification-logic";
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -45,6 +47,17 @@ export async function assignUserToTask(taskId: string, userId: string) {
     });
   } catch {
     // already assigned — no-op
+  }
+
+  if (shouldDeliverNotification(session.user.id, userId)) {
+    await createNotification({
+      type: "TASK_ASSIGNED",
+      title: "Yeni görev ataması",
+      message: task.title,
+      link: buildNotificationDeepLink(task.projectId, taskId),
+      actorId: session.user.id,
+      userId,
+    });
   }
 
   revalidatePath(`/projects/${task.projectId}/board`);

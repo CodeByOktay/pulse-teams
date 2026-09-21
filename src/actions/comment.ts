@@ -5,6 +5,13 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
+import { createNotifications } from "@/actions/notification";
+import {
+  buildNotificationDeepLink,
+  formatNotificationSnippet,
+  shouldDeliverNotification,
+} from "@/lib/notification-logic";
+import type { Prisma } from "@prisma/client";
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -50,6 +57,24 @@ export async function createComment({ taskId, content }: { taskId: string; conte
 
     return created;
   });
+
+  const assignees = await prisma.taskAssignee.findMany({
+    where: { taskId },
+    select: { userId: true },
+  });
+
+  const notificationEntries: Prisma.NotificationCreateManyInput[] = assignees
+    .filter((assignee) => shouldDeliverNotification(session.user.id, assignee.userId))
+    .map((assignee) => ({
+      type: "COMMENT_ADDED",
+      title: "Yeni yorum",
+      message: formatNotificationSnippet(trimmed),
+      link: buildNotificationDeepLink(task.projectId, taskId),
+      actorId: session.user.id,
+      userId: assignee.userId,
+    }));
+
+  await createNotifications(notificationEntries);
 
   revalidatePath(`/projects/${task.projectId}/board`);
 

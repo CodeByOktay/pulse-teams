@@ -7,7 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { canDeleteSprint, canStartSprint, validateSprintDates } from "@/lib/sprint-logic";
 import { canMoveTaskToSprint, getRemovableSprintIds } from "@/lib/backlog-logic";
 import { logActivity } from "@/lib/activity-logger";
-import type { SprintStatus } from "@prisma/client";
+import { createNotifications } from "@/actions/notification";
+import { buildSprintNotificationDeepLink, shouldDeliverNotification } from "@/lib/notification-logic";
+import type { Prisma, SprintStatus } from "@prisma/client";
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -275,6 +277,24 @@ export async function completeSprint(sprintId: string) {
     where: { id: sprintId },
     data: { status: "COMPLETED" },
   });
+
+  const members = await prisma.projectMember.findMany({
+    where: { projectId: sprint.projectId },
+    select: { userId: true },
+  });
+
+  const notificationEntries: Prisma.NotificationCreateManyInput[] = members
+    .filter((member) => shouldDeliverNotification(session.user.id, member.userId))
+    .map((member) => ({
+      type: "SPRINT_COMPLETED",
+      title: "Sprint tamamlandı",
+      message: sprint.name,
+      link: buildSprintNotificationDeepLink(sprint.projectId),
+      actorId: session.user.id,
+      userId: member.userId,
+    }));
+
+  await createNotifications(notificationEntries);
 
   revalidatePath(`/projects/${sprint.projectId}/sprints`);
 
