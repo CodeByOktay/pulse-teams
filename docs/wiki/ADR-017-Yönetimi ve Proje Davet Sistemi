@@ -1,0 +1,145 @@
+Pulse — Faz 3 Prompt Q: Teknik Rapor (Üye Yönetimi ve Proje Davet Sistemi)
+Bu teknik rapor, Pulse projesine takım çalışması, rol tabanlı erişim denetimi (RBAC) ve güvenli proje davet mekanizmasını kazandıran Prompt Q geliştirmesinin mimari, veri modeli, güvenlik kuralları ve test stratejisini sunar.
+
+1. Giriş ve Amaç
+1.1 Problem Tanımı
+	• Tek Kullanıcılı Kısıt: Önceki sürümlerde projeler oluşturulabiliyor fakat takım arkadaşları projeye dahil edilemiyordu.
+	• E-posta Altyapısı Olmadan Davet İhtiyacı: Faz 3 stratejisinde e-posta sunucusu (SMTP/Resend) kurulumu backlog'a alındığından, davetlerin harici e-posta servisine bağımlı olmadan güvenli, kopyalanabilir bağlantılar (token-based invite URLs) üzerinden çalışması gerekiyordu.
+	• Yetkisiz Erişim ve Rol Suiistimali: Proje sahibinin (owner) yanlışlıkla silinmesi, yetkisiz kullanıcıların üye eklemesi veya davet linklerinin üçüncü şahıslarca ele geçirilip kötüye kullanılması riski mevcuttu.
+1.2 Çözüm Hedefleri
+	1. Güvenli Token Tabanlı Davet: Kriptografik rastgelelik (crypto.randomBytes) ile tahmin edilemez token üretimi ve 7 günlük geçerlilik süresi.
+	2. Sıkı E-posta Doğrulaması (Strict Email Matching): Davet bağlantısı kimin e-postasına oluşturulduysa, yalnızca o e-posta ile oturum açmış kullanıcının daveti kabul edebilmesi.
+	3. Proje Sahibi Koruması (Owner Inviolability): Proje sahibinin hiçbir koşulda projeden çıkartılamaması veya rolünün düşürülememesi.
+	4. Settings "Üyeler" Yönetimi: Mevcut üyeleri listeleme, rol güncelleme, üyeyi projeden çıkarma, bekleyen davet bağlantılarını kopyalama ve iptal etme arayüzü.
+	5. Kapsamlı Kabul Sayfası (/invite/[token]): Tüm uç durumları (geçersiz, süresi dolmuş, yanlış hesap, zaten üye) şık kartlarla yöneten ekran.
+
+2. Veritabanı Modeli ve Migration
+prisma/schema.prisma dosyasına davet durumunu yöneten InviteStatus enum'ı ve ProjectInvite modeli eklenmiştir:
+
+prisma
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+model ProjectInvite {
+  id        String       @id @default(cuid())
+  token     String       @unique
+  email     String
+  role      String       @default("MEMBER")
+  status    InviteStatus @default(PENDING)
+  projectId String
+  inviterId String
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inviter   User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([projectId])
+  @@index([email])
+}
+
+	• Migration: 20260919213140_add_project_invite başarıyla veritabanına uygulanmıştır.
+	• Index Stratejisi: Token aramaları, proje bazlı bekleyen davet filtrelemeleri ve e-posta mükerrerlik kontrolleri için B-Tree indeksler tanımlanmıştır.
+
+3. Güvenlik ve Bütünlük Kuralları
+Kural	Uygulama Yeri	Açıklama
+Kriptografik Token	src/actions/member.ts	randomBytes(32).toString("hex") — 256-bit entropi (Math.random kesinlikle kullanılmaz).
+Süre Sınırı (Expiry)	src/actions/member.ts	Davetler üretildiği andan itibaren tam 7 gün geçerlidir (Date.now() + 7 * 24 * 60 * 60 * 1000).
+E-posta Normalizasyonu	src/actions/member.ts	Tüm e-posta adresleri .trim().toLowerCase() işlemine tabi tutulur.
+E-posta Eşleşme Şartı	acceptInvite & UI	Oturum açan kullanıcının e-postası davetteki e-posta ile eşleşmek zorundadır. Farklı hesapla açılırsa işlem engellenir ve Türkçe yönlendirme mesajı gösterilir.
+Mükerrerlik Koruması	inviteMember	Projede zaten üye olan veya halihazırda PENDING daveti bulunan bir e-postaya ikinci bir davet açılamaz.
+Sahip Dokunulmazlığı	removeMember, changeRole	project.ownerId === targetUserId kontrolü ile proje sahibinin silinmesi veya rolünün değiştirilmesi engellenir.
+Transaction Güvencesi	acceptInvite	ProjectMember.create ve ProjectInvite.update(status: ACCEPTED) işlemleri prisma.$transaction içinde atomik çalışır.
+
+4. Server Actions Mimarisi (src/actions/member.ts)
+Tüm mutasyonlar use server direktifi ile çalışır ve yetkilendirme katmanından geçer:
+	1. inviteMember(projectId, email, role = "MEMBER"):
+		○ Yalnızca ADMIN rolündeki kullanıcılar tetikleyebilir (requireAdmin).
+		○ E-posta formatı ve mükerrerlik denetimleri yapılır.
+		○ 32 byte hex token ve 7 günlük süre ile ProjectInvite kaydı oluşturulur.
+		○ Settings sayfasını revalidate eder.
+	2. acceptInvite(token):
+		○ Oturum doğrulaması yapar.
+		○ Token'ın varlığı, süresi ve durumu (PENDING) denetlenir.
+		○ Oturumdaki kullanıcının e-postası ile davet e-postası birebir uyuşmalıdır.
+		○ $transaction ile kullanıcı projeye eklenir, davet ACCEPTED yapılır.
+	3. removeMember(projectId, targetUserId):
+		○ Yalnızca ADMIN kullanabilir.
+		○ Proje sahibini çıkartma girişimlerini reddeder.
+		○ Üyeliği siler ve sayfayı yeniler.
+	4. changeMemberRole(projectId, targetUserId, newRole):
+		○ Yalnızca ADMIN kullanabilir.
+		○ Proje sahibinin rolünü korur, hedef üyenin rolünü MEMBER <-> ADMIN günceller.
+	5. cancelInvite(projectId, inviteId):
+		○ Yalnızca ADMIN kullanabilir. Bekleyen daveti sistemden siler.
+	6. getProjectMembers(projectId):
+		○ Projenin mevcut üyelerini ve süresi dolmamış bekleyen davetlerini tek sorguda döndürür.
+
+5. Kullanıcı Arayüzü ve Sayfa Akışları
+5.1 /invite/[token] Sayfası (Dinamik Durum Kartları)
+Sayfa sunucu tarafında token durumunu analiz eder ve 6 farklı duruma göre özel ekran gösterir:
+
+                  ┌────────────────────────┐
+                  │   /invite/[token]      │
+                  └───────────┬────────────┘
+                              │
+         ┌────────────────────┼────────────────────┐
+         ▼                    ▼                    ▼
+   [Geçersiz Token]     [Süresi Dolmuş]      [Zaten Kabul Edilmiş]
+   "Davet Bulunamadı"   "Yöneticiden yeni    "Zaten üyesisiniz"
+   (Kırmızı Kart)        davet isteyin"      (Projeye Git Butonu)
+                              │
+         ┌────────────────────┴────────────────────┐
+         ▼                                         ▼
+   [Giriş Yapılmamış]                      [Giriş Yapılmış]
+   "Davetlisiniz: Lütfen                   │
+   X e-postasıyla giriş yapın"             ├─ E-posta Eşleşmiyor:
+   (Giriş Yap & Kabul Et ->                │  "Bu davet X içindir. Doğru
+    callbackUrl=/invite/[token])           │   hesapla giriş yapın."
+                                           │
+                                           └─ E-posta Eşleşiyor:
+                                              "Daveti Kabul Et" (Yeşil Buton)
+                                              -> Projeye yönlendirilir
+
+5.2 Settings "Üyeler" Sekmesi (MembersManager.tsx)
+	• Üye Listesi Tablosu: Kullanıcı adı, deterministik renkli avatar (getAvatarColor), e-posta adresi, "Yönetici" / "Üye" rozeti, rol değiştirme ve üyeyi çıkarma aksiyonları.
+	• Bekleyen Davetler Listesi: Davet edilen e-posta, kalan gün bilgisi, davet eden kişi, tek tıkla panoya kopyalama butonu (CopyTokenButton), davet iptal butonu.
+	• Yeni Üye Davet Formu: E-posta input'u, rol seçici (MEMBER / ADMIN), yüklenme animasyonu ve Türkçe hata/başarı geri bildirimleri.
+
+6. Saf İş Mantığı ve Test Kapsamı (member-management.test.ts)
+İş mantığı sunucu fonksiyonlarından bağımsızlaştırılarak src/lib/__tests__/member-management.test.ts altında 28 adet Vitest testi ile güvenceye alınmıştır:
+	1. Davet Süre & Geçerlilik Mantığı (5 test):
+		○ Süresi geçmiş davetleri (EXPIRED veya expiresAt < now) reddetme.
+		○ Henüz süresi dolmamış aktif davetleri onaylama.
+		○ generateInviteExpiry fonksiyonunun tam 7 günlük süre ürettiğinin doğrulanması.
+	2. E-posta Doğrulama ve Mükerrerlik (5 test):
+		○ Geçersiz e-posta formatlarını engelleme.
+		○ Zaten üye olan e-postaya davet gönderilmesini reddetme.
+		○ Zaten bekleyen daveti olan e-postaya mükerrer davet açılmasını engelleme.
+		○ Normalizasyon (büyük harf / boşluk duyarsızlığı) doğrulaması.
+	3. E-posta Eşleşme ve Kabul Kuralları (4 test):
+		○ Oturumdaki e-posta ile davet e-postasının tam eşleşmesi (case-insensitive).
+		○ Farklı e-posta ile kabul girişimlerinin reddedilmesi.
+		○ Daha önce kabul edilmiş (ACCEPTED) davetlerin tekrar kabul edilmesinin önlenmesi.
+	4. Yetki ve Sahip Koruma Mantığı (8 test):
+		○ Proje sahibinin (ownerId) projeden çıkartılamaması kuralı.
+		○ Proje sahibinin rolünün düşürülememesi kuralı.
+		○ Standart üyelerin çıkarılmasına ve rollerinin güncellenmesine izin verilmesi.
+		○ ADMIN rolü kontrolü ve rol geçişi (toggleRole).
+	5. Liste ve Filtreleme Mantığı (6 test):
+		○ Süresi geçmiş davetlerin bekleyen listesinden elenmesi (getPendingInvites).
+		○ Projedeki üyelerin rollerine göre gruplanması ve sayımı (countMembersByRole).
+
+7. Doğrulama ve Sistem Durumu
+Prompt Q geliştirildikten sonra sırasıyla çalıştırılan doğrulama adımları:
+	• Vitest Testleri: 12 test dosyasında 164 testin tamamı %100 başarılı olarak geçti (28 yeni test eklendi).
+	• TypeScript: npx tsc --noEmit hatasız tamamlandı.
+	• Production Build: npm run build ile /invite/[token] sayfası dahil tüm sayfalar başarıyla derlendi.
+	• Git Commit: 2168f24 feat: (Prompt Q) add member management, project invite system and 28 new tests olarak sürümlendi.
+
+8. Sonuç
+Prompt Q ile Pulse; davet bağlantılarının kopyalanıp Slack, WhatsApp veya e-posta üzerinden paylaşılabildiği, rol bazlı yetkilendirmenin uygulandığı ve e-posta eşleşme güvencesiyle yetkisiz katılımların engellendiği sağlam ve güvenli bir takım çalışma altyapısına kavuşmuştur.

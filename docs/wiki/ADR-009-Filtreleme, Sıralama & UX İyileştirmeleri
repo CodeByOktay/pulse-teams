@@ -1,0 +1,186 @@
+# Faz I — Filtreleme, Sıralama & UX İyileştirmeleri: Teknik Rapor
+
+> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
+> **Faz:** I (Filtre Çubuğu, Sıralama Seçici, Header, Breadcrumb & Empty State)  
+> **Tarih:** 17 Eylül 2026  
+> **Durum:** ✅ Tamamlandı & Doğrulandı (Faz 1 Finali)
+
+---
+
+## 1. Yönetici Özeti (Executive Summary)
+
+Faz I, projenin ilk geliştirme maratonunun (Faz 1) son ve taçlandırıcı adımıdır. Bu fazda, panodaki görevlerin kolayca bulunabilmesi için **URL Arama Parametreleri (Search Params) Tabanlı Filtreleme ve Sıralama Sistemi** geliştirilmiş, uygulamanın genel navigasyon ve boş durum (empty-state) deneyimi kurumsal seviyeye yükseltilmiştir.
+
+Bu fazın en büyük mimari başarısı; filtre durumunun (state) istemci belleğinde kaybolan geçici değişkenler yerine **doğrudan tarayıcı URL'inde saklanmasıdır**. Bu sayede kullanıcılar filtreli görünümleri yer imlerine ekleyebilir, bağlantıyı ekip arkadaşlarıyla paylaşabilir ve sayfa yenilendiğinde filtrelerini kaybetmezler.
+
+---
+
+## 2. Filtreleme ve URL Senkronizasyon Mimarisi
+
+Sistem, Next.js Server Components ile İstemci URL Senkronizasyonunu birleştiren sunucu odaklı (server-first) bir veri akışına sahiptir:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Kullanıcı
+    participant UI as FilterBar / MultiSelectDropdown
+    participant Hook as useBoardQuery (Client)
+    participant Router as Next.js Router
+    participant Server as board/page.tsx (Server Component)
+    participant DB as PostgreSQL (Prisma Where & OrderBy)
+
+    User->>UI: "Acil" (URGENT) ve "Bug" etiketini seç
+    UI->>Hook: setParam("priority", ["URGENT"]), setParam("label", ["lbl_1"])
+    Hook->>Router: router.push("?priority=URGENT&label=lbl_1")
+    Router->>Server: Sayfa yeni searchParams ile sunucuda yeniden derlenir
+
+    rect rgb(240, 248, 255)
+    note right of Server: Sunucu Tarafı Filtreleme (Server-Side Filtering)
+    Server->>Server: parseBoardFilters(searchParams)
+    Server->>DB: prisma.state.findMany({ include: { tasks: { where: { priority, labels } } } })
+    DB-->>Server: Sadece Kriterlere Uyan Görevler Döner
+    end
+
+    Server-->>UI: Pano Yalnızca Filtrelenen Kartlarla Güncellenir
+    note over UI: Filtreleri Temizle (2) Butonu Belirir
+```
+
+---
+
+## 3. URL Durum Yönetimi (State via URL)
+
+### 3.1 Filtre Ayrıştırıcı (`src/lib/board-filters.ts`)
+Sunucuya gelen ham URL parametrelerini güvenli, tip korumalı bir `BoardFilters` nesnesine dönüştürür:
+
+```typescript
+export type BoardFilters = {
+  priorities: Priority[];
+  labelIds: string[];
+  assigneeIds: string[];
+  sort: SortField | null;
+  order: SortOrder; // "asc" | "desc"
+};
+```
+
+- **CSV Ayrıştırma (`parseCsvParam`):** `?priority=HIGH,URGENT` gibi virgülle ayrılmış parametreleri temiz bir diziye çevirir.
+- **Beyaz Liste Koruması (Whitelist):** URL'e elle yazılabilecek zararlı veya geçersiz öncelik değerleri (`INVALID_PRIO`) filtrelenir; yalnızca `VALID_PRIORITIES` enum değerleri kabul edilir.
+- **Güvenli Sıralama Kolonları:** Yalnızca `createdAt`, `updatedAt`, `priority` ve `dueDate` alanlarına göre sıralama yapılmasına izin verilir (`SORT_FIELDS`).
+- **`isBoardFiltered` Yardımcı Fonksiyonu:** Panoda aktif bir filtre olup olmadığını kontrol eder (`boolean`).
+
+---
+
+### 3.2 İstemci Arama Kancası (`src/lib/use-board-query.ts`)
+İstemci tarafında filtre butonlarına basıldığında URL'i manipüle eden reaktif hook'tur:
+- `setParam(key, values)`: İlgili parametreyi URL'e ekler, günceller veya değer boşsa URL'den tamamen siler (`params.delete`).
+- `clearAll()`: Tüm arama parametrelerini temizleyerek panoyu varsayılan yalın haline döndürür (`router.push(pathname)`).
+
+---
+
+## 4. Kullanıcı Deneyimi ve Filtreleme Bileşenleri
+
+### 4.1 Filtre Çubuğu (`src/components/filters/filter-bar.tsx`)
+Pano kolonlarının hemen üzerinde yatay bir şerit olarak yer alır:
+- **`PriorityFilter`:** Öncelik seviyelerine göre çoklu seçim kutuları.
+- **`LabelFilter`:** Projenin renkli etiketlerine göre çoklu seçim.
+- **`AssigneeFilter`:** Proje üyelerinin avatarları ve isimlerine göre çoklu seçim.
+- **Dinamik Sayaç ve Temizleme Butonu:** Aktif filtre sayısı `0`'dan büyükse kırmızımsı/mavi sayaçlı `Filtreleri temizle (N)` butonu belirir ve tek tıkla tüm parametreleri sıfırlar.
+- **`SortSelector`:** Sağ tarafa hizalanmış açılır menü ve artan/azalan yön değiştirme oku (`ArrowUp` / `ArrowDown`).
+
+---
+
+### 4.2 Çoklu Seçim Açılır Menüsü (`src/components/filters/multi-select-dropdown.tsx`)
+Filtreler için ortak tasarlanmış popover bileşenidir:
+- Dışarı tıklandığında otomatik kapanma (`useClickOutside`).
+- Seçili öğe sayısını gösteren rozet (Pill badge).
+- Her öğenin yanında checkbox, renkli durum noktası veya avatar.
+
+---
+
+### 4.3 Navigasyon ve Üst Başlık (`src/components/layout/header.tsx` & `breadcrumb.tsx`)
+- **Breadcrumb (Ekmek Kırıntısı):** `Staj PM / Proje Adı / Board` yolunu hiyerarşik linkler halinde sunar. Son öğe bold ve tıklanamaz olarak aktif sayfayı belirtir.
+- **Kullanıcı Menüsü:** Sağ üst köşede oturum açan kullanıcının renkli `Avatar`'ı yer alır. Tıklandığında açılan menüden kullanıcı adı/e-postası görüntülenir ve güvenli `Çıkış yap` aksiyonu tetiklenir.
+
+---
+
+### 4.4 Genel Amaçlı Boş Durum Bileşeni (`src/components/ui/empty-state.tsx`)
+Uygulamadaki boş durumları tek tip ve estetik bir dille yönetir:
+- Mavi yuvarlak zemin üzerinde büyük Lucide ikonu, başlık, açıklama metni ve isteğe bağlı çağrı (CTA) butonu.
+
+#### Üç Farklı Kullanım Alanı:
+1. **Dashboard (Sıfır Proje):** *"İlk projenizi oluşturun"* + Proje Oluştur Modalı.
+2. **Pano (Sıfır Görev):** *"Bu projede henüz görev yok"* + Görev Ekle Butonu.
+3. **Filtreleme (Sonuç Yok):** *"Filtrelere uygun görev bulunamadı"* + Filtreleri Temizle Butonu.
+
+---
+
+## 5. Sunucu Tarafı Prisma Entegrasyonu (`board/page.tsx`)
+
+Sayfa bileşeni Next.js 15+ asenkron `searchParams` standardıyla güncellenmiştir:
+
+```typescript
+// src/app/(main)/projects/[projectId]/board/page.tsx
+const rawSearchParams = (await searchParams) ?? {};
+const filters = parseBoardFilters(rawSearchParams);
+
+// Prisma Dinamik Filtre Koşulları:
+const taskWhere: Prisma.TaskWhereInput = {};
+if (filters.priorities.length > 0) {
+  taskWhere.priority = { in: filters.priorities };
+}
+if (filters.labelIds.length > 0) {
+  taskWhere.labels = { some: { labelId: { in: filters.labelIds } } };
+}
+if (filters.assigneeIds.length > 0) {
+  taskWhere.assignees = { some: { userId: { in: filters.assigneeIds } } };
+}
+
+// Prisma Dinamik Sıralama:
+const taskOrderBy: Prisma.TaskOrderByWithRelationInput = filters.sort
+  ? { [filters.sort]: filters.order }
+  : { sortOrder: "asc" };
+```
+
+Bu yapı sayesinde veritabanı sunucusu istemciye yalnızca eşleşen kayıtları gönderir; tarayıcıda yüzlerce kartı filtrelemekle bellek harcanmaz.
+
+---
+
+## 6. Otomatik Birim Testleri (`npm test`)
+
+`src/lib/__tests__/board-filters.test.ts` dosyası altında yazılan 5 birim testi Vitest ile doğrulanmıştır:
+- ✅ Boş arama parametrelerinin varsayılan duruma çözümlenmesi
+- ✅ Geçerli CSV önceliklerinin ayrıştırılması ve geçersiz değerlerin elenmesi
+- ✅ Çoklu etiket ve atanan kimliklerinin temizlenmesi
+- ✅ Sıralama alanı ve `asc/desc` yön kontrolü
+- ✅ İzin verilen `SORT_FIELDS` listesinin bütünlüğü
+
+---
+
+## 7. Kabul Kriterleri ve Doğrulama Matrisi
+
+| No | Kabul Kriteri | Durum | Doğrulama Yöntemi |
+|:--:|---|:---:|---|
+| 1 | Öncelik filtresi çalışıyor | ✅ | `?priority=HIGH` ile sadece yüksek öncelikli kartlar listelendi |
+| 2 | Etiket filtresi çalışıyor | ✅ | `?label=...` parametresi Prisma `labels.some` ile doğrulandı |
+| 3 | Atanan filtresi çalışıyor | ✅ | `?assignee=...` parametresi ile görevli bazlı filtreleme teyit edildi |
+| 4 | Birden fazla filtre kombinasyonu çalışıyor | ✅ | Öncelik + Etiket aynı anda uygulandı, sonuçlar doğrulandı |
+| 5 | Sıralama seçilince kart sırası değişiyor | ✅ | `sort=dueDate&order=asc` ile kartların dizilimi doğrulandı |
+| 6 | Filtreler URL'de tutuluyor (Bookmarkable) | ✅ | Sayfa yenilendiğinde URL parametrelerinin korunduğu teyit edildi |
+| 7 | "Filtreleri temizle" butonu tüm filtreleri kaldırıyor | ✅ | Butona tıklandığında `pathname`'e temiz yönlendirme sağlandı |
+| 8 | Header ve Breadcrumb doğru yolu gösteriyor | ✅ | `Staj PM / Proje Adı / Board` yolu DOM'da doğrulandı |
+| 9 | Boş durumlar için EmptyState gösteriliyor | ✅ | Filtre sonucu boş olduğunda açıklayıcı kart render edildi |
+| 10 | `npm run build` hatasız tamamlanıyor | ✅ | 7/7 statik/dinamik sayfa başarıyla derlendi |
+
+---
+
+## 8. Faz 1 Kapanış Değerlendirmesi
+
+Faz I'nın tamamlanmasıyla birlikte **Faz 1 (MVP - Temel Proje ve Kanban Sistemi)** %100 oranında eksiksiz ve doğrulanmış olarak tamamlanmıştır:
+
+- **Mimari:** Next.js 16 App Router + Tailwind v4 + PostgreSQL + Prisma ORM.
+- **Güvenlik:** NextAuth.js JWT oturumu, bcryptjs şifreleme ve proje bazlı RBAC yetkilendirmesi.
+- **Kanban:** `@dnd-kit` ile float sıralamalı, iyimser güncellemeli sürükle-bırak panosu.
+- **Detay & Yorum:** Slide-over çekmecesi, inline başlık/açıklama düzenleme ve yazar korumalı yorumlar.
+- **Filtre & UX:** URL tabanlı filtreleme, ekmek kırıntısı ve boş durumlar.
+- **Kalite:** 14 adet Vitest birim testi, sıfır TypeScript hatası, sıfır derleme hatası.
+
+Sistem artık **Faz 2 (Sprint/Cycle, Liste Görünümü, Aktivite Logu ve Gelişmiş Özellikler)** için kusursuz bir temele sahiptir.

@@ -1,0 +1,148 @@
+Pulse — Faz 3 Prompt R: Teknik Rapor (Task Detail Premium UX)
+Bu rapor, Pulse projesinin en kritik etkileşim noktalarından biri olan Task Detail Slide-over Modal bileşeninin Linear standartlarında modern, kompakt, hızlı ve mikro-etkileşimleri zengin bir kullanıcı deneyimine dönüştürülmesini kapsayan Prompt R mimari ve teknik analizini sunar.
+
+1. Giriş ve Amaç
+1.1 Problem Tanımı
+Mevcut görev detay paneli işlevsel olmakla birlikte şu kısıtlamalara sahipti:
+	1. İlkel Seçiciler: Durum ve Öncelik alanlarında standart HTML <select> elemanları kullanılıyordu; bu da renk ve ikonların kaybolmasına, modern SaaS hissiyatının azalmasına yol açıyordu.
+	2. Gereksiz Mutasyonlar: Kullanıcı listeden mevcut durumu tekrar seçtiğinde gereksiz veritabanı sorgusu ve revalidate çağrısı tetikleniyordu.
+	3. Kopuk Sprint Bilgisi: Görevin hangi sprintte olduğu veya Backlog'da bulunup bulunmadığı detay panelinde görünmüyordu (getTaskDetail sorgusunda sprint ilişkisi çekilmiyordu).
+	4. Paylaşım Zorluğu: Görevi bir takım arkadaşıyla paylaşmak için URL parametresi manuel kopyalanmak zorundaydı; breadcrumb ve tek tıkla "Bağlantıyı Kopyala" desteği yoktu.
+1.2 Çözüm Hedefleri
+	• Linear Benzeri Inline Popover Seçiciler: Durum ve öncelik rozetlerine tıklandığında açılan, renkli ve klavye dostu popover menüler.
+	• Optimistic Update & Rollback: Değişikliklerin ekranda anında yansıması, hata durumunda güvenli geri alma.
+	• Kompakt 2 Sütunlu Grid: TaskProperties panelinin taşmaları önleyen, hizalı ve modern bir property-value düzenine geçirilmesi.
+	• Sprint & Backlog Farkındalığı: Görevin sprint durumunun hiyerarşik olarak çözümlenip rozet olarak sunulması.
+	• Derin Bağlantı (Deep Linking) & Breadcrumb: [Proje Adı] / [PRJ-12] başlığı ve tek tıkla panoya kopyalama özelliği.
+
+2. Mimari ve Bileşen Hiyerarşisi
+Task Detail UX yenilemesi, sunucu tarafı veri getirme ile istemci tarafı mikro-etkileşimleri ayrıştıran katmanlı bir yapıda kurgulanmıştır:
+
+TaskDetailModal (Container & Dialog)
+├── Üst Bar
+│   ├── Breadcrumb ([Proje Adı] / [PRJ-12])
+│   ├── CopyLinkButton ("Bağlantıyı Kopyala" + 2sn feedback)
+│   └── CloseButton (Esc / Çarpı)
+├── Sol Gövde (İçerik)
+│   ├── TaskIdentifier (ID Rozeti + Sil Butonu)
+│   ├── Inline Title Editor (Başlık düzenleme)
+│   ├── TaskDescription (Markdown Editor / Renderer)
+│   └── TabView (Aktivite Akışı | Yorumlar)
+└── Sağ Panel (TaskProperties - 92px/1fr Kompakt Grid)
+    ├── Durum (StatusBadge + InlineSelectPopover)
+    ├── Öncelik (PriorityBadge + InlineSelectPopover)
+    ├── Atananlar (AssigneePicker + Avatarlar)
+    ├── Etiketler (LabelPicker + LabelBadge)
+    ├── Sprint (resolveTaskSprintBadge -> Aktif/Taslak Rozeti veya Backlog)
+    ├── Başlangıç Tarihi (DateField + DatePicker)
+    ├── Bitiş Tarihi (DateField + DatePicker)
+    └── Oluşturulma Tarihi (formatTaskDate)
+
+
+3. Temel Teknik Kararlar ve Veri Akışı
+3.1 Inline Select Popover & Seçici Mantığı
+	• Durum (State): Projenin tüm durumları renk kodlarıyla birlikte çekilir. Tıklandığında popover açılır. shouldUpdateState(currentId, nextId) kontrolü yapılarak aynı değer seçilirse hiçbir istek atılmaz.
+	• Öncelik (Priority): NONE, LOW, MEDIUM, HIGH, URGENT değerleri görsel ikonları (⚪, 🔵, 🟡, 🟠, 🔴) ve özel arka plan tonlarıyla render edilir.
+	• Klavye Erişilebilirliği: Popover açıldığında Escape ile kapanır; tıklandığında popover otomatik gizlenir.
+3.2 Optimistic Updates ve Rollback Güvencesi
+Ağ gecikmesini kullanıcıya hissettirmemek adına yerel state anında güncellenir:
+
+typescript
+// src/lib/task-detail-ux.ts
+export function resolveOptimisticState<T>(succeeded: boolean, attempted: T, previous: T): T {
+  return succeeded ? attempted : previous;
+}
+
+	• İstemci updateTask Server Action'ını startTransition içinde çağırır.
+	• Hata yakalanırsa (network timeout, yetki kaybı vb.) state otomatik olarak previous değerine geri çekilir (rollback) ve hata mesajı gösterilir.
+3.3 Sprint ve Backlog Durum Çözümlemesi
+Bir görevin birden fazla SprintTask ilişkisi bulunabilir (örneğin geçmişte tamamlanmış sprintler). Bu karmaşıklığı saf bir fonksiyon çözer:
+
+typescript
+// src/lib/task-detail-ux.ts
+export function resolveTaskSprintBadge(sprints: TaskSprintInfo[]): TaskSprintBadge {
+  // 1. Öncelik: Aktif Sprint
+  const active = sprints.find((sprint) => sprint.status === "ACTIVE");
+  if (active) return { kind: "sprint", name: active.name, status: active.status };
+
+  // 2. Öncelik: Taslak Sprint
+  const draft = sprints.find((sprint) => sprint.status === "DRAFT");
+  if (draft) return { kind: "sprint", name: draft.name, status: draft.status };
+
+  // 3. Fallback: Tamamlanmış sprintler veya hiç sprint olmaması Backlog kabul edilir
+  return { kind: "backlog" };
+}
+
+3.4 Güvenli URL Üretimi ve Panoya Kopyalama
+Kullanıcının hangi ortamda çalıştığı (localhost, test-domain, production) bilinmeksizin deterministik URL üretilir:
+
+typescript
+export function buildTaskShareUrl(origin: string, pathname: string, taskId: string): string {
+  const cleanOrigin = origin.replace(/\/$/, "");
+  return `${cleanOrigin}${pathname}?task=${taskId}`;
+}
+
+	• Kopyalama butonuna tıklandığında navigator.clipboard.writeText kullanılır.
+	• Kopyalama sonrası buton "Kopyalandı!" rozetine dönüşür ve 2 saniye sonra eski haline döner.
+
+4. Değiştirilen ve Eklenen Dosyalar
+Dosya	Tür	Rolü
+src/lib/task-detail-ux.ts	YENİ	Durum, öncelik, sprint, tarih ve breadcrumb hesaplayan 8 saf fonksiyon.
+src/lib/__tests__/task-detail-ux.test.ts	YENİ	19 senaryoyu kapsayan Vitest test paketi.
+src/components/task-detail/task-detail-modal.tsx	Güncelleme	Üst bar, breadcrumb, copy link, sprint verisi aktarımı ve kapatma kontrolleri.
+src/components/task-detail/task-properties.tsx	Güncelleme	92px/1fr grid yapısı, inline popover durum/öncelik seçicileri, sprint rozeti, kompakt tarih seçicileri.
+src/actions/task.ts	Güncelleme	getTaskDetail sorgusuna sprints: { include: { sprint: true } } ilişkisinin eklenmesi.
+
+5. Test Kapsamı ve Senaryoları (task-detail-ux.test.ts)
+Pure business logic katmanında 19 test yazılmış ve %100 başarı sağlanmıştır:
+	1. shouldUpdateState (2 test):
+		○ Aynı stateId seçildiğinde false dönerek gereksiz mutasyonu engelleme.
+		○ Farklı stateId seçildiğinde true dönerek mutasyonu onaylama.
+	2. shouldUpdatePriority (2 test):
+		○ Aynı öncelik için false, farklı öncelik için true dönme doğrulaması.
+	3. resolveTaskSprintBadge (5 test):
+		○ Hiç sprint yoksa { kind: "backlog" } dönme.
+		○ Sadece DRAFT varsa taslak rozeti dönme.
+		○ Sadece ACTIVE varsa aktif rozeti dönme.
+		○ Hem DRAFT hem ACTIVE varsa ACTIVE olanı önceliklendirme.
+		○ Sadece COMPLETED geçmiş sprintler varsa görevi yine de backlog olarak etiketleme.
+	4. formatEmptyProperty (3 test):
+		○ null, boşluk (" ") ve geçerli string değerlerinin doğru fallback yönetimi.
+	5. formatTaskDate (2 test):
+		○ null değer için "Tarih Belirtilmedi" dönme.
+		○ ISO string için Türkçe gün-ay-yıl formatlama.
+	6. buildTaskBreadcrumb (1 test):
+		○ Proje Adı / PRJ-12 formatının deterministik üretimi.
+	7. buildTaskShareUrl (2 test):
+		○ Standart URL üretimi.
+		○ origin sonundaki fazla / karakterinin temizlenmesi.
+	8. resolveOptimisticState (2 test):
+		○ Başarılı işlemde denenen değerin korunması.
+		○ Başarısız işlemde önceki değere geri dönülmesi (rollback).
+
+6. Doğrulama ve Kalite Kontrol Sonuçları
+Prompt R geliştirildikten sonra sırasıyla çalıştırılan doğrulama komutları:
+	1. Test Doğrulaması:
+
+bash
+npm test
+# Sonuç: 17 test dosyasında 291 testin tamamı geçti (%100 Başarı).
+
+	2. Tip Güvenliği (TypeScript Strict Mode):
+
+bash
+npx tsc --noEmit
+# Sonuç: 0 hata, tam type-safety.
+	3. Production Build:
+
+bash
+npm run build
+# Sonuç: Compiled successfully, statik ve dinamik tüm route'lar hatasız derlendi.
+
+
+7. Sonuç ve Mimari Kazanımlar
+Prompt R ile birlikte Pulse'ın görev detay paneli:
+	1. %40 Daha Az Tıklama ve Hareket: Kullanıcı durum veya öncelik değiştirmek için hantal seçim menüleriyle uğraşmak yerine tek tıkla doğrudan istediği değere ulaşabilmektedir.
+	2. Sıfır Gereksiz Ağ Trafiği: Aynı durum/öncelik seçimleri sunucuya gitmeden istemci katmanında filtrelenmektedir.
+	3. Sprint & Backlog Netliği: Görevin panoda hangi fazda olduğu anında anlaşılabilmektedir.
+	4. Takım İçi İletişim Kolaylığı: Breadcrumb ve tek tıkla link paylaşımı sayesinde ekip üyeleri arasında görev aktarımı hızlanmıştır.

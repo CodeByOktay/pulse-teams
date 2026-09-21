@@ -1,0 +1,208 @@
+# Faz B — Prisma Şeması & Veritabanı Mimarisi: Teknik Rapor
+
+> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
+> **Faz:** B (Veritabanı Şeması, Modeller & Seed Script)  
+> **Tarih:** 17 Eylül 2026  
+> **Durum:** ✅ Tamamlandı & Doğrulandı
+
+---
+
+## 1. Yönetici Özeti (Executive Summary)
+
+Faz B kapsamında, `C:\Staj_Project` projesinin omurgasını oluşturan ilişkisel veri modeli tasarlanmış, **Prisma ORM (v6.19.3)** üzerinde tanımlanmış ve **PostgreSQL 16** veritabanına uygulanmıştır.
+
+Bu fazın temel amacı; açık kaynak proje yönetim sistemlerinden (özellikle **Plane**) edinilen mimari desenleri benimseyerek, küçük ölçekli ancak yüksek performanslı, esnek ve tip güvenli bir Kanban veri altyapısı kurmaktır.
+
+---
+
+## 2. Varlık-İlişki Mimarisi (Entity-Relationship Model)
+
+Aşağıdaki şema, oluşturulan 9 model ve 2 enum arasındaki ilişkileri ve referans bütünlüğü kurallarını göstermektedir:
+
+```mermaid
+erDiagram
+    User ||--o{ Project : "owns (Cascade)"
+    User ||--o{ ProjectMember : "belongs to (Cascade)"
+    User ||--o{ TaskAssignee : "assigned (Cascade)"
+    User ||--o{ Comment : "writes (Cascade)"
+
+    Project ||--o{ ProjectMember : "has (Cascade)"
+    Project ||--o{ State : "defines (Cascade)"
+    Project ||--o{ Task : "contains (Cascade)"
+    Project ||--o{ Label : "categorizes (Cascade)"
+
+    State ||--o{ Task : "groups (Restrict)"
+
+    Task ||--o{ TaskLabel : "has (Cascade)"
+    Task ||--o{ TaskAssignee : "assigned to (Cascade)"
+    Task ||--o{ Comment : "has (Cascade)"
+
+    Label ||--o{ TaskLabel : "tagged (Cascade)"
+```
+
+### Temel İstatistikler
+- **Model Sayısı:** 9 (`User`, `Project`, `ProjectMember`, `State`, `Task`, `Label`, `TaskLabel`, `TaskAssignee`, `Comment`)
+- **Enum Sayısı:** 2 (`StateGroup`, `Priority`)
+- **Çoka-Çok (M2M) İlişkiler:** 2 (`TaskLabel`, `TaskAssignee` — ara tablolar ve kompozit birincil anahtarlar ile modellenmiştir)
+- **Kritik Kısıtlar:** 4 Adet `@@unique`, 5 Adet `@@index`
+
+---
+
+## 3. Veri Modelleri ve Alan Detayları
+
+### 3.1 Enum Tanımları
+
+```prisma
+enum StateGroup {
+  BACKLOG       // Henüz planlanmamış işler
+  TODO          // Sıraya alınmış işler
+  IN_PROGRESS   // Aktif geliştirme/üzerinde çalışılan işler
+  DONE          // Tamamlanan işler
+  CANCELLED     // İptal edilen/kapatılan işler
+}
+
+enum Priority {
+  NONE          // Öncelik belirtilmemiş (varsayılan)
+  LOW           // Düşük
+  MEDIUM        // Orta
+  HIGH          // Yüksek
+  URGENT        // Acil
+}
+```
+
+> **Mimari Not (Plane Desen):** Sütunlar serbestçe adlandırılabilir (örn. "Code Review", "QA", "In Progress") ancak her sütun arka planda bir `StateGroup`'a bağlıdır. Bu sayede uygulamanın mantığı (örneğin "hangi işler bitti?" sorgusu) dinamik sütun isimlerine değil, sabit enum grubuna (`DONE`) dayanır.
+
+---
+
+### 3.2 Modellerin Detaylı İncelemesi
+
+#### 1. `User` Modeli
+Sistem kullanıcılarını temsil eder. NextAuth kimlik doğrulama altyapısı ile tam uyumludur.
+- `id`: CUID formatında tekil anahtar (`@default(cuid())`).
+- `email`: Tekil kullanıcı e-postası (`@unique`).
+- `hashedPassword`: `bcryptjs` (salt: 12) ile şifrelenmiş parola.
+
+#### 2. `Project` Modeli
+Çalışma alanlarını ve projeleri temsil eder.
+- `id`: CUID.
+- `name`: Proje adı (örn. "Mobil Uygulama").
+- `identifier`: Projeye özgü 3-5 harfli büyük harfli kod (`@unique @db.VarChar(5)`, örn. `PRJ`, `MOB`).
+- `ownerId`: Projeyi oluşturan kullanıcı (`User.id`).
+
+#### 3. `ProjectMember` Modeli
+Kullanıcıların projelere erişim ve yetki seviyelerini belirler.
+- `role`: Varsayılan `"MEMBER"`, kurucu için `"ADMIN"`.
+- `@@unique([projectId, userId])`: Bir kullanıcı aynı projeye birden fazla kez üye olamaz.
+
+#### 4. `State` Modeli (Kanban Sütunları)
+Kanban panosundaki dikey sütunları tanımlar.
+- `name`: Sütun başlığı (örn. "In Progress").
+- `color`: Hex renk kodu (varsayılan `#60646C`).
+- `group`: Bağlı olduğu `StateGroup` enum'ı.
+- `sequence`: Sütunların panodaki yatay sıralaması (`Float`, varsayılan `65535`).
+- `isDefault`: Yeni oluşturulan görevlerin otomatik düşeceği varsayılan sütun (`Boolean`).
+- `@@unique([name, projectId])`: Aynı projede aynı isimde iki sütun olamaz.
+- `@@index([projectId])`: Projeye ait sütunların hızlı listelenmesi için indeks.
+
+#### 5. `Task` Modeli (Görevler)
+Uygulamanın temel iş birimidir.
+- `id`: CUID.
+- `title`: Görev başlığı.
+- `description`: Zengin metin/açıklama alanı (`@db.Text`).
+- `priority`: `Priority` enum'ı (varsayılan `NONE`).
+- `sequenceId`: Proje bazında 1'den başlayan artan numara (örn. 1, 2, 3). Kullanıcı arayüzünde `identifier + "-" + sequenceId` olarak görünür (örn. `PRJ-14`).
+- `sortOrder`: Kolon içindeki dikey sıralama (`Float`, varsayılan `65535`).
+- `startDate`, `dueDate`: Başlangıç ve bitiş tarihleri.
+- `@@unique([projectId, sequenceId])`: Race condition ve mükerrer görev numarası oluşumunu veritabanı seviyesinde engelleyen savunmacı tekillik kısıtı.
+- `@@index([projectId, stateId, sortOrder])`: Kanban panosu yüklenirken görevlerin milisaniyeler içinde çekilmesini sağlayan kompozit indeks.
+
+#### 6. `Label` & `TaskLabel` (Etiketleme Sistemi)
+- `Label`: Projeye özgü etiketler (isim + renk). `@@unique([name, projectId])`.
+- `TaskLabel`: Many-to-Many ara tablosu. `@@id([taskId, labelId])` ile kompozit birincil anahtar kullanılır.
+
+#### 7. `TaskAssignee` (Atama Sistemi)
+- Bir göreve birden fazla kullanıcı atanabilmesini sağlayan Many-to-Many ara tablosudur.
+- `@@id([taskId, userId])` ile aynı kullanıcının mükerrer atanması engellenir.
+
+#### 8. `Comment` (Yorumlar)
+- Göreve bırakılan tartışma ve log girdileri.
+- `authorId` üzerinden yazara, `taskId` üzerinden göreve bağlıdır. `@@index([taskId])` ile optimize edilmiştir.
+
+---
+
+## 4. Alınan Mimari Kararlar ve Mantıksal Gerekçeler
+
+| Karar | Seçilen Yaklaşım | Alternatif | Neden Seçildi? |
+|---|---|---|---|
+| **Sütun Sıralaması** | `Float sequence` | Integer sıra (1, 2, 3) | Sütunlar yer değiştirdiğinde diğer sütunları yeniden numaralandırmamak için. |
+| **Kart Sıralaması** | `Float sortOrder` | Linked List (next_id) veya Lexorank | İki kart arasına bırakıldığında yalnızca `(üst + alt) / 2` float aritmetiği ile tek bir satır güncellenir. |
+| **Görev Numaralandırma** | Proje Bazlı `sequenceId` | Global Auto-Increment ID | Kurumsal PM araçlarındaki gibi (`JIRA-101`, `PRJ-5`) profesyonel görünüm ve bağımsız proje alanı. |
+| **State Silme Davranışı** | `onDelete: Restrict` | `Cascade` veya `SetNull` | Sütun silindiğinde içindeki işlerin kazara silinmesini önlemek; görevlerin önce başka sütuna taşınmasını zorunlu kılmak. |
+| **Proje Silme Davranışı** | `onDelete: Cascade` | `SetNull` | Proje silindiğinde veritabanında sahipsiz (orphaned) görev, etiket veya durum kalmaması. |
+| **M2M İlişkiler** | Açık Model (`TaskLabel`, `TaskAssignee`) | Prisma Örtük M2M (`_TaskToLabel`) | Gelecekte atama zamanı, yetki veya ek metadata alanları ekleyebilmek için esneklik. |
+
+---
+
+## 5. Varsayılan Tohumlama Mantığı (Seed Engine)
+
+`prisma/seed.ts` dosyası iki farklı senaryoyu yönetecek şekilde tasarlanmıştır:
+
+```typescript
+export async function seedDefaultStates(
+  projectId: string,
+  client: Prisma.TransactionClient | PrismaClient,
+) {
+  const defaultStates = [
+    { name: "Backlog",     color: "#60646C", group: StateGroup.BACKLOG,     sequence: 15000, isDefault: true },
+    { name: "Todo",        color: "#3A3F47", group: StateGroup.TODO,        sequence: 25000 },
+    { name: "In Progress", color: "#F59E0B", group: StateGroup.IN_PROGRESS, sequence: 35000 },
+    { name: "Done",        color: "#46A759", group: StateGroup.DONE,        sequence: 45000 },
+    { name: "Cancelled",   color: "#9AA4BC", group: StateGroup.CANCELLED,   sequence: 55000 },
+  ];
+
+  return client.state.createMany({
+    data: defaultStates.map((state) => ({ ...state, projectId })),
+  });
+}
+```
+
+### Neden Bu Yapı?
+1. **Dinamik Proje Oluşturma Entegrasyonu:** Fonksiyon hem `PrismaClient` hem de interactive transaction (`TransactionClient`) kabul eder. Bu sayede Faz D'de kullanıcı arayüzünden yeni bir proje açıldığında bu 5 sütun **tek bir atomik veritabanı transaction'ı içinde** anında oluşturulur.
+2. **Aralıklı Sıralama (`sequence: 15000, 25000...`):** Sayılar arasında 10.000'er birim boşluk bırakılarak, gelecekte araya yeni bir sütun eklendiğinde (örn. `20000`) mevcut kolonların sıra değerlerine dokunulmaz.
+
+---
+
+## 6. Veritabanı Ortamı ve Uygulama
+
+Yerel makinede kurulu bağımsız bir PostgreSQL servisi bulunmadığı için, geliştirme ortamı konteynerleştirilmiştir:
+
+- **Altyapı:** Docker Desktop konteyneri (`staj-pm-postgres`)
+- **İmaj:** `postgres:16`
+- **Port:** `5432`
+- **Veritabanı Adı:** `staj_pm`
+- **Şema Dağıtımı:** `npx prisma db push` komutu ile uygulandı.
+- **Doğrulama:** `npx prisma studio` (Port 5555) ve doğrudan PostgreSQL CLI (`psql`) üzerinden 9 tablonun ve kısıtların eksiksiz oluştuğu teyit edildi.
+
+---
+
+## 7. Kabul Kriterleri Doğrulama Matrisi
+
+| No | Kabul Kriteri | Durum | Doğrulama Yöntemi |
+|:--:|---|:---:|---|
+| 1 | `npx prisma db push` hatasız tamamlandı | ✅ | CLI üzerinden şema başarıyla senkronize edildi |
+| 2 | Veritabanında 9 tablo görünüyor | ✅ | `psql -c "\dt"` ile 9 tablo listelendi |
+| 3 | `prisma/seed.ts` mevcut ve `seedDefaultStates` export edildi | ✅ | Fonksiyon tipi ve dışa aktarımı doğrulandı |
+| 4 | `StateGroup` ve `Priority` enum'ları tanımlı | ✅ | PostgreSQL enum tipleri oluşturuldu |
+| 5 | Task.state silme davranışında `Restrict` kuralı | ✅ | DDL seviyesinde yabancı anahtar kuralı teyit edildi |
+| 6 | Sequence ve sortOrder float desteği | ✅ | Şemada `Float` tipi ve varsayılan `65535` tanımlandı |
+
+---
+
+## 8. Sonraki Adımlarla İlişkisi
+
+Bu fazda kurulan veritabanı şeması, sonraki fazların doğrudan temelidir:
+- **Faz C (Auth):** `User` tablosunu kullanarak kayıt ve JWT oturumu yönetti.
+- **Faz D (Project CRUD):** `Project` ve `ProjectMember` modellerini, `seedDefaultStates` fonksiyonuyla bağladı.
+- **Faz E-F-G (Kanban & Görevler):** `Task`, `State`, `Label` ve `TaskAssignee` modellerini ekrandaki sürükle-bırak panosuna dönüştürdü.
+
+*Rapor Faz B gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

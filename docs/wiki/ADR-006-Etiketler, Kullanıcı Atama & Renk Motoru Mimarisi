@@ -1,0 +1,188 @@
+# Faz F — Etiketler, Kullanıcı Atama & Renk Motoru Mimarisi: Teknik Rapor
+
+> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
+> **Faz:** F (Label CRUD, TaskAssignee, Deterministik Renkler & Seçici Bileşenler)  
+> **Tarih:** 17 Eylül 2026  
+> **Durum:** ✅ Tamamlandı & Doğrulandı
+
+---
+
+## 1. Yönetici Özeti (Executive Summary)
+
+Faz F kapsamında, görevlerin kategorize edilmesini sağlayan **Etiketleme (Labels)** ve iş yükünün dağıtılmasını sağlayan **Kullanıcı Atama (Assignees)** sistemleri uçtan uca hayata geçirilmiştir.
+
+Bu fazın öne çıkan teknik kazanımları:
+1. **İdempotent Çoka-Çok (M2M) İşlemleri:** Kompozit birincil anahtarlar (`@@id`) ve `try/catch` mekanizması ile mükerrer veya çakışan atama isteklerinin veritabanı seviyesinde sessizce ve güvenle yönetilmesi.
+2. **Deterministik Avatar ve Renk Motoru:** Kullanıcı isimlerinden bit düzeyinde (bitwise) matematiksel hash üreterek her kullanıcıya ve projeye her oturumda aynı kurumsal rengin atanması.
+3. **Kullanıcı Dostu Seçici Bileşenler (Pickers):** Tıklanabilir açılır menüler (popover), dış tıklama algılayıcısı (`useClickOutside`) ve anlık renk paleti seçimi.
+
+---
+
+## 2. Veri İlişkileri ve Atama Akışı (Data Flow Diagram)
+
+Aşağıdaki şema, bir göreve etiket veya kullanıcı bağlanması sırasındaki ilişkisel yapıyı ve çift taraflı üyelik doğrulamasını göstermektedir:
+
+```mermaid
+graph TD
+    subgraph "Proje Alanı"
+        P[Project: PRJ]
+        U1[User: Oktay (ADMIN)]
+        U2[User: Ali (MEMBER)]
+        L1[Label: 'Bug' #ef4444]
+        L2[Label: 'Feature' #3b82f6]
+    end
+
+    subgraph "Görev Varlığı"
+        T[Task: PRJ-1 'Giriş Hatası']
+    end
+
+    subgraph "Çoka-Çok Ara Tablolar"
+        TL[TaskLabel: taskId + labelId]
+        TA[TaskAssignee: taskId + userId]
+    end
+
+    P -->|içerir| T
+    P -->|tanımlar| L1
+    P -->|tanımlar| L2
+
+    T -->|bağlanır| TL
+    L1 -->|bağlanır| TL
+
+    T -->|bağlanır| TA
+    U2 -->|atanır| TA
+
+    style TL fill:#f0f9ff,stroke:#0284c7
+    style TA fill:#f0fdf4,stroke:#16a34a
+```
+
+---
+
+## 3. Sunucu Eylemleri Katmanı (Server Actions)
+
+### 3.1 Etiket Yönetimi (`src/actions/label.ts`)
+
+#### `createLabel({ projectId, name, color })`
+- **Girdi Kontrolü:** İsim kırpılır (trimmed); boşsa hata fırlatılır.
+- **Renk Formatı:** `/^#[0-9A-Fa-f]{6}$/` regex denetimi ile hex kodunun geçerliliği doğrulanır.
+- **Proje Bazlı Tekillik:** Aynı projede aynı isimde ikinci bir etiket açılamaz (`@@unique([name, projectId])`).
+- **Yetki:** İstek yapan kullanıcının proje üyesi olması zorunludur.
+
+#### `deleteLabel(labelId)`
+- Etiket silindiğinde, veritabanındaki `onDelete: Cascade` kuralı sayesinde bu etiketin tüm görevlerdeki `TaskLabel` bağlantıları otomatik olarak silinir.
+
+#### `addLabelToTask(taskId, labelId)` & `removeLabelFromTask(taskId, labelId)`
+- **İdempotent Tasarım:** Aynı etiketi art arda ekleme veya silinmiş bir etiketi tekrar kaldırma isteklerinde hata patlatılmaz:
+```typescript
+try {
+  await prisma.taskLabel.create({ data: { taskId, labelId } });
+} catch {
+  // Zaten ekliyse sessizce geç (no-op)
+}
+```
+
+---
+
+### 3.2 Kullanıcı Atama Yönetimi (`src/actions/assignee.ts`)
+
+#### `assignUserToTask(taskId, userId)`
+- **Çift Taraflı Güvenlik Denetimi (Two-way Membership Check):**
+  1. Görevi atayan oturum sahibi projenin üyesi mi? (`requireMembership(task.projectId, session.user.id)`)
+  2. Göreve atanacak olan kullanıcı projenin üyesi mi? (`requireMembership(task.projectId, userId)`)
+- Bu kural sayesinde, bir kullanıcı bilerek veya kazara **proje üyesi olmayan harici bir kullanıcıyı** o projedeki bir göreve atayamaz.
+- **İdempotent Kayıt:** `@@id([taskId, userId])` kısıtı kullanılarak mükerrer atamalar `try/catch` ile yutulur.
+
+#### `unassignUserFromTask(taskId, userId)`
+- İlgili görevin atama kaydını güvenle siler.
+
+---
+
+## 4. Renk Motoru & Tasarım Sistemi (`src/lib/colors.ts`)
+
+### 4.1 Onaylı Etiket Renk Paleti (`LABEL_COLOR_PALETTE`)
+Kullanıcıların rastgele veya okunaksız renkler seçmesini önlemek amacıyla 10 adet özenle seçilmiş, yüksek kontrastlı renk sunulmuştur:
+- 🔴 `#ef4444` (Kırmızı / Bug)
+- 🟠 `#f97316` (Turuncu)
+- 🟡 `#f59e0b` (Sarı / Uyarı)
+- 🟢 `#22c55e` (Yeşil / Başarı)
+- 🌐 `#06b6d4` (Camgöbeği)
+- 🔵 `#3b82f6` (Mavi / Özellik)
+- 🟣 `#8b5cf6` (Mor)
+- 🌸 `#ec4899` (Pembe)
+- 🔘 `#6b7280` (Gri)
+- 🩵 `#14b8a6` (Teal)
+
+### 4.2 Deterministik Avatar Rengi Algoritması (`getAvatarColor`)
+Uygulamada kullanıcı veya proje avatarlarının renkleri rastgele üretilmez. Bit kaydırma (bitwise bit-shift) algoritması ile aynı girdi metni için her zaman aynı renk üretilir:
+
+```typescript
+export function getAvatarColor(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0; // 32-bit integer'a dönüştür
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+```
+
+**Avantajı:** Veritabanında her kullanıcı için ayrı bir avatar renk alanı saklamaya gerek kalmaz; isim değişmediği sürece arayüzün her yerinde (Sidebar, Kanban Kartı, Yorumlar, Modal) o kullanıcının avatarı daima aynı renk tonunda görünür.
+
+---
+
+## 5. Kullanıcı Arayüzü Bileşenleri
+
+### 5.1 `Avatar` (`src/components/assignees/avatar.tsx`)
+- Yuvarlak kapsül (`rounded-full`) içinde kullanıcının isminin ilk harfini büyük harf olarak gösterir.
+- `sm` (24px, 10px yazı boyutu) ve `lg` (32px, 12px yazı boyutu) varyantlarını destekler.
+- `title={name}` HTML özelliği ile üzerine gelindiğinde kullanıcının tam adını tarayıcı tooltip'i olarak verir.
+
+### 5.2 `LabelBadge` (`src/components/labels/label-badge.tsx`)
+- Görev kartlarında ve modalda etiketleri renkli rozet olarak gösterir.
+- Maksimum 96px genişlik ve `truncate` ile uzun etiket isimlerinin kart düzenini bozması engellenir.
+
+### 5.3 `LabelPicker` (`src/components/labels/label-picker.tsx`)
+- Açılır menü (popover) şeklinde çalışır.
+- Mevcut proje etiketlerini checkbox ile listeler.
+- İçerisinde gömülü **"Yeni etiket oluştur"** formu barındırır; isim girilip 10 renkten birine tıklanarak doğrudan yeni etiket açılabilir.
+- Üst bileşene anlık bilgi aktaran `onChange` geri çağırma fonksiyonunu destekler.
+
+### 5.4 `AssigneePicker` (`src/components/assignees/assignee-picker.tsx`)
+- Proje üyelerini listeler; her üyenin yanında kendi renkli avatarı ve tam adı görünür.
+- Tıklanarak göreve atanır veya görevden çıkarılır.
+
+### 5.5 `useClickOutside` Hook'u (`src/lib/use-click-outside.ts`)
+- `mousedown` event dinleyicisi ile kullanıcının picker dışına tıkladığını algılar ve açık olan menüyü otomatik kapatır.
+
+---
+
+## 6. Alınan Mimari Kararlar ve Değerlendirmeler
+
+| Karar | Seçilen Yaklaşım | Alternatif | Neden Seçildi? |
+|---|---|---|---|
+| **M2M Tablo Tasarımı** | Açık Model (`TaskLabel`, `TaskAssignee`) | Prisma Örtük M2M | Birincil anahtarların tekilliği (`@@id`) üzerinde tam kontrol sağlamak ve gelecekte atama tarihi/rol gibi metadata ekleyebilmek. |
+| **Hata Yönetimi** | İdempotent (No-op) | Hata Fırlatma (`400 Bad Request`) | Kullanıcı hızlıca iki kez tıkladığında veya ağ gecikmesinde kullanıcıya rahatsız edici hata mesajı göstermemek. |
+| **Avatar Renkleri** | İstemci/Sunucu Deterministik Hash | Veritabanında `avatarColor` Sütunu | Veritabanı şemasını sade tutmak ve sıfır depolama maliyetiyle tutarlı kurumsal renkler sunmak. |
+| **Renk Seçimi** | 10'lu Küratörlü Palet | Serbest Color Picker (`<input type="color">`) | Tasarım bütünlüğünü korumak; kontrastı düşük veya çirkin renklerin seçilmesini engellemek. |
+
+---
+
+## 7. Kabul Kriterleri ve Doğrulama Matrisi
+
+| No | Kabul Kriteri | Durum | Doğrulama Yöntemi |
+|:--:|---|:---:|---|
+| 1 | Proje bazlı etiket oluşturulabiliyor (isim + renk) | ✅ | Modal ve popover formundan "Bug" etiketi başarıyla oluşturuldu |
+| 2 | Etiket silinebiliyor ve cascade temizleniyor | ✅ | `deleteLabel` eylemi ve ilişkili kayıtların silinmesi doğrulandı |
+| 3 | Göreve etiket eklenip çıkarılabiliyor | ✅ | Playwright testi ile karta `Feature` ve `Bug` etiketleri bağlandı |
+| 4 | Göreve kullanıcı atanıp çıkarılabiliyor | ✅ | `Board Tester` kullanıcısı göreve atandı, veritabanında doğrulandı |
+| 5 | Label badge renkli render ediliyor | ✅ | DOM'da stil `backgroundColor: #ef4444` teyit edildi |
+| 6 | Avatar deterministik renk ve ilk harf gösteriyor | ✅ | İsimden üretilen renk ve ilk harf arayüzde doğrulandı |
+| 7 | Renk motoru otomatik birim testleri | ✅ | `src/lib/__tests__/colors.test.ts` (3/3 test başarılı) |
+
+---
+
+## 8. Sonraki Adımlarla (Faz G & H) Entegrasyon
+
+- **Faz G (Kanban Panosu):** Görev kartlarının alt satırında `LabelBadge`'ler (maksimum 2 adet + "+N" sayacı) ve `Avatar`'lar (üst üste binen halkalar halinde) başarıyla render edilmiştir.
+- **Faz H (Detay Modalı):** Sağ taraftaki "Properties" panelinde hem `LabelPicker` hem de `AssigneePicker` görev özelliklerini doğrudan yönetmek üzere kullanılmıştır.
+
+*Rapor Faz F gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

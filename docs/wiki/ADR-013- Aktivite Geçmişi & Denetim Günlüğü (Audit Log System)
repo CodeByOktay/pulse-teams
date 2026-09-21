@@ -1,0 +1,186 @@
+# 📑 Prompt M — Teknik Değerlendirme ve Test Raporu
+
+> **Faz:** 2 (v0.2.0 Hazırlığı)  
+> **Başlık:** Aktivite Geçmişi & Denetim Günlüğü (Audit Log System)  
+> **Proje:** `C:\Staj_Project`  
+> **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri ve testler karşılandı  
+> **Tarih:** 18 Eylül 2026  
+
+---
+
+## 1. Yönetici Özeti (Executive Summary)
+
+**Prompt M**, Staj PM platformunda görevler üzerinde gerçekleşen tüm operasyonel değişiklikleri izlenebilir, şeffaf ve denetlenebilir kılmak amacıyla **Aktivite ve Denetim Günlüğü (Audit Log)** altyapısını kurmuştur.
+
+Bu prompt kapsamında;
+- Veritabanı şemasına 15 farklı eylemi kapsayan `ActivityType` enum'ı ve `Activity` modeli eklendi,
+- `20260918152206_add_activity_log` migration'ı veritabanına uygulandı,
+- İşlem bütünlüğünü güvenceye alan transaction-safe `logActivity` kayıt motoru geliştirildi,
+- Türkçe, zengin bağlamlı mesajlar üreten ve null/hata dayanımlı `formatActivityMessage` yardımcı fonksiyonu yazıldı,
+- Görev oluşturma, güncelleme, durum değişikliği, etiket/atama ekleme-çıkarma, yorum ve sprint bağlantılarını yöneten 5 ayrı Server Action dosyası transaction içinde aktivite kaydedecek şekilde refactor edildi,
+- Görev detay modalına (`TaskDetailModal`) **Aktivite / Yorumlar** sekme yapısı ve göreli zaman göstergeli (`"5 dakika önce"`, `"dün"`) sayfalama destekli `TaskActivity` bileşeni entegre edildi,
+- 14 yeni birim testi yazılarak projedeki toplam test sayısı **67'ye ulaştı (%100 başarı)**.
+
+---
+
+## 2. Veritabanı & Şema Mimarisi (`schema.prisma`)
+
+### 2.1. `ActivityType` Enum (15 Eylem Tipi)
+
+| Kategori | Enum Değeri | Açıklama |
+|----------|-------------|----------|
+| **Yaşam Döngüsü** | `TASK_CREATED` | Görevin ilk oluşturulması |
+| **İçerik** | `TASK_TITLE_UPDATED` | Başlık değişikliği (`oldValue` $\to$ `newValue`) |
+| | `TASK_DESCRIPTION_UPDATED` | Açıklama metninin güncellenmesi |
+| **Durum & Öncelik** | `TASK_STATE_CHANGED` | Kanban durumu değişikliği (örn: Backlog $\to$ Done) |
+| | `TASK_PRIORITY_CHANGED` | Öncelik derecesi değişikliği (Düşük $\to$ Acil) |
+| **Tarihler** | `TASK_DUE_DATE_CHANGED` | Bitiş tarihi atanması/değiştirilmesi |
+| | `TASK_START_DATE_CHANGED` | Başlangıç tarihi güncellenmesi |
+| **Atamalar** | `TASK_ASSIGNEE_ADDED` | Göreve kullanıcı atanması (`metadata.userName`) |
+| | `TASK_ASSIGNEE_REMOVED` | Görevden kullanıcı çıkarılması |
+| **Etiketler** | `TASK_LABEL_ADDED` | Göreve etiket iliştirilmesi (`metadata.labelName`) |
+| | `TASK_LABEL_REMOVED` | Etiketin kaldırılması |
+| **Sprint** | `TASK_SPRINT_ADDED` | Görevin sprinte dahil edilmesi (`metadata.sprintName`) |
+| | `TASK_SPRINT_REMOVED` | Görevin sprintten çıkarılması |
+| **Yorumlar** | `COMMENT_ADDED` | Yorum eklenmesi |
+| | `COMMENT_DELETED` | Yorum silinmesi |
+
+### 2.2. `Activity` Modeli & İndeks Stratejisi
+
+```prisma
+model Activity {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  taskId    String
+  actorId   String
+  oldValue  String?
+  newValue  String?
+  metadata  String?
+  createdAt DateTime     @default(now())
+
+  task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([taskId, createdAt])
+}
+```
+
+* **İndeksleme:** Göreve ait aktiviteler kronolojik listelendiği için kompozit `@@index([taskId, createdAt])` indeksi eklendi; pagination ve sıralama sorguları optimize edildi.
+* **Cascade Silme:** Görev veya kullanıcı silindiğinde ilişkili log kayıtları veri tabanı seviyesinde temizlenir.
+
+---
+
+## 3. Log Motoru & İş Mantığı (`src/lib/activity-logger.ts`)
+
+### 3.1. Transaction-Safe Kayıt Fonksiyonu (`logActivity`)
+- `tx: Prisma.TransactionClient` parametresi alır. Ana veritabanı mutasyonu (örneğin görev durumunun güncellenmesi) ile aktivite kaydı **aynı ACID transaction** içinde yürütülür.
+- İçsel `try-catch` mekanizması ile log yazma sırasında beklenmeyen bir hata oluşursa ana iş akışının bozulması engellenir (fault-tolerant).
+- Yapılandırılmış `metadata` nesnelerini güvenli bir şekilde `JSON.stringify` formatında saklar.
+
+### 3.2. Doğal Dil Formatlayıcı (`formatActivityMessage`)
+Ham veritabanı kaydını kullanıcı dostu Türkçe cümlelere dönüştürür:
+- Değer geçişlerinde `'Eski Değer' → 'Yeni Değer'` formatı kullanılır.
+- Eksik veya null değerlerde `"-"` emniyet değeri devreye girer.
+- Aktör adı bulunamazsa `'Bir kullanıcı'` fallback'i uygulanır.
+- Bozuk veya geçersiz JSON metadata durumlarında uygulama çökmez, güvenle fallback üretir.
+
+---
+
+## 4. Server Actions Katmanına Entegrasyon
+
+Tüm ilgili Server Actions dosyaları aktivite loglama yeteneğiyle güçlendirilmiştir:
+
+1. **`src/actions/task.ts`**:
+   - `createTask`: `TASK_CREATED` kaydı.
+   - `updateTask`: `prisma.$transaction` içine alınarak başlık, açıklama, durum, öncelik ve tarih farkları tespit edilip ayrı ayrı tiplerle (`TASK_TITLE_UPDATED`, `TASK_STATE_CHANGED` vb.) loglanır.
+2. **`src/actions/assignee.ts`**:
+   - Görevli ekleme/çıkarma işlemlerinde `userName` metadata'sı ile `TASK_ASSIGNEE_ADDED` / `TASK_ASSIGNEE_REMOVED` loglanır.
+3. **`src/actions/label.ts`**:
+   - Etiket bağlama/koparma anında `labelName` ile `TASK_LABEL_ADDED` / `TASK_LABEL_REMOVED` üretilir.
+4. **`src/actions/comment.ts`**:
+   - `createComment` $\to$ `COMMENT_ADDED`, `deleteComment` $\to$ `COMMENT_DELETED`.
+5. **`src/actions/sprint.ts`**:
+   - `addTaskToSprint` $\to$ `TASK_SPRINT_ADDED` (`sprintName` ile), `removeTaskFromSprint` $\to$ `TASK_SPRINT_REMOVED`.
+
+---
+
+## 5. UI Entegrasyonu & Görev Detay Modalı
+
+### 5.1. `TaskActivity` Bileşeni (`src/components/task-detail/task-activity.tsx`)
+- **Sayfalı Veri Çekme:** `getTaskActivities(taskId, 20, skip)` Server Action'ı üzerinden ilk 20 kaydı çeker.
+- **Daha Fazla Yükle:** 20'den fazla kayıt olduğunda *"Daha fazla yükle"* butonu ile geçmiş kayıtları dinamik olarak listeye ekler.
+- **Görsel Sunum:**
+  - Sol sütunda işlemi yapan kullanıcının avatarı (`Avatar` bileşeni).
+  - Orta alanda formatlanmış Türkçe eylem açıklaması.
+  - Sağ alanda göreli zaman damgası (`"az önce"`, `"15 dakika önce"`, `"2 saat önce"`, `"dün"`, `"3 gün önce"`).
+
+### 5.2. `TaskDetailModal` Sekme Mimarisi
+Modalın sağ alt içerik gövdesi iki sekmeli yapıya dönüştürülmüştür:
+- 📑 **Aktivite:** Görev üzerindeki tüm geçmiş değişiklikleri kronolojik olarak listeler.
+- 💬 **Yorumlar:** Kullanıcı yorumlarını ve yorum ekleme formunu barındırır.
+
+---
+
+## 6. Test Koşumu ve Kalite Güvencesi (QA)
+
+### 6.1. `activity-logger.test.ts` (14 Testin Tamamı Başarılı)
+
+Terminal komutu: `npx vitest run src/lib/__tests__/activity-logger.test.ts`
+
+```text
+ RUN  v5.0.1 C:/Staj_Project
+
+ ✓ src/lib/__tests__/activity-logger.test.ts (14 tests) 9ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  15:33:29
+   Duration  238ms
+```
+
+#### Test Senaryoları Dağılımı:
+1. **Mesaj Üretim Testleri (10 test):**
+   - `TASK_CREATED` doğru aktör ve fiil testi.
+   - `TASK_STATE_CHANGED` eski ve yeni durumun mesaja dahil edilmesi.
+   - `TASK_TITLE_UPDATED` başlık değişiminin metne yansıması.
+   - `TASK_ASSIGNEE_ADDED` metadata kullanıcı adının mesaja aktarılması.
+   - `TASK_LABEL_ADDED` ve `TASK_LABEL_REMOVED` etiket adı ve kaldırıldı fiili.
+   - `TASK_PRIORITY_CHANGED` Türkçe öncelik etiketlerinin gösterimi.
+   - `COMMENT_ADDED` ve `COMMENT_DELETED` yorum mesajları.
+   - Bilinmeyen tip (`UNKNOWN_TYPE`) geldiğinde hata fırlatmadan fallback dönmesi.
+2. **Boş Değer ve Hata Dayanımı Testleri (4 test):**
+   - `oldValue === null` iken `"-"` gösterilmesi.
+   - `actor.name === null` iken `"Bir kullanıcı"` fallback'i.
+   - `actor === null` iken `"Bir kullanıcı"` fallback'i.
+   - Bozuk JSON içeren metadata durumunda çökmeden güvenli işlem yapılması.
+
+### 6.2. Genel Proje Testleri Durumu (`npm test`)
+
+```text
+ Test Files  8 passed (8)
+      Tests  67 passed (67)
+   Start at  15:33:33
+   Duration  883ms
+```
+
+### 6.3. TypeScript Statik Tip Denetimi (`npx tsc --noEmit`)
+- **Çıktı:** 0 hata, exit code 0. Prisma modelleri, Server Actions ve React bileşenleri tip açısından tam uyumludur.
+
+---
+
+## 7. Kabul Kriterleri Doğrulama Matrisi
+
+| # | Kabul Kriteri | Durum | Doğrulama Yöntemi |
+|---|---------------|:-----:|-------------------|
+| 1 | `ActivityType` enum (15 tip) ve `Activity` modeli şemaya eklendi | ✅ | `prisma/schema.prisma` incelendi |
+| 2 | `add_activity_log` migration veritabanına uygulandı | ✅ | Migration klasörü ve SQL DDL doğrulandı |
+| 3 | `logActivity` transaction-safe yardımcı fonksiyonu yazıldı | ✅ | `src/lib/activity-logger.ts` incelendi |
+| 4 | `formatActivityMessage` Türkçe ve dayanıklı formatlayıcı yazıldı | ✅ | 14 birim testi ile doğrulandı |
+| 5 | `task.ts` mutasyonları transaction içinde log üretiyor | ✅ | Kod diff'i ve test senaryoları incelendi |
+| 6 | `assignee.ts`, `label.ts`, `comment.ts`, `sprint.ts` log üretiyor | ✅ | İlgili action'lar güncellendi |
+| 7 | `getTaskActivities` sunucu aksiyonu yetki kontrollü veri sağlıyor | ✅ | `src/actions/activity.ts` doğrulandı |
+| 8 | `TaskActivity` bileşeni göreli zaman ve sayfalama ile çalışıyor | ✅ | Client component incelendi |
+| 9 | `TaskDetailModal` içinde Aktivite / Yorumlar sekmesi mevcut | ✅ | Tab arayüzü ve state kontrolü doğrulandı |
+| 10 | `activity-logger.test.ts` testleri geçiyor | ✅ | Vitest: 14/14 test passed |
+| 11 | Projedeki tüm testler (67 test) ve TypeScript derlemesi hatasız | ✅ | Vitest & `tsc --noEmit` hatasız (0 error) |

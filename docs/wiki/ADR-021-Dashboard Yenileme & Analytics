@@ -1,0 +1,123 @@
+Pulse — Faz 3 Prompt U: Teknik Rapor (Dashboard Yenileme & Analytics)
+Bu teknik rapor, Pulse ana dashboard sayfasının (/) sade bir proje listesinden kişiselleştirilmiş, performans odaklı ve karar vericilere yönelik bir Yönetici ve Odak Merkezine dönüştürülmesini sağlayan Prompt U geliştirmesinin mimari yapısını, analitik algoritmalarını, veritabanı sorgu optimizasyonlarını ve test stratejisini sunar.
+
+1. Giriş ve Amaç
+1.1 Problem Tanımı
+	• Odak Eksikliği: Kullanıcı sisteme giriş yaptığında (/) yalnızca dahil olduğu projelerin adlarını görüyordu; doğrudan kendisine atanan işleri, yaklaşan teslim tarihlerini veya projelerindeki son gelişmeleri göremiyordu.
+	• Geciken Görevlerin Görünmezliği: Teslim tarihi geçmiş (dueDate < now) ve henüz tamamlanmamış görevler tek tek proje panolarına girilmeden fark edilemiyordu.
+	• Analitik ve Hız (Velocity) Metriklerinin Olmaması: Takımların sprint tamamlama hızları veya aktif sprintlerin genel ilerleme durumu takip edilemiyordu.
+1.2 Çözüm Hedefleri
+	1. Dört Temel KPI Özeti (Stats Overview):
+		○ Toplam Aktif Proje Sayısı
+		○ Bana Atanan Açık Görev Sayısı
+		○ Gecikmiş Görev Sayısı (Kullanıcıya atanan ve süresi geçenler)
+		○ Aktif Sprint Sayısı
+	2. "Bana Atananlar" (My Tasks) Widget'ı: Kullanıcının ilgilenmesi gereken en güncel 5 açık görevi, öncelik rozetleri ve gecikme uyarılarıyla listeleyen ve tek tıkla görev modalına yönlendiren panel.
+	3. Son Aktiviteler Akışı (Recent Activity Feed): Kullanıcının dahil olduğu projelerdeki son 8 audit log kaydını doğal Türkçe açıklamalar ve göreceli zaman ("5 dakika önce", "dün") ile sunma.
+	4. Sprint İlerlemesi & Takım Hızı (Velocity) Paneli: Harici ağır grafik kütüphanelerine (Chart.js vb.) ihtiyaç duymadan, Tailwind CSS tabanlı saf progress bar ve ortalama hız göstergesi.
+	5. Yüksek Performanslı Veritabanı Sorguları: prisma.count ve Promise.all ile paralel, N+1 probleminden arındırılmış veri çekimi.
+
+2. Mimari ve Bileşen Hiyerarşisi
+
+DashboardPage (Server Component - /src/app/(main)/page.tsx)
+├── StatsOverview (4 İstatistik Kartı)
+│   ├── Aktif Projeler (FolderKanban)
+│   ├── Bana Atananlar (CheckCircle2 - Mor Vurgu)
+│   ├── Gecikmiş Görevler (AlertTriangle - Kırmızı/Amber Vurgu)
+│   └── Aktif Sprintler (Zap - Mavi Vurgu)
+├── 2 Sütunlu Dinamik Grid Düzeni
+│   ├── Sol Sütun (Odak ve Projeler)
+│   │   ├── MyTasksWidget (Bana Atanan 5 Açık Görev)
+│   │   │   └── AssignedTaskRow (ID, Başlık, Öncelik, Tarih Uyarısı)
+│   │   └── ProjectList (Mevcut Projeler Listesi)
+│   └── Sağ Sütun (Analitik ve Akış)
+│       ├── SprintMetricsPanel (Aktif Sprint İlerlemeleri + Hız Metriği)
+│       │   ├── Ortalama Takım Hızı Rozeti (tasks/sprint)
+│       │   └── Her Sprint İçin Progress Bar (% ve Done/Total)
+│       └── RecentActivityFeed (Son 8 Proje Aktivitesi)
+│           └── ActivityRow (Avatar, Türkçe Mesaj, Göreceli Zaman)
+
+
+3. Analitik İş Mantığı Katmanı (src/lib/analytics-logic.ts)
+Analitik hesaplamaların tamamı istemci ve sunucu katmanından izole edilmiş saf (pure) fonksiyonlar olarak yazılmıştır:
+3.1 Gecikmiş Görev Denetimi (isTaskOverdue)
+	• Bir görevin gecikmiş sayılması için dueDate değerinin geçmişte olması ve durumunun DONE olmaması gerekir.
+	• CANCELLED veya TODO/IN_PROGRESS görevler süresi geçtiğinde gecikmiş sayılır.
+	• now parametresi opsiyonel olarak dışarıdan enjekte edilebilir (test edilebilirlik güvencesi).
+3.2 Sıfıra Bölme Korumalı Tamamlanma Oranı (calculateCompletionRate)
+	• Görev sayısı 0 olduğunda NaN veya Infinity oluşması engellenir, doğrudan 0 döner.
+	• Küsurlu değerler en yakın tam sayıya yuvarlanır (Örn: $1/3 \to %33$, $2/3 \to %67$).
+3.3 Takım Hızı Hesaplaması (calculateProjectVelocity)
+	• Tamamlanmış son sprintlerde bitirilen (DONE) görevlerin aritmetik ortalamasını alır.
+	• Tek ondalık basamağa yuvarlanır (Örn: $[10, 5] \to 7.5$).
+3.4 Göreceli Zaman Formatlayıcı (formatRelativeTime)
+	• Zaman farkına göre deterministik Türkçe metin üretir:
+		○ $<1$ dk: "az önce"
+		○ $<60$ dk: "X dakika önce"
+		○ $<24$ saat: "X saat önce"
+		○ Tam 24 saat (1 gün): "dün"
+		○ $<30$ gün: "X gün önce"
+		○ $\ge 30$ gün: "15 Haziran 2026" (Yerel tarih formatı)
+	• Kod Tekrarı Temizliği: src/components/task-detail/task-activity.tsx bileşenindeki yerel formatlama kodu kaldırılarak bu ortak fonksiyona bağlanmıştır.
+
+4. Veritabanı ve Performans Stratejisi (page.tsx)
+Dashboard yüklenme süresini milisaniyeler seviyesinde tutmak için tek bir Promise.all bloğunda 7 sorgu paralel olarak çalıştırılır:
+
+typescript
+const [
+  assignedOpenCount,       // prisma.task.count (Hafif sayım)
+  overdueCount,            // prisma.task.count (dueDate < now ve not DONE)
+  activeSprintsCount,      // prisma.sprint.count (Aktif sprint sayımı)
+  assignedTasks,           // prisma.task.findMany (take: 5)
+  recentActivities,        // prisma.activity.findMany (take: 8)
+  activeSprints,           // prisma.sprint.findMany (Aktif sprintler ve görev durumları)
+  recentCompletedSprints,  // prisma.sprint.findMany (take: 10, hız hesabı için)
+] = await Promise.all([...]);
+
+	• Optimize Edilmiş select Blokları: Yalnızca arayüzde gösterilecek alanlar (id, name, identifier, group) çekilerek bellek ve ağ yükü düşürülmüştür.
+	• Kullanıcının Projesi Yoksa Koruma: Proje ID listesi boş olduğunda gereksiz SQL sorgusu atılmadan Promise.resolve(0) veya Promise.resolve([]) döndürülür.
+
+5. UI Bileşenleri ve Etkileşim Detayları
+	1. MyTasksWidget:
+		○ Kullanıcı görev satırına tıkladığında doğrudan /projects/[projectId]/board?task=[taskId] rotasına yönlendirilir; ilgili projenin panosu açılır ve slide-over detay modalı otomatik olarak ekrana gelir.
+		○ Gecikmiş görevlerin yanında kırmızı renkli Clock ikonu ve tarih vurgulanır.
+	2. SprintMetricsPanel:
+		○ Aktif sprintlerin tamamlanma yüzdesi metin ve renkli bar ile gösterilir.
+		○ Sağ üst köşede tamamlanmış sprintlerin ortalamasından üretilen "Takım Hızı: X görev/sprint" rozeti yer alır.
+	3. RecentActivityFeed:
+		○ Kimin hangi görevi değiştirdiği formatActivityMessage ile gösterilir.
+		○ Satıra tıklandığında doğrudan ilgili göreve gidilir.
+
+6. Test Kapsamı ve Senaryoları (dashboard-analytics.test.ts)
+src/lib/__tests__/dashboard-analytics.test.ts dosyasında 25 adet kapsamlı Vitest testi yer almaktadır:
+	1. isTaskOverdue (5 test):
+		○ dueDate === null kontrolü.
+		○ DONE durumunun geçmiş tarihli olsa bile gecikmiş sayılmaması.
+		○ CANCELLED durumunun geçmiş tarihte gecikmiş sayılması.
+		○ Gelecek tarihli görev kontrolü.
+		○ Geçmiş tarihli ve IN_PROGRESS durumundaki görevin tespiti.
+	2. countOverdueTasks (2 test):
+		○ Boş dizi ve karma durumlu görev listesinde doğru filtreleme.
+	3. calculateCompletionRate (5 test):
+		○ 0 görevde sıfıra bölme engeli.
+		○ %100 ve %0 sınır durumları.
+		○ Küsurlu oranlarda ($1/3 \to 33$, $2/3 \to 67$) yuvarlama doğrulaması.
+	4. calculateSprintBurndown (3 test):
+		○ Kalan görevlerin azalış çizgisi.
+		○ Tamamlanan görev sayısı toplamı aşsa bile negatif sayılara düşmeme güvencesi (Math.max(0)).
+	5. calculateProjectVelocity (4 test):
+		○ Tamamlanmış sprint olmadığında 0 dönme.
+		○ Tek sprint değeri.
+		○ Tam bölünmeyen ortalamalarda ondalık hassasiyet ($7.5$).
+	6. formatRelativeTime (6 test):
+		○ "az önce", "5 dakika önce", "3 saat önce", "dün", "5 gün önce" ve 30 gün üstü yerel tarih formatı kontrolleri.
+
+7. Doğrulama ve Sistem Durumu
+Prompt U geliştirmesi sonrası yapılan sistem denetimleri:
+	• Vitest Testleri: 17 test dosyasında 291 testin tamamı %100 başarılı olarak geçti.
+	• TypeScript: npx tsc --noEmit hatasız tamamlandı.
+	• Production Build: npm run build ile / sayfası Server-rendered Dynamic route olarak optimize biçimde derlendi.
+	• Git Commit: 82dfddf feat: (Prompt U) revamp dashboard with analytics, stats cards, my tasks and tests olarak sürümlendi.
+
+8. Özet ve Kullanıcı Kazanımları
+Prompt U ile Pulse; kullanıcının sabah ilk oturum açtığında "Bugün hangi işlere odaklanmalıyım?", "Geciken işim var mı?", "Takımım sprint hedeflerine ne kadar yakın?" sorularına tek bir ekranda, hiçbir ek tıklama yapmadan yanıt bulabildiği modern bir analitik merkezine kavuşmuştur.

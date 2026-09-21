@@ -1,0 +1,214 @@
+# Faz H — Görev Detay Paneli (Modal) & Yorum Sistemi Mimarisi: Teknik Rapor
+
+> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
+> **Faz:** H (Görev Detay Modalı, Inline Düzenleme, Özellikler Paneli & Yorumlar)  
+> **Tarih:** 17 Eylül 2026  
+> **Durum:** ✅ Tamamlandı & Doğrulandı
+
+---
+
+## 1. Yönetici Özeti (Executive Summary)
+
+Faz H kapsamında, Kanban panosundaki görev kartlarına tıklandığında açılan kapsamlı **Görev Detay Paneli (Task Detail Modal / Slide-Over)** ve görev içi **Tartışma/Yorum Sistemi (Comments)** inşa edilmiştir.
+
+Bu fazın temel amacı; kullanıcıların panodan ve çalışma bağlamından kopmadan görevle ilgili tüm meta verileri (başlık, açıklama, durum, öncelik, etiketler, atananlar, tarihler) tek bir ekranda anlık olarak inceleyebilmesini, düzenleyebilmesini ve ekip içi iletişimi yürütebilmesini sağlamaktır.
+
+---
+
+## 2. Detay Paneli Mimarisi ve Yerleşim Düzeni
+
+Detay paneli, Linear ve Asana gibi modern araçlarda standart kabul edilen **sağdan kayan çekmece (slide-over drawer)** konseptiyle tasarlanmıştır:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Pano Arka Planı (Kanban Board)                                              │
+│ ┌──────────────────────────────────────────────┐ ┌────────────────────────┐ │
+│ │ Yarı Saydam Karartma (Overlay bg-black/50)   │ │ Slide-over Panel (720px)│ │
+│ │                                              │ │                 [✕ Kapat│ │
+│ │                                              │ ├────────────────────────┤ │
+│ │                                              │ │ Sol Sütun    │ Sağ Sütun│ │
+│ │                                              │ │ (Geniş)      │ (w-64)   │ │
+│ │                                              │ │              │          │ │
+│ │                                              │ │ PRJ-1 [🗑Sil] │ STATE    │ │
+│ │                                              │ │              │ [In Prog]│ │
+│ │                                              │ │ Başlık       │          │ │
+│ │                                              │ │ (Tıkla-Düzen)│ PRIORITY │ │
+│ │                                              │ │              │ [🔴 Acil]│ │
+│ │                                              │ │ Açıklama     │          │ │
+│ │                                              │ │ [Textarea]   │ ASSIGNEES│ │
+│ │                                              │ │ (Blur Kaydet)│ [Avatar] │ │
+│ │                                              │ │              │          │ │
+│ │                                              │ │ YORUMLAR     │ LABELS   │ │
+│ │                                              │ │ • Ali: Test  │ [Badge]  │ │
+│ │                                              │ │ • Oki: OK[🗑] │          │ │
+│ │                                              │ │              │ DATES    │ │
+│ │                                              │ │ [+ Yorum Yaz]│ [Tarih]  │ │
+│ └──────────────────────────────────────────────┘ └────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Detay ve Yorum Sistemi Etkileşim Akışı (Sequence Diagram)
+
+Aşağıdaki diyagram, kart tıklamasıyla başlayan veri çekme, anlık inline düzenleme ve yazar korumalı yorum döngüsünü göstermektedir:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Kullanıcı
+    participant Card as TaskCard
+    participant Modal as TaskDetailModal
+    participant Action as Server Actions (task.ts & comment.ts)
+    participant DB as PostgreSQL (Prisma)
+
+    User->>Card: Karta Tıkla (onClick)
+    Card->>Modal: onOpen(taskId) Tetiklenir
+    Modal->>Action: getTaskDetail(taskId)
+    Action->>DB: Task + Labels + Assignees + Comments Çekilir
+    DB-->>Action: Tam Görev Nesnesi
+    Action-->>Modal: Veriler Gelir (Yükleme İkonu Kapanır, Panel Açılır)
+
+    rect rgb(240, 248, 255)
+    note right of User: 1. Inline Başlık & Açıklama Düzenleme
+    User->>Modal: Başlığa Tıkla -> Yeni Metin Yaz -> Enter/Blur
+    Modal->>Action: updateTask(taskId, { title: "Yeni Başlık" })
+    Action->>DB: Task.update()
+    Action-->>Modal: Kaydedildi (revalidatePath)
+    end
+
+    rect rgb(245, 255, 245)
+    note right of User: 2. Yorum Ekleme ve Yazar Doğrulaması
+    User->>Modal: "Harika iş!" yaz ve Gönder'e tıkla
+    Modal->>Action: createComment({ taskId, content: "Harika iş!" })
+    Action->>DB: Comment.create({ authorId: session.user.id })
+    DB-->>Action: Oluşturulan Yorum
+    Action-->>Modal: Yeni Yorum Listeye Eklenir (İyimser Güncelleme)
+    end
+
+    rect rgb(255, 245, 245)
+    note right of User: 3. Yorum Silme (Author-Only Protection)
+    User->>Modal: Yorum Yanındaki Çöp Kutusuna [🗑] Tıkla
+    Modal->>Action: deleteComment(commentId)
+    Action->>Action: comment.authorId === session.user.id Kontrolü
+    alt Yetkisiz Kullanıcı İsteği
+        Action-->>Modal: 403 / Hata: "Sadece kendi yorumunuzu silebilirsiniz"
+    else Yorumun Gerçek Yazarı
+        Action->>DB: Comment.delete()
+        Action-->>Modal: Yorum Listeden Kaldırılır
+    end
+    end
+```
+
+---
+
+## 4. Bileşenlerin Detaylı Teknik Analizi
+
+### 4.1 Ana Modal Çekmecesi (`src/components/task-detail/task-detail-modal.tsx`)
+- **Konumlandırma:** `fixed inset-0 z-50 flex justify-end`. Masaüstünde `sm:w-[720px]`, mobilde `w-full max-w-[90vw]`.
+- **Erişilebilirlik ve Kapatma:**
+  - Sağ üstteki `X` butonu.
+  - `Escape` klavye dinleyicisi (`useEffect` ile `keydown` event listener).
+  - Yarı saydam siyah arka plan (`bg-black/50`) üzerine tıklama.
+- **Pano Senkronizasyonu:** Modal kapatıldığında (`handleClose`), `router.refresh()` tetiklenerek panodaki kartların başlık, etiket veya durum değişikliklerini anında yansıtması garanti edilir.
+- **Yükleme Durumu:** Veriler sunucudan çekilirken ortada dönen `Loader2 animate-spin` göstergesi yer alır.
+
+---
+
+### 4.2 Hızlı Başlık ve Açıklama Düzenleme (Inline Editing)
+
+#### Başlık Düzenleme
+- Varsayılan olarak şık bir `h1` başlığı olarak görünür (`cursor-text`).
+- Tıklandığında anında metin kutusuna (`<input autoFocus>`) dönüşür.
+- `Enter` tuşuna basıldığında odak kalkar ve kaydedilir; `Escape` tuşuna basılırsa değişiklik iptal edilerek eski başlığa dönülür.
+- Boşluktan ibaret metinler kabul edilmez; değişiklik yoksa sunucuya gereksiz istek atılmaz.
+
+#### Açıklama Düzenleme (`src/components/task-detail/task-description.tsx`)
+- `textarea` alanı varsayılan durumda kenarlıksız (`border-transparent bg-transparent`) durarak arayüz kirliliğini önler.
+- Üzerine gelindiğinde veya tıklandığında açık gri bir çerçeve ile düzenlenebilir olduğunu belli eder.
+- `onBlur` olayı ile kullanıcı kutudan çıktığı anda arka planda `updateTask(taskId, { description })` server action'ı tetiklenir; fazladan "Kaydet" butonuna basma ihtiyacı ortadan kaldırılmıştır.
+
+---
+
+### 4.3 Görev Özellikleri Paneli (`src/components/task-detail/task-properties.tsx`)
+Sağ taraftaki 256px'lik sabit sütunda görev özellikleri satır satır (`PropertyRow`) ayrılmıştır:
+
+1. **State Seçici:** Projenin tüm durumlarını listeler. Seçim değiştiğinde `updateTask({ stateId })` çağrılır ve kart panoda hedef sütuna taşınır.
+2. **Öncelik Seçici:** Renkli ikonlarla (`🔴 Acil`, `🟠 Yüksek`, `🟡 Orta`, `🔵 Düşük`, `⚪ Yok`) öncelik seviyesini ayarlar.
+3. **Etiketler (Labels):** Görevdeki etiketleri `LabelBadge` olarak çizer; yanındaki `LabelPicker` (Faz F) popover'ı ile anında yeni etiket eklenebilir veya çıkarılabilir.
+4. **Atananlar (Assignees):** Görevli kullanıcıları renkli `Avatar`'ları ve isimleriyle gösterir; `AssigneePicker` ile çoklu atama yönetilir.
+5. **Tarih Alanları:** `<input type="date">` bileşenleri ile başlangıç (`startDate`) ve bitiş (`dueDate`) tarihleri doğrudan güncellenir.
+6. **Oluşturulma Tarihi:** `new Date(createdAt).toLocaleDateString("tr-TR")` ile salt-okunur bilgi sağlar.
+
+---
+
+### 4.4 Yorum Sistemi ve Yazar Doğrulaması (`task-comments.tsx` & `comment.ts`)
+
+#### Veri Yapısı ve Sunucu Eylemleri
+- `createComment({ taskId, content })`: Yorum içeriği kırpılır, boş değilse `authorId: session.user.id` ile kaydedilir.
+- `deleteComment(commentId)`: **Çift katmanlı yetki kontrolü** uygular:
+
+```typescript
+// src/actions/comment.ts
+const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+if (!comment) throw new Error("Yorum bulunamadı.");
+
+// Sunucu Seviyesinde Güvenlik Kalkanı:
+if (comment.authorId !== session.user.id) {
+  throw new Error("Sadece kendi yorumunuzu silebilirsiniz.");
+}
+await prisma.comment.delete({ where: { id: commentId } });
+```
+
+#### İstemci Tarafı Görsel Güvenlik
+`task-comments.tsx` içerisinde çöp kutusu silme butonu koşullu olarak çizilir:
+```tsx
+{comment.author.id === currentUserId ? (
+  <button onClick={() => handleDelete(comment.id)} aria-label="Yorumu sil">
+    <Trash2 className="h-3.5 w-3.5" />
+  </button>
+) : null}
+```
+*Doğrulama:* İki farklı kullanıcı hesabı (`modaltester` ve `seconduser`) ile yapılan Playwright canlı oturum testlerinde; `seconduser` oturum açtığında `modaltester` tarafından yazılan yorumu net biçimde okuyabildiği, ancak silme butonunun **asla DOM'da bulunmadığı** ve API seviyesinden çağrılsa bile sunucunun işlemi reddettiği kanıtlanmıştır.
+
+---
+
+### 4.5 Görev Kimliği ve Silme (`src/components/task-detail/task-identifier.tsx`)
+- Sol üstte `PRJ-1` kodunu gri badge içinde sunar.
+- Yanındaki "Sil" butonu tarayıcı onay kutusu (`confirm("Bu görevi silmek istediğinize emin misiniz?...")`) ile onay alır. Onay verildiğinde `deleteTask` çalıştırılır, modal kapatılır ve pano tazelenir.
+
+---
+
+## 5. Alınan Mimari Kararlar ve Değerlendirmeler
+
+| Karar | Seçilen Yaklaşım | Alternatif | Gerekçe |
+|---|---|---|---|
+| **Panel Tipi** | Slide-Over (Sağ Çekmece) | Tam Ekran Modal / Ayrı Sayfa (`/tasks/[id]`) | Kullanıcının arka plandaki panoyu görerek bağlamda kalmasını sağlamak; hafif ve modern çalışma ortamı sunmak. |
+| **Açıklama Kaydetme** | `onBlur` ile Otomatik Kayıt | Manuel "Kaydet" Butonu | Modern PM araçları (Linear/Notion) standardı; kullanıcının kaydetmeyi unutarak veri kaybetmesini önlemek. |
+| **Yorum Yetkilendirmesi** | Çift Katmanlı (UI + Server Action) | Sadece UI Seviyesinde Gizleme | Kötü niyetli kullanıcıların tarayıcı konsolundan eylemi tetiklemesini sunucu tarafında kesin olarak engellemek. |
+| **State Senkronizasyonu** | Popover `onChange` Callback'i | Sayfanın Tamamen Yenilenmesi | Picker içindeki etiket ve atanan değişikliklerinin modal içindeki listeye ve özellikler paneline **sıfır gecikmeyle** yansıması. |
+
+---
+
+## 6. Kabul Kriterleri ve Doğrulama Matrisi
+
+| No | Kabul Kriteri | Durum | Doğrulama Yöntemi |
+|:--:|---|:---:|---|
+| 1 | Kanban kartına tıklayınca detay paneli açılıyor | ✅ | Playwright testi ile karta tıklandı, panelin açıldığı teyit edildi |
+| 2 | Başlık inline düzenlenebiliyor | ✅ | "Detail Task" başlığı "Renamed Task" olarak değiştirilip kaydedildi |
+| 3 | Açıklama düzenlenebiliyor ve blur'da kaydediliyor | ✅ | Textarea girişi ve veritabanı yansıması SQL ile doğrulandı |
+| 4 | State, priority ve tarihler değiştirilebiliyor | ✅ | `Todo` state'ine ve `2026-12-31` bitiş tarihine geçiş DB'de doğrulandı |
+| 5 | Etiket ve assignee eklenip çıkarılabiliyor | ✅ | Modal içinden `Feature` etiketi ve kullanıcı ataması doğrulandı |
+| 6 | Yorum eklenebiliyor ve listede görünüyor | ✅ | Yorum eklendi, yazar avatarı ve tarihiyle listede belirdi |
+| 7 | Yorum silinebiliyor (sadece kendi yorumları) | ✅ | İki farklı hesapla test edildi; başkasının yorumunda butonun çıkmadığı teyit edildi |
+| 8 | Panel kapatılınca board güncel haliyle görünüyor | ✅ | Kartın `Backlog`'dan `Todo`'ya geçtiği ve başlığının güncellendiği teyit edildi |
+| 9 | Görev silinebiliyor (onay modalı ile) | ✅ | Onay penceresi kabul edildi, kartın panodan ve DB'den silindiği doğrulandı |
+
+---
+
+## 7. Sonraki Adımlarla (Faz I - Filtreleme & Sıralama) Entegrasyon
+
+Faz H ile görevlerin detay zenginliği tamamlanmıştır:
+- Eklenen öncelik (`priority`), etiketler (`labels`), atananlar (`assignees`) ve tarihler (`dueDate`), Faz I'da panonun üstüne yerleştirilecek olan çoklu filtreleme çubuğunun (`FilterBar`) doğrudan veri kaynaklarını oluşturmuştur.
+
+*Rapor Faz H gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*

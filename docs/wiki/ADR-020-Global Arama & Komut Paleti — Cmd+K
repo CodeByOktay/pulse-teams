@@ -1,0 +1,130 @@
+Pulse — Faz 3 Prompt T: Teknik Rapor (Global Arama & Komut Paleti — Cmd+K)
+Bu teknik rapor, Pulse projesine Linear, Raycast ve macOS Spotlight standartlarında klavye odaklı global arama ve komut paleti yeteneği kazandıran Prompt T geliştirmesinin mimari yapısını, arama ve filtreleme algoritmalarını, yetkilendirme katmanını ve test stratejisini sunar.
+
+1. Giriş ve Amaç
+1.1 Problem Tanımı
+	• Gezinme Yavaşlığı: Kullanıcıların belirli bir projeye veya göreve ulaşmak için Sidebar menüleri veya proje kartları arasında fare ile birden fazla tıklama yapması gerekiyordu.
+	• Doğrudan Görev Bulma Eksikliği: Örneğin PRJ-12 kodlu bir görevi aramak için önce ilgili projenin panosuna gidilmesi, ardından filtreleme yapılması gerekiyordu.
+	• Power-User Deneyimi İhtiyacı: Modern proje yönetim araçlarında (Linear, Jira, Superhuman) standart haline gelen Cmd+K / Ctrl+K komut merkezi Pulse'ta eksikti.
+1.2 Çözüm Hedefleri
+	1. Global Kısayol: Uygulamanın herhangi bir ekranındayken Cmd+K (Mac) veya Ctrl+K (Windows/Linux) ile anında açılan modal.
+	2. Çok Boyutlu Arama:
+		○ Görevler: Başlık metnine göre substring araması veya doğrudan görev kodu (PRJ-12) ayrıştırması.
+		○ Projeler: Proje adı veya tanımlayıcısına (identifier) göre arama.
+		○ Hızlı Aksiyonlar / Navigasyon: Aktif proje bağlamında "Board'a git", "Backlog'a git", "Sprintlere git", "Ayarlar'a git" gibi hızlı komutlar.
+	3. Klavye ile Gezinme (Keyboard Navigation): Fare kullanmadan Yukarı/Aşağı Ok tuşlarıyla sonuçlar arasında döngüsel gezinme, Enter ile seçim, Esc ile kapatma.
+	4. Güvenli ve Yetkili Sonuçlar: Kullanıcının yalnızca üyesi olduğu projelerdeki kayıtların aranabilmesi.
+	5. Debounced Sunucu İstekleri: Ağ ve veritabanı yükünü minimize eden 200ms gecikmeli sorgu mekanizması.
+
+2. Mimari ve Bileşen Hiyerarşisi
+
+Global Arama & Komut Paleti Mimarisi
+├── Tetikleyiciler
+│   ├── Window Global Keyboard Listener (Cmd+K / Ctrl+K)
+│   └── Sidebar Arama Butonu ("Ara... [Ctrl+K]")
+└── CommandPalette (src/components/search/command-palette.tsx)
+    ├── Backdrop (Yarı saydam siyah overlay, tıklandığında kapanır)
+    ├── Arama Input Barı (Arama ikonu, otomatik focus, Escape desteği)
+    └── Sonuç Gövdesi (max-h-96, custom scrollbar)
+        ├── 2 Karakter Altı Durumu: "En az 2 karakter yazın."
+        ├── Yükleniyor Durumu: Dönen spinner animasyonu (Loader2)
+        ├── Sonuç Yok Durumu: "Sonuç bulunamadı."
+        └── Gruplandırılmış Sonuç Listesi:
+            ├── 📁 Projeler Bölümü (Proje Adı + PRJ Rozeti)
+            ├── 📝 Görevler Bölümü (PRJ-12 Rozeti, Durum Rengi, Başlık)
+            └── ⚡ Hızlı Aksiyonlar Bölümü (Sayfa kısayolları)
+
+
+3. Arama Mantığı ve Algoritmik Kararlar (src/lib/search-logic.ts)
+Arama iş mantığı, sunucu sorgularından ve UI bileşenlerinden tamamen bağımsızlaştırılmış saf fonksiyonlarla yönetilir:
+3.1 Görev Kodu Ayrıştırma (Task Identifier Parser)
+Kullanıcı PRJ-12 veya prj-4 yazdığında sistem bunu düz metin araması yapmak yerine bir görev tanımlayıcısı olarak algılar:
+
+typescript
+export function parseTaskIdentifier(query: string): { projectIdentifier: string; sequenceId: number } | null {
+  const match = query.trim().match(/^([a-zA-Z]{2,10})-(\d+)$/);
+  if (!match) return null;
+  return { projectIdentifier: match[1].toUpperCase(), sequenceId: Number(match[2]) };
+}
+
+3.2 Döngüsel Klavye İndeks Gezinmesi (Cyclic Navigation)
+Kullanıcı listenin en altına geldiğinde Aşağı Ok tuşuna basarsa listenin en başına, en üstündeyken Yukarı Ok tuşuna basarsa listenin en sonuna geçer:
+
+typescript
+export function moveActiveIndex(currentIndex: number, direction: "up" | "down", totalCount: number): number {
+  if (totalCount === 0) return -1;
+  if (direction === "down") {
+    return currentIndex >= totalCount - 1 ? 0 : currentIndex + 1;
+  }
+  return currentIndex <= 0 ? totalCount - 1 : currentIndex - 1;
+}
+
+3.3 Hızlı Navigasyon Komutları (Context-Aware Commands)
+Eğer kullanıcı bir proje sayfasındaysa (/projects/[id]/...), arama metnine göre filtrelenebilen hızlı komutlar sunulur:
+	• goto-board: /projects/${projectId}/board
+	• goto-list: /projects/${projectId}/list
+	• goto-backlog: /projects/${projectId}/backlog
+	• goto-sprints: /projects/${projectId}/sprints
+	• goto-settings: /projects/${projectId}/settings
+
+4. Server Action ve Yetkilendirme (src/actions/search.ts)
+Sunucu tarafında veritabanı sorgusu katı yetki sınırları içinde yürütülür:
+	1. Oturum Denetimi: getServerSession(authOptions) çağrılarak kullanıcının userId'si alınır.
+	2. Proje Üyeliği Kısıtı: Hem görevler hem de projeler sorgulanırken kullanıcının o projede ProjectMember kaydı olması zorunludur:
+
+typescript
+where: {
+  project: { members: { some: { userId } } },
+  OR: taskOrConditions
+}
+	3. Akıllı OR Kriteri:
+		○ Düz metin için: { title: { contains: normalized, mode: "insensitive" } }
+		○ Eğer sorgu PRJ-12 formatındaysa ek olarak: { project: { identifier: "PRJ" }, sequenceId: 12 }
+	4. Hafıza ve Performans Sınırları:
+		○ Görevler: En son güncellenen maksimum 10 kayıt (take: 10, orderBy: { updatedAt: "desc" }).
+		○ Projeler: Maksimum 5 kayıt (take: 5).
+
+5. UI ve İstemci Etkileşim Akışı (CommandPalette.tsx)
+	1. Debounce (200ms): Kullanıcı yazmayı bıraktıktan 200ms sonra globalSearch aksiyonu çağrılır; önceki bekleyen istekler iptal edilir (cancelled = true).
+	2. Koleksiyon Düzleştirme (Flattening): Projeler, Görevler ve Komutlar tek bir FlatItem[] dizisine dönüştürülür. Bu sayede tek bir activeIndex numarası ile farklı kategoriler arasında kesintisiz klavye gezinmesi sağlanır.
+	3. Yönlendirme & Derin Bağlantı (Deep Linking):
+		○ Bir projeye basıldığında: /projects/${id}/board rotasına gidilir.
+		○ Bir göreve basıldığında: /projects/${projectId}/board?task=${taskId} rotasına yönlendirilir ve görev detay modalı doğrudan açılır.
+		○ Bir komuta basıldığında: İlgili sayfa rotasına geçilir.
+
+6. Test Kapsamı ve Senaryoları (search-logic.test.ts)
+src/lib/__tests__/search-logic.test.ts dosyasında 24 adet bağımsız Vitest testi bulunmaktadır:
+	1. normalizeSearchQuery (2 test):
+		○ Baş/son boşluk temizliği (" login " -> "login").
+		○ Küçük harfe dönüştürme ("PRJ-12" -> "prj-12").
+	2. isQueryValid (3 test):
+		○ 2 karakterden kısa girdileri geçersiz sayma ("a" -> false).
+		○ Yalnızca boşluk karakterlerini geçersiz sayma.
+		○ 2 ve üzeri karakterleri geçerli kabul etme.
+	3. parseTaskIdentifier (4 test):
+		○ Standart PRJ-12 formatını ayrıştırma ({ projectIdentifier: "PRJ", sequenceId: 12 }).
+		○ Küçük harfli prj-4 formatını büyük harfe normalize etme.
+		○ Tire içermeyen veya sayısal olmayan geçersiz formatlarda null dönme.
+	4. matchesQuery (3 test):
+		○ Case-insensitive alt dize eşleşmesi, negatif durumlar ve boş sorgu kontrolü.
+	5. filterQuickNavCommands (3 test):
+		○ Komut etiketleriyle eşleşen kayıtları filtreleme, boş ve negatif durumlar.
+	6. moveActiveIndex (5 test):
+		○ Boş listede -1 dönme.
+		○ Aşağı/Yukarı yönlü birer indeks ilerleme.
+		○ Listenin sonundan başına döngü (cycle to start).
+		○ Listenin başından sonuna döngü (cycle to end).
+	7. Sonuç Kümesi Yardımcıları (4 test):
+		○ flattenSearchResults: Grupların tek boyuta indirilmesi.
+		○ countTotalResults ve hasNoResults: Boş ve dolu durumların doğru tespiti.
+
+7. Doğrulama ve Sistem Durumu
+Prompt T uygulaması sonrası çalıştırılan kalite güvence adımları:
+	• Vitest Testleri: 17 test dosyasında 291 testin tamamı %100 başarılı olarak geçti.
+	• TypeScript Tip Denetimi: npx tsc --noEmit hatasız tamamlandı.
+	• Production Build: npm run build ile tüm statik ve dinamik rotalar başarıyla optimize edildi.
+	• Git Commit: 872fd27 feat: (Prompt T) add global search, command palette (Cmd+K) and tests olarak sürümlendi.
+
+8. Özet
+Prompt T ile Pulse; kullanıcıların projeler, görevler ve ekranlar arasında fareye dokunmadan saliseler içinde geçiş yapabilmesini sağlayan, veritabanı yükünü debouncing ve üyelik sınırlandırmalarıyla koruyan, üst düzey (Linear/Raycast kalitesinde) bir navigasyon omurgasına kavuşmuştur.
+11:57 PM

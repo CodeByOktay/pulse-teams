@@ -1,0 +1,191 @@
+# 📑 Prompt J — Teknik Değerlendirme ve Uygulama Raporu
+
+> **Faz:** 2 (v0.2.0 Hazırlığı)  
+> **Başlık:** Sprint / Cycle Şeması, Veritabanı Genişletmesi & Temel Server Actions  
+> **Proje:** `C:\Staj_Project`  
+> **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri ve testler karşılandı  
+> **Tarih:** 18 Eylül 2026  
+
+---
+
+## 1. Yönetici Özeti (Executive Summary)
+
+**Prompt J**, Staj PM platformunun Faz 2 (v0.2.0) sürümüne geçişindeki **temel mimari omurgasını** oluşturur. Faz 1'de kurulan Kanban ve Görev (Task) altyapısının üzerine **Agile / Scrum döngülerini (Sprint / Cycle)** entegre etmek amacıyla gerçekleştirilmiştir.
+
+Bu prompt kapsamında;
+- Veritabanı şeması `Sprint` ve `SprintTask` modelleri ile genişletilmiş,
+- Sıfır veri kaybı ile `20260918144432_add_sprint_cycle` PostgreSQL migration'ı uygulanmış,
+- 7 temel iş kuralını yöneten güvenli `Server Actions` katmanı yazılmış,
+- Sıfır harici paket bağımlılığıyla çalışan saf TypeScript yardımcı fonksiyonları (`sprint-utils.ts`) geliştirilmiş,
+- 13 yeni birim testi yazılarak projedeki toplam test sayısı **14'ten 27'ye çıkarılmış** ve **%100 başarı** elde edilmiştir.
+
+---
+
+## 2. Veritabanı & Şema Mimarisi (Prisma & PostgreSQL)
+
+Mevcut Faz 1 veri modellerinin (User, Project, Task, State, Label vb.) bütünlüğü korunmuş, ilişkisel bağımlılıklar bozulmadan sisteme Sprint yeteneği eklenmiştir.
+
+### 2.1. Eklenen Enum ve Modeller
+
+```prisma
+enum SprintStatus {
+  DRAFT      // Taslak - Henüz başlatılmamış
+  ACTIVE     // Aktif - Projede aynı anda yalnızca 1 adet bulunabilir
+  COMPLETED  // Tamamlandı - Arşivlenmiş döngü
+}
+
+model Sprint {
+  id        String       @id @default(cuid())
+  name      String
+  goal      String?
+  startDate DateTime?
+  endDate   DateTime?
+  status    SprintStatus @default(DRAFT)
+  projectId String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   SprintTask[]
+
+  @@index([projectId])
+  @@index([projectId, status])
+}
+
+model SprintTask {
+  sprintId String
+  taskId   String
+  addedAt  DateTime @default(now())
+
+  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@id([sprintId, taskId])
+}
+```
+
+### 2.2. Ters İlişki Güncellemeleri (Reverse Relations)
+
+- **`Project`**: `sprints Sprint[]` ilişkisi eklendi. Proje silindiğinde projeye ait tüm sprintler `onDelete: Cascade` ile temizlenir.
+- **`Task`**: `sprints SprintTask[]` ilişkisi eklendi. Görev silindiğinde sprint bağlantı köprüsü `onDelete: Cascade` ile temizlenir.
+
+### 2.3. İndeksleme ve Sorgu Performansı
+
+1. **`@@index([projectId])`**: Projeye göre sprint filtrelemelerinde Full Table Scan engellendi.
+2. **`@@index([projectId, status])`**: Projede aktif sprint kontrolü (`status = 'ACTIVE'`) sık çalışacağından kompozit B-Tree indeks oluşturuldu.
+3. **`@@id([sprintId, taskId])`**: Kompozit birincil anahtar sayesinde bir görev aynı sprinte mükerrer eklenemez (Doğal Idempotency).
+
+---
+
+## 3. Server Actions Katmanı (`src/actions/sprint.ts`)
+
+Tüm mutasyonlar Next.js 16 Server Actions paradigması ile yazılmıştır. Güvenlik, oturum doğrulaması ve iş kuralları şu standartlara oturtulmuştur:
+
+### 3.1. Güvenlik & Yetkilendirme Standardı
+Her bir action çağrısında iki aşamalı doğrulama yapılır:
+1. `getServerSession(authOptions)`: Oturum açılmamışsa işlem reddedilir (`401 Unauthenticated`).
+2. `requireMembership(projectId, userId)`: Kullanıcının ilgili projenin üyesi (`ProjectMember`) olup olmadığı kontrol edilir (`403 Forbidden`).
+
+### 3.2. Fonksiyonel İş Kuralları Özeti
+
+| Fonksiyon | Parametreler | Temel İş Kuralı & Validasyon | Cache Revalidation |
+|-----------|--------------|------------------------------|--------------------|
+| `createSprint` | `{ projectId, name, goal?, startDate?, endDate? }` | • Boş isim engellenir.<br>• Projede zaten `ACTIVE` statüsünde sprint varsa hata fırlatılır. | `/projects/[projectId]/sprints` |
+| `updateSprint` | `sprintId, data: Partial<...>` | • Sprint varlığı ve proje üyeliği doğrulanır.<br>• İsim, hedef, tarihler ve durum güncellenebilir. | `/projects/[projectId]/sprints` |
+| `deleteSprint` | `sprintId` | • **Sadece `DRAFT`** durumundaki sprintler silinebilir.<br>• `ACTIVE` veya `COMPLETED` sprint silme girişimleri engellenir (Veri tutarlılığı). | `/projects/[projectId]/sprints` |
+| `addTaskToSprint` | `sprintId, taskId` | • Görevin sprinte ait proje ile aynı projede olduğu doğrulanır.<br>• Görev zaten sprintte varsa hata vermez, sessizce geçer (Idempotent). | `/projects/[projectId]/sprints` |
+| `removeTaskFromSprint`| `sprintId, taskId` | • `SprintTask` kompozit ID üzerinden ilişki kaldırılır. Görevin kendisine dokunulmaz. | `/projects/[projectId]/sprints` |
+| `startSprint` | `sprintId` | • Projede başka `ACTIVE` sprint varsa başlatılamaz.<br>• `startDate` boşsa otomatik olarak `new Date()` (anlık zaman) atanır. | `/projects/[projectId]/sprints` |
+| `completeSprint` | `sprintId` | • Sadece `ACTIVE` sprint tamamlanabilir.<br>• Durumu `COMPLETED` yapılır.<br>• Kapanış anında tamamlanmamış (`group NOT IN ('DONE', 'CANCELLED')`) görev sayısı hesaplanarak istemciye döndürülür. | `/projects/[projectId]/sprints` |
+
+---
+
+## 4. Yardımcı Fonksiyonlar & Algoritmalar (`src/lib/sprint-utils.ts`)
+
+UI katmanını hafifletmek ve iş mantığını izole test edebilmek için yardımcı fonksiyonlar geliştirilmiştir. Tarih işlemleri için harici kütüphane (date-fns, moment vb.) yüklenmemiş; bundle boyutu korunmuştur.
+
+1. **`isSprintOverdue(sprint)`**:
+   - Yalnızca `ACTIVE` durumunda ve `endDate` geçmişe aitse `true` döner.
+   - `DRAFT`, `COMPLETED` veya bitiş tarihi belirlenmemiş sprintler için her zaman `false` üretir.
+
+2. **`getSprintProgress(sprint)`**:
+   - `DONE` ve `CANCELLED` durumundaki görevleri "tamamlanmış" sayar.
+   - `Math.round((completed / total) * 100)` formülüyle tam sayı yüzdelik döner.
+   - Görev sayısı `0` olan sprintlerde sıfıra bölme hatasını (`NaN`) engelleyerek `%0` çıktısı verir.
+
+3. **`formatSprintDateRange(startDate, endDate)`**:
+   - Türkçe yerel ay kısaltmaları (`Oca, Sub, Mar, Nis...`) ile formatlar.
+   - `(null, null)` → `"Tarih belirlenmedi"`
+   - `(start, null)` → `"5 Mar'dan itibaren"`
+   - `(null, end)` → `"20 Mar'a kadar"`
+   - `(start, end)` → `"5 Mar - 19 Mar 2026"`
+
+---
+
+## 5. Doğrulama, Test ve Kalite Güvencesi
+
+Yapılan değişiklikler `Vitest` test motoru ve `tsc` TypeScript denetleyicisi ile doğrulanmıştır:
+
+### 5.1. Test Koşum Raporu (`npm test`)
+
+```text
+ RUN  v5.0.1 C:/Staj_Project
+
+ ✓ src/lib/__tests__/sequence.test.ts (2 tests) 8ms
+ ✓ src/lib/__tests__/board-filters.test.ts (5 tests) 10ms
+ ✓ src/lib/__tests__/sprint-utils.test.ts (13 tests) 12ms
+ ✓ src/lib/__tests__/sort-order.test.ts (4 tests) 7ms
+ ✓ src/lib/__tests__/colors.test.ts (3 tests) 6ms
+
+ Test Files  5 passed (5)
+      Tests  27 passed (27)
+   Start at  15:02:02
+   Duration  596ms
+```
+
+### 5.2. `sprint-utils.test.ts` Birim Test Detayları (13 Test)
+
+| Test Grubu | Test Edilen Durum | Sonuç |
+|------------|-------------------|:-----:|
+| `isSprintOverdue` | DRAFT sprint süresi geçmiş olsa da overdue değildir | ✅ Geçti |
+| `isSprintOverdue` | ACTIVE sprint süresi geçmişse overdue'dur | ✅ Geçti |
+| `isSprintOverdue` | ACTIVE sprint süresi gelecekteyse overdue değildir | ✅ Geçti |
+| `isSprintOverdue` | ACTIVE sprint endDate null ise overdue değildir | ✅ Geçti |
+| `isSprintOverdue` | COMPLETED sprint süresi geçmiş olsa da overdue değildir | ✅ Geçti |
+| `getSprintProgress`| 0 görevli boş sprintte `%0` üretimi | ✅ Geçti |
+| `getSprintProgress`| 4 görevden 2'si DONE ise `%50` hesaplama | ✅ Geçti |
+| `getSprintProgress`| 1 DONE + 1 CANCELLED içeren 3 görevde yuvarlama ile `%67` | ✅ Geçti |
+| `getSprintProgress`| Tüm görevler tamamlandığında `%100` | ✅ Geçti |
+| `formatSprintDateRange` | Her iki tarih null olduğunda fallback metni | ✅ Geçti |
+| `formatSprintDateRange` | Yalnızca başlangıç tarihi verildiğinde Türkçe format | ✅ Geçti |
+| `formatSprintDateRange` | Yalnızca bitiş tarihi verildiğinde Türkçe format | ✅ Geçti |
+| `formatSprintDateRange` | İki tarih aralığı ve yıl gösterimi | ✅ Geçti |
+
+### 5.3. Statik Tip Denetimi (`npx tsc --noEmit`)
+- Kod tabanında hiçbir TypeScript derleme hatası, eksik import veya `any` tür uyuşmazlığı bulunmamaktadır (Exit Code: 0).
+
+---
+
+## 6. Kabul Kriterleri Matrisi
+
+| # | Kabul Kriteri | Durum | Doğrulama Yöntemi |
+|---|---------------|:-----:|-------------------|
+| 1 | `SprintStatus` enum ve `Sprint`, `SprintTask` modelleri tanımlandı | ✅ | `prisma/schema.prisma` incelendi |
+| 2 | Prisma migration başarıyla veritabanına uygulandı | ✅ | `20260918144432_add_sprint_cycle` migration uygulandı |
+| 3 | `src/actions/sprint.ts` — 7 Server Action hazırlandı | ✅ | Üyelik ve aktiflik validasyonları kodlandı |
+| 4 | `src/lib/sprint-utils.ts` — 3 yardımcı fonksiyon oluşturuldu | ✅ | Sıfır harici paketle saf TS implementasyonu yapıldı |
+| 5 | `sprint-utils.test.ts` testleri eklendi ve tüm testler geçiyor | ✅ | Vitest: 27/27 test passed |
+| 6 | TypeScript tip güvenliği korundu | ✅ | `npx tsc --noEmit` hatasız tamamlandı |
+
+---
+
+## 7. Sonraki Adım: Prompt K Hazırlığı
+
+Prompt J ile veritabanı, veri erişim katmanı ve iş mantığı tamamlanmıştır. Bir sonraki adım olan **Prompt K** için hazır hale gelinmiştir:
+- **Hedef:** Sprint Yönetim Arayüzü (`/projects/[projectId]/sprints`)
+- **Geliştirilecek Bileşenler:**
+  - `SprintCard`: Durum badge'i, ilerleme çubuğu, tarih aralığı ve eylem butonları.
+  - `CreateSprintModal` & `EditSprintModal`: Sprint oluşturma/güncelleme arayüzü.
+  - `CompleteSprintDialog`: Tamamlanmamış görev uyarısı ile sprint tamamlama onayı.
+  - `SprintTaskPicker`: Görevleri sprintlere bağlama/çıkarma bileşeni.
+  - `Sidebar` güncellemesi: Proje altına "Sprints" sekmesi entegrasyonu.

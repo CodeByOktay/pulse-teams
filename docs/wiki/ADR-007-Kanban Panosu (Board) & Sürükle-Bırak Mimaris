@@ -1,0 +1,182 @@
+# Faz G — Kanban Panosu (Board) & Sürükle-Bırak Mimarisi: Teknik Rapor
+
+> **Proje:** Staj PM — Kanban-first Proje Yönetim Uygulaması  
+> **Faz:** G (Kanban Board, @dnd-kit Sürükle-Bırak, Kolonlar & Görev Kartları)  
+> **Tarih:** 17 Eylül 2026  
+> **Durum:** ✅ Tamamlandı & Doğrulandı
+
+---
+
+## 1. Yönetici Özeti (Executive Summary)
+
+Faz G, Staj PM uygulamasının kalbi ve en karmaşık kullanıcı deneyimi olan **Sürükle-Bırak (Drag-and-Drop) Destekli Kanban Panosu** katmanını hayata geçirmiştir.
+
+Bu fazda, modern React ekosisteminin en gelişmiş sürükle-bırak motoru olan **`@dnd-kit`** (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) kullanılarak;
+- Kolon içi yeniden sıralama,
+- Kolonlar arası kart transferi,
+- Boş sütunlara kart bırakabilme,
+- Kullanıcıyı bekletmeyen **İyimser UI Güncellemesi (Optimistic Updates)**,
+- Sütun altından hızlı görev ekleme (Quick Add) işlevleri milisaniyelik akıcılıkla sunulmuştur.
+
+---
+
+## 2. Pano Bileşen Hiyerarşisi ve Veri Akışı
+
+Uygulama, Next.js Server Components ile Client Component'lerin güçlerini birleştiren hibrit bir mimari kullanır:
+
+```
+src/app/(main)/projects/[projectId]/board/page.tsx (Server Component)
+  │
+  └───> src/components/board/kanban-board.tsx (Client Component - DndContext)
+          │
+          ├───> src/components/board/kanban-column.tsx (SortableContext & Droppable)
+          │       │
+          │       ├───> src/components/board/task-card.tsx (useSortable)
+          │       │
+          │       └───> src/components/board/add-task-inline.tsx (Hızlı Ekleme)
+          │
+          ├───> DragOverlay (Sürüklenen Kartın Hayalet Görseli)
+          │
+          └───> src/components/task-detail/task-detail-modal.tsx (Detay Paneli)
+```
+
+---
+
+## 3. Sürükle-Bırak Mekanizması ve İyimser Güncelleme (Sequence Diagram)
+
+Aşağıdaki diyagram, bir kart sürüklenip bırakıldığında istemci state'i, iyimser render ve arka plandaki veritabanı senkronizasyonunu özetlemektedir:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Kullanıcı
+    participant Card as TaskCard (PointerSensor)
+    participant Board as KanbanBoard (DndContext)
+    participant Action as Server Action (reorderTask)
+    participant DB as PostgreSQL
+
+    User->>Card: Kartı Tut ve Sürükle (> 5px)
+    Card->>Board: handleDragStart (activeTask belirlenir)
+    Board-->>User: DragOverlay Aktifleşir (Hafif Eğik & Gölgeli Kart)
+
+    User->>Board: Kartı Başka Kolonun Üzerine Getir
+    Board->>Board: handleDragOver (İstemci State'inde Kolon Değişimi Görselleşir)
+
+    User->>Board: Kartı İstenen Pozisyona Bırak
+    Board->>Board: calculateNewSortOrder(tasks, overIndex) -> Float Hesapla
+
+    rect rgb(240, 255, 240)
+    note right of Board: 1. İyimser Güncelleme (Optimistic UI)
+    Board->>Board: setColumns(yeniSıralama) [Arayüz Anında Güncellenir]
+    end
+
+    rect rgb(240, 248, 255)
+    note right of Board: 2. Arka Plan Senkronizasyonu
+    Board->>Action: reorderTask(taskId, newStateId, newSortOrder)
+    Action->>DB: Task.update({ stateId, sortOrder })
+    DB-->>Action: Güncellendi
+    alt Ağ Hatası / Sunucu Çökmesi
+        Action-->>Board: Hata Fırlatır
+        Board->>Board: setColumns(initialStates) -> Rollback (Eski Haline Döner)
+    end
+    end
+```
+
+---
+
+## 4. Bileşenlerin Teknik Analizi
+
+### 4.1 `KanbanBoard` (`src/components/board/kanban-board.tsx`)
+Pano yönetiminin ana kontrol merkezidir:
+- **Sensör Yapılandırması (`PointerSensor`):** `activationConstraint: { distance: 5 }` uygulanmıştır. Kullanıcı karta tıkladığında (detay modalını açmak için) sürüklemenin tetiklenmesi önlenir; kart ancak imleç en az 5 piksel hareket ettirildiğinde sürükleme moduna geçer.
+- **Çarpışma Tespiti (`closestCorners`):** Çok kolonlu panolarda en hassas ve pürüzsüz yerleştirme algoritmasıdır.
+- **`DragOverlay`:** Sürükleme anında orijinal kart `%50` opaklığa (`opacity-50`) düşerken, imlecin ucunda `rotate-2 shadow-lg` sınıflarıyla hafif eğilmiş gerçekçi bir kopya kart takip eder.
+- **Hata Güvenliği (Rollback):** `reorderTask` server action'ı başarısız olursa, `.catch()` bloğunda `setColumns(initialStates)` çağrılarak kartlar eski güvenli pozisyonlarına geri döner.
+
+---
+
+### 4.2 `KanbanColumn` (`src/components/board/kanban-column.tsx`)
+Her bir dikey durum sütununu temsil eder:
+- **Genişlik & Düzen:** `w-[280px] min-w-[280px]` sabit genişlikle yatay kaydırılabilir (`overflow-x-auto`) panoda ideal okunabilirlik sağlar.
+- **Başlık Satırı:** Durumun renkli halkası (`state.color`), sütun adı ve toplam görev sayısı rozeti.
+- **Bırakma Hedefi (`useDroppable`):** Sütunun boş olması durumunda dahi içine kart bırakılabilmesi için `id: state.id` ile droppable alan oluşturulmuştur. Kart üzerine geldiğinde sütun hafif mavi tonla parlar (`isOver ? "bg-blue-50/60" : ""`).
+- **Boş Durum Tasarımı:** Sütunda hiç görev yoksa kesikli kenarlıklı (`border-dashed`) "Görev bırakın" alanı gösterilir.
+
+---
+
+### 4.3 `TaskCard` (`src/components/board/task-card.tsx`)
+Kanban kartlarının zengin görsel arayüzüdür:
+- **Sürükle-Tıkla Ayrımı (`wasDraggingRef`):** Kart sürüklendikten sonra bırakıldığında, yanlışlıkla `onClick` tetiklenip görev detay modalının açılmasını engelleyen `useRef` tabanlı koruma mekanizması içerir.
+- **Kart Mimarisi:**
+  - **Üst Satır:** Proje kodu ve sıra numarası badge'i (`PRJ-1`). Kart üzerine gelindiğinde (hover) beliren hızlı silme butonu (`Trash2`).
+  - **Başlık:** `line-clamp-2` ile sınırlandırılmış, 2 satırı aşarsa üç nokta (`...`) koyan tipografi.
+  - **Etiketler:** Renkli `LabelBadge`'ler. Kartta yer kazanmak için en fazla 2 etiket gösterilir; fazlası `+N` olarak özetlenir.
+  - **Öncelik İkonları:** `URGENT` 🔴, `HIGH` 🟠, `MEDIUM` 🟡, `LOW` 🔵, `NONE` ⚪.
+  - **Bitiş Tarihi Renk Mantığı (`getDueDateColor`):**
+    - Geçmiş tarih: Kırmızı (`text-red-600`)
+    - Bugün: Turuncu (`text-orange-500`)
+    - Gelecek tarih: Nötr gri (`text-zinc-400`)
+  - **Atananlar:** Üst üste binen yuvarlak renkli avatarlar (`-space-x-1.5`) ve `+N` rozeti.
+
+---
+
+### 4.4 `AddTaskInline` (`src/components/board/add-task-inline.tsx`)
+Sütunların altına yerleştirilen hızlı görev ekleme bileşenidir:
+- Başlangıçta sade bir `+ Add task` butonu olarak görünür.
+- Tıklandığında anında metin kutusu ve `Ekle / İptal` butonlarına dönüşür.
+- `Enter` tuşuna basıldığında o sütunun `stateId`'si ile `createTask` server action'ını tetikler.
+- **Sürekli Giriş Modu:** Görev eklendikten sonra form kapanmaz, girdi temizlenir ve odak (focus) kutuda kalır. Böylece kullanıcı ardı ardına seri şekilde görevler girebilir. `Esc` veya `İptal` ile kapatılır.
+
+---
+
+## 5. Kayan Noktalı Sıralama Algoritması (`calculateNewSortOrder`)
+
+```typescript
+function calculateNewSortOrder(tasks: BoardTask[], overIndex: number): number {
+  if (tasks.length === 0) return 65535;
+  if (overIndex >= tasks.length) return tasks[tasks.length - 1].sortOrder + 10000;
+  if (overIndex === 0) return tasks[0].sortOrder - 10000;
+  const above = tasks[overIndex - 1].sortOrder;
+  const below = tasks[overIndex].sortOrder;
+  return (above + below) / 2;
+}
+```
+
+Bu matematiksel model sayesinde:
+- Veritabanında toplu `UPDATE` sorguları veya dizi kaydırmaları yapılmaz.
+- İki kart arasına bırakma işlemi `(above + below) / 2` float aritmetiği ile tek bir kartın `sortOrder` değerini güncelleyerek milisaniyeler içinde tamamlanır.
+
+---
+
+## 6. Alınan Mimari Kararlar ve Değerlendirmeler
+
+| Karar | Seçilen Yaklaşım | Alternatif | Gerekçe |
+|---|---|---|---|
+| **Sürükle-Bırak Motoru** | `@dnd-kit` | `react-beautiful-dnd` | `react-beautiful-dnd` projesi Atlassian tarafından durdurulmuştur (deprecated) ve React 18/19 desteği sorunludur. `@dnd-kit` modern, modüler ve aktif sürdürülen çözümdür. |
+| **Pano Güncelleme** | Optimistic UI | Ağ Cevabını Bekleme (Pessimistic) | Kullanıcı kartı bıraktığında ağ gecikmesini (200-500ms) beklemeden arayüzün anında tepki vermesi, Trello/Linear benzeri yağ gibi akıcı bir deneyim sağlar. |
+| **Sensör Hassasiyeti** | `distance: 5px` | `delay: 150ms` (Zaman Kısıtı) | Zaman kısıtı koymak kullanıcının karta tıklayıp açmasını hantallaştırır. 5 piksel mesafe kısıtı, normal tıklama ile sürükleme niyetini mükemmel ayırır. |
+| **Hızlı Görev Ekleme** | Inline Form (Sütun Altı) | Yalnızca Modal Pencere | Kullanıcının bağlamdan kopmadan hızlıca backlog doldurabilmesi için Trello standardında sütun içi giriş deneyimi. |
+
+---
+
+## 7. Kabul Kriterleri ve Doğrulama Matrisi
+
+| No | Kabul Kriteri | Durum | Doğrulama Yöntemi |
+|:--:|---|:---:|---|
+| 1 | Board yükleniyor ve her state bir sütun olarak görünüyor | ✅ | Playwright ile 5 sütunun eksiksiz render edildiği doğrulandı |
+| 2 | Görevler doğru sütunlarda `sortOrder`'a göre sıralı | ✅ | SQL ve UI'daki kart sıralaması birebir eşleşti |
+| 3 | Kart sütun içinde sürükle-bırak ile sıralanabiliyor | ✅ | `Task One`, `Alpha`, `Beta` kartlarının yer değiştirdiği teyit edildi |
+| 4 | Kart farklı sütuna sürüklenince state değişiyor ve DB'ye yazılıyor | ✅ | `Backlog` -> `Todo` geçişi sayfa yenilemesi sonrası PostgreSQL'de doğrulandı |
+| 5 | Boş sütunlara kart bırakılabiliyor | ✅ | Sıfır görevli `Done` sütununa kart transferi başarıyla test edildi |
+| 6 | Quick add ile sütun altından hızlı görev eklenebiliyor | ✅ | `Add task` inputu ile görevler art arda eklendi |
+| 7 | Kart üzerinde identifier, başlık, öncelik, etiket, avatar, tarih görünüyor | ✅ | CSS ve DOM ağacı incelemesiyle tüm öğeler doğrulandı |
+| 8 | Sürükleme sırasında görsel geri bildirim (ghost & overlay) var | ✅ | `DragOverlay` ve `opacity-50` sınıfları teyit edildi |
+
+---
+
+## 8. Sonraki Adımlarla (Faz H & I) Entegrasyon
+
+- **Faz H (Detay Modalı):** Kart üzerine tıklandığında `onOpen(task.id)` geri çağırma fonksiyonu ile Faz H'deki sağdan kayan detay panelinin açılması sağlanmıştır.
+- **Faz I (Filtreleme & Sıralama):** Üst kısımdaki `FilterBar`'dan gelen kriterlere göre sütunlardaki görevlerin sunucu tarafında filtrelenmesi ve boş sonuçlarda `EmptyState` gösterimi bu panoya entegre edilmiştir.
+
+*Rapor Faz G gereksinimlerine ve üretim kod tabanına uygun olarak hazırlanmıştır.*
