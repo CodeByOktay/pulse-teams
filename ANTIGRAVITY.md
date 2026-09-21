@@ -60,6 +60,7 @@ In this collaborative AI model alongside Claude Code, Antigravity does NOT direc
 - Once tests pass at 100% and TypeScript checks succeed (`npm test` and `npx tsc --noEmit`):
   1. **For Humans:** Authors an Architectural Decision Record in `docs/wiki/ADR-xxx-[title].md` (Context, Decision, Consequences, Alternatives).
   2. **For AI Memory:** Updates English context snapshots in `docs/ai-context/` so future AI sessions instantly recall the system state and domain models.
+     - **ADR-Synced Naming Convention:** Feature-specific documentation files created in `docs/ai-context/` MUST strictly begin with the corresponding 3-digit zero-padded ADR index number (e.g., `024-seed-dataset-architecture.md` corresponding to `ADR-024`), continuing sequentially with each new architectural increment (`system-overview.md` remains the central root snapshot).
 
 ---
 

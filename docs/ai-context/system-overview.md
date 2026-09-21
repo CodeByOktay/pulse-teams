@@ -36,3 +36,5 @@
 - **Phase 4 (v0.4.0 — In Progress):**
   - **Step 4.01 (v0.3.1):** Realistic Analytics Dataset & Generators (`prisma/seed-data-generators.ts`, `prisma/seed-realistic-data.ts`, `prisma/tsconfig.seed.json`, `seed-data-generators.test.ts`). 10 user personas, 5 projects, 500 tasks, 1,000 comments, 3,000 activities, 100 relations, deterministic `mulberry32` PRNG. (+17 -> 348 tests)
 - **ADR Index:** 24 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-024`.
+- **Detailed AI Context Snapshots:**
+  - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
