@@ -1,14 +1,14 @@
-# CONTEXT - Pulse Project Manager (v0.4.2 -> Phase 4.02 Completed)
+# CONTEXT - Pulse Project Manager (v0.4.3 -> Phase 4.03 Completed)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, and 3 are fully completed; Phase 4.01 (Analytics Dataset) and Phase 4.02 (In-App Notifications with Polling) are completed.
+Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, and 3 are fully completed; Phase 4.01 (Analytics Dataset), Phase 4.02 (In-App Notifications with Polling), and Phase 4.03 (Notification Preferences & Mentions) are completed.
 
 ## Location & Execution
 - **Project Path:** `C:\Pulse`
 - **Database:** PostgreSQL 16 in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (364 tests across 20 suites, 100% passing)
+- **Tests:** `npm test` (393 tests across 21 suites, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, 500 tasks, 1000 comments, 3000 activities)
 
 ## AI Agent Division of Labor & Guides
@@ -112,7 +112,14 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
   - Client polling hook (`useNotificationPolling`) with 30s interval and tab visibility awareness (`document.visibilityState`).
   - Header UI: `<NotificationBell />` with badge count and `<NotificationPopover />` with optimistic read status updates.
   - `notification-logic.test.ts` (16 tests).
-- Total: 364 Vitest tests (100% pass).
+- **[Step 4.03] Notification Preferences, Mentions & Due Date Alerts (v0.4.3):**
+  - `UserNotificationPreference` model & `NotificationType` extension (`TASK_MENTIONED`, `DUE_DATE_APPROACHING`).
+  - `notification-logic.ts`: Pure functions for mention parsing (`extractMentions`, `resolveMentionedUserIds`), preference-aware delivery checks (`shouldDeliverWithPreferences`), calendar-day threshold calculations (`getApproachingDueTasks` for 0, 1, 3 days), and localized formatting (`formatDueDateNotificationSnippet`).
+  - `notification.ts` server actions: `getUserNotificationPreferences`, `updateUserNotificationPreferences`, and `checkApproachingDueDates` with same-day deduplication.
+  - `comment.ts`: Dispatches `TASK_MENTIONED` to mentioned project members and suppresses `COMMENT_ADDED` for mentioned assignees to prevent duplicate notifications.
+  - UI: `NotificationPreferencesModal` with 5 switches, optimistic state & rollback; gear icon in `NotificationPopover`; `AtSign` & `Clock` icons in `NotificationItem`.
+  - `notification-preferences.test.ts` (29 tests).
+- Total: 393 Vitest tests (100% pass).
 
 ## Critical Technical Invariants
 - `requireMembership(projectId, userId)` -> Enforced in every server action.
@@ -135,6 +142,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `isTaskOverdue(dueDate, stateGroup, now?)` -> Excludes only DONE state group (CANCELLED can count as overdue); `formatRelativeTime` provides localized relative timestamps (`src/lib/analytics-logic.ts`).
 - `wouldCreateBlockCycle(edges, newSourceId, newTargetId)` -> When adding X BLOCKS Y, returns true if a path exists from Y back to X; non-recursive iterative DFS (`src/lib/relation-logic.ts`).
 - `hasExistingRelation(existingRelations, a, b)` -> Prevents duplicate relations between any two tasks regardless of type or direction.
+- `shouldDeliverWithPreferences` -> Self-notifications unconditionally blocked (`actorId !== recipientId`), maps `NotificationType` to recipient `UserNotificationPreference` toggles.
 
 ## Route Map
 - `/`                       -> Dashboard (overview cards, Assigned to Me, Recent Activity, Sprint Velocity, project list)
@@ -147,7 +155,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `/login`                  -> Login Page
 - `/register`               -> Registration Page
 
-## Test Suite Distribution (331 Tests)
+## Test Suite Distribution (393 Tests across 21 Suites)
 - `sequence.test.ts` (2)
 - `sort-order.test.ts` (4)
 - `colors.test.ts` (3)
@@ -168,11 +176,12 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `task-relations.test.ts` (40)
 - `seed-data-generators.test.ts` (17)
 - `notification-logic.test.ts` (16)
-Total: **364 tests, 100% passing**
+- `notification-preferences.test.ts` (29)
+Total: **393 tests, 100% passing**
 
 ## Mandatory Verification Commands
 ```bash
-npm test          # Must pass 100% (364 tests)
+npm test          # Must pass 100% (393 tests)
 npx tsc --noEmit  # Zero TypeScript errors
 npm run build     # Production build validation
 ```
@@ -180,8 +189,8 @@ npm run build     # Production build validation
 ## New Chat Starter Template
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
-Phases 1 (v0.1.0), 2 (v0.2.0), and 3 (v0.3.0) are fully completed; Phase 4.01 (Dataset) and Phase 4.02 (In-App Notifications) are complete.
-364 Vitest tests are passing 100%.
+Phases 1 (v0.1.0), 2 (v0.2.0), and 3 (v0.3.0) are fully completed; Phase 4.01 (Dataset), Phase 4.02 (In-App Notifications), and Phase 4.03 (Notification Preferences & Mentions) are complete.
+393 Vitest tests are passing 100%.
 We are now ready to implement [new phase / feature].
 [Paste specific task or requirements here]
 ```

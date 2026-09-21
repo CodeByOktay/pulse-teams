@@ -3,6 +3,16 @@
 
 Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](https://keepachangelog.com/) standardına uygundur.
 
+## [0.4.3] - 2026-09-21 (Faz 4.03 — Bildirim Tercihleri, Mention Desteği & Yaklaşan Son Tarih)
+
+### Eklendi (Added)
+- **Kullanıcı Bildirim Tercihleri Modeli:** `UserNotificationPreference` tablosu (`notifyTaskAssigned`, `notifyCommentAdded`, `notifyMentioned`, `notifyDueDateApproaching`, `notifySprintClosed`) ve `User.notificationPreferences` 1-e-1 ilişkisi.
+- **Bildirim Tipleri:** `NotificationType` enum'ına `TASK_MENTIONED` ve `DUE_DATE_APPROACHING` değerleri eklendi.
+- **Saf İş Mantığı (`src/lib/notification-logic.ts`):** `extractMentions` (tırnaklı boşluklu ve tekil handle tespiti, deduplication), `resolveMentionedUserIds` (proje üyeleriyle büyük/küçük harf duyarsız ve ilk ad eşleştirmesi), `shouldDeliverWithPreferences` (kendi kendine bildirim yasağı + kullanıcı tercih kontrolü), `getApproachingDueTasks` (0, 1 ve 3 gün kalan takvim günü hesaplaması), `formatDueDateNotificationSnippet`.
+- **Server Actions:** `getUserNotificationPreferences`, `updateUserNotificationPreferences`, `checkApproachingDueDates` (günlük tekrarsız bildirim kontrolü); `createComment` mention ayrıştırması ve çift bildirim engellemesi (`!mentionedSet.has(assignee.userId)`), `assignUserToTask` ve `completeSprint` eylemlerinde tercih denetimi.
+- **Arayüz (UI):** `NotificationPreferencesModal` (5 bildirim anahtarı, anında iyimser güncelleme ve rollback), `NotificationPopover` başlığında ayarlar dişlisi, `NotificationItem` bileşeninde `AtSign` (indigo) ve `Clock` (amber) ikonları.
+- **Test:** `notification-preferences.test.ts` (29 test). Toplam test sayısı 393'e çıktı (%100 geçiyor).
+
 ## [0.4.2] - 2026-09-21 (Faz 4.02 — Uygulama İçi Bildirimler & İstemci Polling)
 
 ### Eklendi (Added)

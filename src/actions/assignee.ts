@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
 import { createNotification } from "@/actions/notification";
-import { buildNotificationDeepLink, shouldDeliverNotification } from "@/lib/notification-logic";
+import { buildNotificationDeepLink, shouldDeliverWithPreferences } from "@/lib/notification-logic";
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -49,7 +49,18 @@ export async function assignUserToTask(taskId: string, userId: string) {
     // already assigned — no-op
   }
 
-  if (shouldDeliverNotification(session.user.id, userId)) {
+  const recipientPreferences = await prisma.userNotificationPreference.findUnique({
+    where: { userId },
+  });
+
+  if (
+    shouldDeliverWithPreferences({
+      actorId: session.user.id,
+      recipientId: userId,
+      type: "TASK_ASSIGNED",
+      preferences: recipientPreferences,
+    })
+  ) {
     await createNotification({
       type: "TASK_ASSIGNED",
       title: "Yeni görev ataması",

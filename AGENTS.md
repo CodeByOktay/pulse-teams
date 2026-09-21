@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.4.2 (Phase 4 in progress — Step 4.02 completed)
+- **Version:** v0.4.3 (Phase 4 in progress — Step 4.03 completed)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -33,21 +33,18 @@
 - `npx prisma generate` — Regenerate Prisma client
 - `npx tsc --noEmit` — Run TypeScript type checking
 
-## Database Models (14 Models across Phases 1, 2, and 3)
+## Database Models (16 Models across Phases 1, 2, 3, and 4)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
-Sprint, SprintTask, Activity, ProjectInvite, **TaskRelation**
+Sprint, SprintTask, Activity, ProjectInvite, TaskRelation, **Notification, UserNotificationPreference**
 
-Enums (6):
+Enums (7):
 - StateGroup (BACKLOG, TODO, IN_PROGRESS, DONE, CANCELLED)
 - Priority (NONE, LOW, MEDIUM, HIGH, URGENT)
 - SprintStatus (DRAFT, ACTIVE, COMPLETED)
-- ActivityType (17 values: TASK_CREATED, TASK_TITLE_UPDATED, TASK_DESCRIPTION_UPDATED,
-  TASK_STATE_CHANGED, TASK_PRIORITY_CHANGED, TASK_DUE_DATE_CHANGED, TASK_START_DATE_CHANGED,
-  TASK_ASSIGNEE_ADDED, TASK_ASSIGNEE_REMOVED, TASK_LABEL_ADDED, TASK_LABEL_REMOVED,
-  TASK_SPRINT_ADDED, TASK_SPRINT_REMOVED, COMMENT_ADDED, COMMENT_DELETED,
-  **TASK_RELATION_ADDED, TASK_RELATION_REMOVED**)
+- ActivityType (17 values)
 - InviteStatus (PENDING, ACCEPTED, EXPIRED)
-- **RelationType** (BLOCKS, RELATES_TO, DUPLICATES)
+- RelationType (BLOCKS, RELATES_TO, DUPLICATES)
+- **NotificationType** (TASK_ASSIGNED, COMMENT_ADDED, SPRINT_COMPLETED, TASK_MENTIONED, DUE_DATE_APPROACHING)
 
 ## Critical Architectural Decisions
 - **Prisma Singleton:** `src/lib/prisma.ts` — `globalThis` pattern (hot-reload safe in development).
@@ -73,6 +70,7 @@ Enums (6):
 - **Dashboard Analytics:** Pure logic in `src/lib/analytics-logic.ts` (`isTaskOverdue`, `countOverdueTasks`, `calculateCompletionRate`, `calculateSprintBurndown`, `calculateProjectVelocity`, `formatRelativeTime`). Dashboard renders 4 count cards, "Assigned to Me" widget, "Recent Activity Feed", and "Sprint Velocity" CSS progress bars without external charting libraries.
 - **Advanced Filters & Saved Views:** `BoardFilters` unified via `buildTaskWhereFromFilters` into a single Prisma where input. Quick filter chips provide 1-click toggles. `useSavedViews` manages localStorage persistence (`pulse:saved-views:{projectId}`) with `__me__` dynamic placeholder resolution.
 - **Task Relations (Dependency Graph):** `TaskRelation` is strictly a SINGLE row in the DB. "Blocked By" is an inverted perspective of a BLOCKS record (reverse rows are never inserted). `hasExistingRelation` enforces the single-pair rule across both directions. Cycle detection is strictly enforced for BLOCKS via `wouldCreateBlockCycle` (iterative DFS with stack + visited set, non-recursive, safe against stack overflows). `addTaskRelation` derives `projectId` from verified task records, ensuring both tasks reside in the same project.
+- **Notification Delivery & Preferences:** `shouldDeliverWithPreferences` strictly enforces self-notification suppression (`actorId !== recipientId`) and maps against recipient `UserNotificationPreference` fields. `@mention` parsing (`extractMentions`, `resolveMentionedUserIds`) extracts callouts; mentioned assignees receive only `TASK_MENTIONED` (preventing double notification). Approaching due date alerts (`getApproachingDueTasks`) check calendar day thresholds (0, 1, 3 days) with idempotency per calendar day.
 
 ## Testing Conventions
 - **Location:** `src/lib/__tests__/*.test.ts`
@@ -87,7 +85,8 @@ Enums (6):
   - `backlog-logic.test.ts` (23), `search-logic.test.ts` (24), `dashboard-analytics.test.ts` (25)
   - `advanced-filters.test.ts` (36), `task-relations.test.ts` (40)
   - `seed-data-generators.test.ts` (17), `notification-logic.test.ts` (16)
-- **Total:** **364 tests, 100% passing**
+  - **`notification-preferences.test.ts` (29)**
+- **Total:** **393 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -103,10 +102,11 @@ Enums (6):
 - **Phase 4 (v0.4.0 — In Progress):**
   - **Step 4.01 (v0.4.1):** Realistic Analytics Dataset & Generators, Deterministic PRNG Seeding (348 tests)
   - **Step 4.02 (v0.4.2):** In-App Notifications with Client Polling, Triggers & Popover UI (364 tests)
+  - **Step 4.03 (v0.4.3):** User Notification Preferences, Mention Detection (@user) & Approaching Due Date Alerts (393 tests)
 
 ## Verification Rule After Every Step
 ```bash
-npm test          # All test suites must pass 100% (364 tests)
+npm test          # All test suites must pass 100% (393 tests)
 npx tsc --noEmit  # Zero TypeScript compilation errors
 ```
 

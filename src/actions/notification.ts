@@ -4,7 +4,25 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  buildNotificationDeepLink,
+  formatDueDateNotificationSnippet,
+  getApproachingDueTasks,
+  shouldDeliverWithPreferences,
+} from "@/lib/notification-logic";
 import type { NotificationType, Prisma } from "@prisma/client";
+
+async function requireMembership(projectId: string, userId: string) {
+  const membership = await prisma.projectMember.findUnique({
+    where: { projectId_userId: { projectId, userId } },
+  });
+
+  if (!membership) {
+    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
+  }
+
+  return membership;
+}
 
 /**
  * Bildirim oluşturmayı try/catch ile sarmalayan yardımcı fonksiyon.
@@ -108,4 +126,135 @@ export async function markAllNotificationsAsRead() {
   });
 
   revalidatePath("/");
+}
+
+export async function getUserNotificationPreferences() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  const preferences = await prisma.userNotificationPreference.upsert({
+    where: { userId: session.user.id },
+    update: {},
+    create: { userId: session.user.id },
+  });
+
+  return preferences;
+}
+
+export async function updateUserNotificationPreferences(
+  data: Partial<{
+    notifyTaskAssigned: boolean;
+    notifyCommentAdded: boolean;
+    notifyMentioned: boolean;
+    notifyDueDateApproaching: boolean;
+    notifySprintClosed: boolean;
+  }>,
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  const updated = await prisma.userNotificationPreference.upsert({
+    where: { userId: session.user.id },
+    update: data,
+    create: { userId: session.user.id, ...data },
+  });
+
+  revalidatePath("/");
+
+  return updated;
+}
+
+export async function checkApproachingDueDates(projectId?: string): Promise<number> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  if (projectId) {
+    await requireMembership(projectId, session.user.id);
+  }
+
+  const tasks = await prisma.task.findMany({
+    where: {
+      dueDate: { not: null },
+      state: { group: { notIn: ["DONE", "CANCELLED"] } },
+      ...(projectId
+        ? { projectId }
+        : { assignees: { some: { userId: session.user.id } } }),
+    },
+    select: {
+      id: true,
+      title: true,
+      dueDate: true,
+      projectId: true,
+      state: { select: { group: true } },
+    },
+  });
+
+  const mappedTasks = tasks.map((task) => ({
+    id: task.id,
+    dueDate: task.dueDate,
+    stateGroup: task.state.group,
+  }));
+
+  const approaching = getApproachingDueTasks(mappedTasks);
+  if (approaching.length === 0) {
+    return 0;
+  }
+
+  const preferences = await prisma.userNotificationPreference.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  const allowed = shouldDeliverWithPreferences({
+    actorId: null,
+    recipientId: session.user.id,
+    type: "DUE_DATE_APPROACHING",
+    preferences,
+  });
+
+  if (!allowed) {
+    return 0;
+  }
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const tasksById = new Map(tasks.map((task) => [task.id, task]));
+  const entries: Prisma.NotificationCreateManyInput[] = [];
+
+  for (const { id: taskId, daysRemaining } of approaching) {
+    const task = tasksById.get(taskId);
+    if (!task) continue;
+
+    const link = buildNotificationDeepLink(task.projectId, taskId);
+
+    const alreadySent = await prisma.notification.findFirst({
+      where: {
+        userId: session.user.id,
+        type: "DUE_DATE_APPROACHING",
+        link: { contains: taskId },
+        createdAt: { gte: startOfToday },
+      },
+    });
+
+    if (alreadySent) continue;
+
+    entries.push({
+      type: "DUE_DATE_APPROACHING",
+      title: "Son teslim tarihi yaklaşıyor",
+      message: formatDueDateNotificationSnippet(task.title, daysRemaining),
+      link,
+      actorId: null,
+      userId: session.user.id,
+    });
+  }
+
+  await createNotifications(entries);
+
+  return entries.length;
 }

@@ -42,6 +42,8 @@ enum NotificationType {
   TASK_ASSIGNED
   COMMENT_ADDED
   SPRINT_COMPLETED
+  TASK_MENTIONED
+  DUE_DATE_APPROACHING
 }
 
 enum ActivityType {
@@ -81,6 +83,7 @@ model User {
   invitesSent     ProjectInvite[]
   notifications          Notification[] @relation("UserNotifications")
   triggeredNotifications Notification[] @relation("ActorNotifications")
+  notificationPreferences UserNotificationPreference?
 }
 
 model Project {
@@ -311,5 +314,18 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+model UserNotificationPreference {
+  userId                   String   @id
+  notifyTaskAssigned       Boolean  @default(true)
+  notifyCommentAdded       Boolean  @default(true)
+  notifyMentioned          Boolean  @default(true)
+  notifyDueDateApproaching Boolean  @default(true)
+  notifySprintClosed       Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 

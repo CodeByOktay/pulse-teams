@@ -8,8 +8,10 @@ import { logActivity } from "@/lib/activity-logger";
 import { createNotifications } from "@/actions/notification";
 import {
   buildNotificationDeepLink,
+  extractMentions,
   formatNotificationSnippet,
-  shouldDeliverNotification,
+  resolveMentionedUserIds,
+  shouldDeliverWithPreferences,
 } from "@/lib/notification-logic";
 import type { Prisma } from "@prisma/client";
 
@@ -58,13 +60,63 @@ export async function createComment({ taskId, content }: { taskId: string; conte
     return created;
   });
 
-  const assignees = await prisma.taskAssignee.findMany({
-    where: { taskId },
-    select: { userId: true },
-  });
+  const [assignees, members] = await Promise.all([
+    prisma.taskAssignee.findMany({
+      where: { taskId },
+      select: { userId: true },
+    }),
+    prisma.projectMember.findMany({
+      where: { projectId: task.projectId },
+      include: { user: { select: { id: true, name: true } } },
+    }),
+  ]);
 
-  const notificationEntries: Prisma.NotificationCreateManyInput[] = assignees
-    .filter((assignee) => shouldDeliverNotification(session.user.id, assignee.userId))
+  const memberHandles = members.map((member) => ({
+    id: member.user.id,
+    name: member.user.name,
+  }));
+
+  const mentionedHandles = extractMentions(trimmed);
+  const mentionedUserIds = resolveMentionedUserIds(mentionedHandles, memberHandles);
+  const mentionedSet = new Set(mentionedUserIds);
+
+  const preferenceUserIds = Array.from(
+    new Set([...mentionedUserIds, ...assignees.map((assignee) => assignee.userId)]),
+  );
+
+  const preferenceRows = await prisma.userNotificationPreference.findMany({
+    where: { userId: { in: preferenceUserIds } },
+  });
+  const preferencesByUserId = new Map(preferenceRows.map((row) => [row.userId, row]));
+
+  const mentionEntries: Prisma.NotificationCreateManyInput[] = mentionedUserIds
+    .filter((userId) =>
+      shouldDeliverWithPreferences({
+        actorId: session.user.id,
+        recipientId: userId,
+        type: "TASK_MENTIONED",
+        preferences: preferencesByUserId.get(userId) ?? null,
+      }),
+    )
+    .map((userId) => ({
+      type: "TASK_MENTIONED",
+      title: "Bir yorumda bahsedildiniz",
+      message: formatNotificationSnippet(trimmed),
+      link: buildNotificationDeepLink(task.projectId, taskId),
+      actorId: session.user.id,
+      userId,
+    }));
+
+  const assigneeEntries: Prisma.NotificationCreateManyInput[] = assignees
+    .filter((assignee) => !mentionedSet.has(assignee.userId))
+    .filter((assignee) =>
+      shouldDeliverWithPreferences({
+        actorId: session.user.id,
+        recipientId: assignee.userId,
+        type: "COMMENT_ADDED",
+        preferences: preferencesByUserId.get(assignee.userId) ?? null,
+      }),
+    )
     .map((assignee) => ({
       type: "COMMENT_ADDED",
       title: "Yeni yorum",
@@ -74,7 +126,7 @@ export async function createComment({ taskId, content }: { taskId: string; conte
       userId: assignee.userId,
     }));
 
-  await createNotifications(notificationEntries);
+  await createNotifications([...mentionEntries, ...assigneeEntries]);
 
   revalidatePath(`/projects/${task.projectId}/board`);
 
