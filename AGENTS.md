@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.3.0 (Phase 3 completed — Steps 3.01–3.07)
+- **Version:** v0.3.1 (Phase 4 in progress — Step 4.01 completed)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -86,7 +86,8 @@ Enums (6):
   - `settings-validation.test.ts` (30), `member-management.test.ts` (28), `task-detail-ux.test.ts` (19)
   - `backlog-logic.test.ts` (23), `search-logic.test.ts` (24), `dashboard-analytics.test.ts` (25)
   - `advanced-filters.test.ts` (36), `task-relations.test.ts` (40)
-- **Total:** **331 tests, 100% passing**
+  - `seed-data-generators.test.ts` (17)
+- **Total:** **348 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -99,10 +100,12 @@ Enums (6):
 - **Phase 1 (v0.1.0):** Core Kanban, Auth, CRUD, Slide-over (14 tests)
 - **Phase 2 (v0.2.0):** Sprints/Cycles, List View, Audit Log, Bulk Actions, Markdown Editor, Settings (136 tests)
 - **Phase 3 (v0.3.0):** Member Invites, Task Detail UX, Backlog View, Global Search Cmd+K, Dashboard Analytics, Advanced Filters, Task Relations (331 tests)
+- **Phase 4 (v0.4.0 — In Progress):**
+  - **Step 4.01 (v0.3.1):** Realistic Analytics Dataset & Generators, Deterministic PRNG Seeding (348 tests)
 
 ## Verification Rule After Every Step
 ```bash
-npm test          # All test suites must pass 100% (331 tests)
+npm test          # All test suites must pass 100% (348 tests)
 npx tsc --noEmit  # Zero TypeScript compilation errors
 ```
 

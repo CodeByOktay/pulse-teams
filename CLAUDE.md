@@ -32,3 +32,9 @@ When implementing a new feature across layers, follow this orderly sequence:
    - `npm test` (Verify 100% pass across all Vitest suites)
    - `npm run typecheck` or `npx tsc --noEmit` (Verify 0 TypeScript errors)
 
+## Web Research & Documentation Guidelines
+You are encouraged to actively use web search and documentation fetching tools under the following guardrails:
+1. **Targeted Documentation Verification:** Always verify up-to-date syntax, API contracts, and breaking changes for cutting-edge dependencies — especially **Next.js 16** (async `await params` / `await searchParams`, Server Actions), **Tailwind CSS v4** (CSS-first `@theme` configuration, no legacy `tailwind.config.js`), and **Prisma v6**.
+2. **Error Diagnostics & Debugging:** Actively search for solutions when facing obscure build/runtime errors, Turbopack warnings, Prisma engine locks, or `@dnd-kit` React 19 edge cases via official documentation, GitHub Issues, and discussions.
+3. **Project Architecture Precedence:** Code patterns found online MUST NOT override established architectural invariants in `AGENTS.md` and `context.md` (e.g., Server Actions with `requireMembership` instead of generic API routes, NextAuth CredentialsProvider instead of OAuth, pure CSS/Tailwind instead of external UI/charting libraries).
+4. **No Unauthorized Dependencies:** Never run `npm install` for new third-party libraries without explicit user consent. Always leverage existing workspace dependencies.

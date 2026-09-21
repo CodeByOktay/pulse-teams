@@ -42,6 +42,7 @@ In this collaborative AI model alongside Claude Code, Antigravity does NOT direc
 
 ### B. Prompt Engineering & Direction for Claude
 - Formulates layered, modular execution prompts tailored to Claude's specialized subagents (`postgres-pro`, `backend-developer`, `react-specialist`, `nextjs-developer`).
+- **Two-Stage Prompt Delivery Workflow:** Prompts for Claude are always presented to the user first in **Turkish** for technical evaluation and decision alignment. Once the user reviews and confirms, the final execution-ready prompt is generated in **English** for Claude Code to execute.
 - **Strict Constraint:** The prompt explicitly instructs Claude **NOT to write tests**, requiring domain logic to be cleanly extracted into pure functions under `src/lib/` for testability.
 
 ### C. Test Authoring & Quality Assurance (EXCLUSIVE AUTHORITY)
