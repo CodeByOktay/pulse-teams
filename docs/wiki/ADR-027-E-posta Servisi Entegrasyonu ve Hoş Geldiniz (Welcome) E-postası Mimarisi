@@ -1,0 +1,77 @@
+# ADR-027: E-posta Servisi Entegrasyonu ve Hoş Geldiniz (Welcome) E-postası Mimarisi
+
+- **Durum:** Kabul Edildi (Accepted)
+- **Tarih:** 2026-09-21
+- **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder)
+- **Sürüm:** v0.4.4 (Faz 4 — Adım 4.04)
+- **İlgili ADR:** [ADR-003-Kimlik Doğrulama (Auth) & Oturum Yönetimi](file:///c:/Pulse/docs/wiki/ADR-003-Kimlik%20Doğrulama%20(Auth)%20&%20Oturum%20Yönetimi), [ADR-026-Bildirim Tercihleri, Bahsetme (Mention) ve Yaklaşan Son Tarih Uyarısı Mimarisi](file:///c:/Pulse/docs/wiki/ADR-026-Bildirim%20Tercihleri,%20Bahsetme%20%28Mention%29%20ve%20Yaklaşan%20Son%20Tarih%20Uyarısı%20Mimarisi)
+
+---
+
+## 1. Bağlam ve Problem Tanımı (Context)
+
+Pulse kullanıcıları sisteme kaydolduklarında (`/register`), kimlik doğrulama işlemi veritabanında başarıyla tamamlansa da kullanıcıya dış dünyada doğrudan temas eden bir karşılama bildirimi iletilmiyordu. Kullanıcı deneyimini güçlendirmek, platformun kurumsal kimliğini hissettirmek ve kullanıcıları doğrudan giriş akışına yönlendirmek amacıyla e-posta kutularına profesyonel bir **"Pulse'a Hoş Geldiniz"** e-postası gönderme ihtiyacı doğdu.
+
+Teknik gereksinimler ve kısıtlar:
+1. **Harici Servis Bağımlılığı Olmadan Yerel Geliştirme (Local Dev Zero-friction):** Geliştiricilerin yerel ortamda çalışırken zorunlu harici SMTP bilgisi girmeden de sistemi test edebilmesi, Ethereal test hesabı veya konsol önizlemesiyle tek tıkla e-postayı görüntüleyebilmesi.
+2. **Üretim (Production) Esnekliği:** `.env` üzerinden standart SMTP kimlik bilgileri (Gmail, Brevo, Sendgrid, Mailtrap vb.) sağlandığında anında gerçek e-posta teslimatı yapabilmesi.
+3. **Kayıt Akışını Kilitlememe (Non-blocking Resilient Dispatch):** E-posta sunucusunda yaşanabilecek ağ gecikmeleri veya kesintilerin kullanıcının kayıt oluşturma (`POST /api/auth/register`) yanıt süresini ve başarısını asla etkilememesi.
+4. **XSS ve Şablon Güvenliği:** Kullanıcı tarafından girilen isim alanının e-posta HTML şablonuna basılırken güvenli biçimde filtrelenmesi (HTML escaping) ve hem HTML hem düz metin (plaintext) formatlarının eksiksiz sunulması.
+
+---
+
+## 2. Alınan Mimari Kararlar (Decisions)
+
+### A. E-posta Taşıyıcı ve Kütüphane Seçimi (Nodemailer Hibrit Motoru)
+- Projede `nodemailer` ve `@types/nodemailer` kütüphanesi entegre edildi.
+- `src/lib/mail.ts` modülü altında singleton bir transporter oluşturuldu.
+- `validateEmailConfig(process.env)` fonksiyonu ile dinamik taşıyıcı modu belirlendi:
+  - `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` mevcutsa -> **Canlı SMTP Taşıyıcısı** (`transportMode: "smtp"`).
+  - Test ortamında (`NODE_ENV === "test"`) veya `EMAIL_TRANSPORT === "console"` ise -> **JSON/Console Taşıyıcısı** (`transportMode: "console"`).
+  - Geliştirme ortamında SMTP ayarı yoksa -> **Ethereal Mail** üzerinden otomatik tek kullanımlık test kutusu oluşturulur ve önizleme URL'si terminale yazdırılır (`transportMode: "ethereal"`).
+
+### B. Saf Domain & Şablon Mantığı (`src/lib/email-templates.ts`)
+- Antigravity QA standartlarına uygun olarak tüm şablon ve doğrulama mantığı saf fonksiyonlar olarak ayrıştırıldı:
+  - `escapeHtml(str)`: `<`, `>`, `&`, `"`, `'` karakterlerini HTML varlıklarına dönüştürerek XSS açıklarını engeller; Türkçe karakterleri korur.
+  - `validateEmailConfig(env)`: Port normalizasyonu (varsayılan 587), SSL/TLS kontrolü (port 465 veya `SMTP_SECURE=true`) ve mod kararlarını yönetir.
+  - `renderWelcomeEmail(params)`:
+    - İsim boş veya geçersizse `"Pulse Kullanıcısı"` varsayılanına döner.
+    - Pulse'ın dark/zinc temasına uygun, mobil uyumlu ve kurumsal bir HTML e-postası derler.
+    - İçerisinde Akıllı Kanban, Sprint & Hız Metrikleri, Gerçek Zamanlı Bildirimler ve `Ctrl+K` Komut Paleti gibi temel onboarding maddelerini listeler.
+    - `/login` adresine yönlendiren birincil CTA butonu ve doğrudan bağlantı alternatifi sunar.
+    - E-posta istemcilerinin salt metin okuyucuları için birebir uyumlu `text` içeriği üretir.
+  - `renderInviteMemberEmail(params)`:
+    - Proje adı, davet eden kişi, proje rolü (`ADMIN` / `MEMBER`) ve 7 günlük geçerlilik süresini içeren şık davet e-postası.
+    - `/invite/[token]` adresine yönlendiren "Daveti Kabul Et" CTA butonu ve direkt link alternatifi.
+
+### C. Evrensel E-posta Servisi (`src/lib/mail.ts`) & Entegrasyonlar
+- `sendEmail({ to, subject, html, text, from? })`: Sistemin tüm e-posta gönderimlerini merkezi olarak yöneten ana çekirdek motor.
+- `sendWelcomeEmail({ to, name })`: Kullanıcı `/register` üzerinden kaydolduğunda `POST /api/auth/register` içerisinden asenkron (non-blocking) tetiklenir.
+- `sendInviteMemberEmail({ to, projectName, inviterName, token, role })`: Proje yöneticisi `inviteMember` eylemini çalıştırdığında token üretilir üretilmez e-posta asenkron olarak iletilir.
+- **Canlı Test Aracı:** `npm run mail:test -- <email> [welcome|invite]` CLI betiği ile gerçek SMTP veya Ethereal üzerinden saniyeler içinde TempMail gelen kutularına test gönderimi yapılabilir.
+
+---
+
+## 3. Sonuçlar (Consequences)
+
+### Olumlu Sonuçlar (Pros)
+- Kullanıcılar kayıt olduklarında ve projelere davet edildiklerinde profesyonel, marka kimliğine uygun bir karşılama yaşar.
+- Gerçek SMTP yapılandırmasıyla TempMail (Mail.tm, Guerrilla Mail, TempMail.lol vb.) servislerine sorunsuz teslimat gerçekleştirilebilir.
+- Geliştiriciler sıfır konfigürasyon ile Ethereal veya konsol üzerinden e-posta içeriğini canlı görebilir.
+- Olası e-posta sağlayıcı kesintileri ana akışları aksatmaz (hata yalıtımı).
+- Yüksek test edilebilirlik: Vitest ortamında hiçbir gerçek ağ veya SMTP bağlantısına gerek kalmadan 100% saf mantık test edilebilir.
+
+---
+
+## 4. Test ve Doğrulama
+- **Test Süiti:** `src/lib/__tests__/email-templates.test.ts` (23 test)
+- **Kapsam:** XSS filtreleme, port çözümleme, SSL bayrağı, konsol/ethereal fallback'leri, isim normalizasyonu, buton yönlendirmeleri, evrensel sendEmail mekanizması ve davet e-postası teslimat dayanıklılığı.
+- **Sonuç:** 22 test dosyasında 416 testin tamamı (%100) başarıyla geçmektedir.
+
+---
+
+## 5. Canlı Saha Doğrulaması (Production & Field Verification)
+- **SMTP Entegrasyonu:** Brevo SMTP Relay (`smtp-relay.brevo.com:587`, TLS) entegrasyonu tamamlanmış ve `xsmtpsib` anahtarı ile kimlik doğrulama doğrulanmıştır.
+- **Doğrudan E-posta Teslimatı:** Web arayüzü ve CLI (`npm run mail:test`) üzerinden tetiklenen hem "Hoş Geldiniz" hem de "Proje Üyelik Daveti" e-postalarının gerçek e-posta kutularına (Hotmail, Outlook, TempMail) 2-3 saniye içinde ulaştığı, dark/zinc temalı HTML kartlarının, rozetlerinin ve "Daveti Kabul Et" butonlarının eksiksiz render edildiği görsel olarak teyit edilmiştir.
+
+

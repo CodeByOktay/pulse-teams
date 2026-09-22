@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.4.3 (Phase 4 in progress — Step 4.03 completed)
+- **Version:** v0.4.4 (Phase 4 in progress — Step 4.04 completed)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -85,8 +85,9 @@ Enums (7):
   - `backlog-logic.test.ts` (23), `search-logic.test.ts` (24), `dashboard-analytics.test.ts` (25)
   - `advanced-filters.test.ts` (36), `task-relations.test.ts` (40)
   - `seed-data-generators.test.ts` (17), `notification-logic.test.ts` (16)
-  - **`notification-preferences.test.ts` (29)**
-- **Total:** **393 tests, 100% passing**
+  - `notification-preferences.test.ts` (29)
+  - **`email-templates.test.ts` (23)**
+- **Total:** **416 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -103,10 +104,11 @@ Enums (7):
   - **Step 4.01 (v0.4.1):** Realistic Analytics Dataset & Generators, Deterministic PRNG Seeding (348 tests)
   - **Step 4.02 (v0.4.2):** In-App Notifications with Client Polling, Triggers & Popover UI (364 tests)
   - **Step 4.03 (v0.4.3):** User Notification Preferences, Mention Detection (@user) & Approaching Due Date Alerts (393 tests)
+  - **Step 4.04 (v0.4.4):** Email Delivery Service, Welcome & Invite Member Email, Universal sendEmail (416 tests)
 
 ## Verification Rule After Every Step
 ```bash
-npm test          # All test suites must pass 100% (393 tests)
+npm test          # All test suites must pass 100% (416 tests)
 npx tsc --noEmit  # Zero TypeScript compilation errors
 ```
 

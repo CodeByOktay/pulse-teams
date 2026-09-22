@@ -1,14 +1,14 @@
-# CONTEXT - Pulse Project Manager (v0.4.3 -> Phase 4.03 Completed)
+# CONTEXT - Pulse Project Manager (v0.4.4 -> Phase 4.04 Completed)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, and 3 are fully completed; Phase 4.01 (Analytics Dataset), Phase 4.02 (In-App Notifications with Polling), and Phase 4.03 (Notification Preferences & Mentions) are completed.
+Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, and 3 are fully completed; Phase 4.01 (Analytics Dataset), Phase 4.02 (In-App Notifications with Polling), Phase 4.03 (Notification Preferences & Mentions), and Phase 4.04 (Email Delivery & Welcome Email) are completed.
 
 ## Location & Execution
 - **Project Path:** `C:\Pulse`
 - **Database:** PostgreSQL 16 in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (393 tests across 21 suites, 100% passing)
+- **Tests:** `npm test` (416 tests across 22 suites, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, 500 tasks, 1000 comments, 3000 activities)
 
 ## AI Agent Division of Labor & Guides
@@ -141,8 +141,8 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `globalSearch(query)` -> Parses `PRJ-12` formats via `parseTaskIdentifier`, combines title substring and identifier match via `OR`, strictly scoped to projects where user is a member.
 - `isTaskOverdue(dueDate, stateGroup, now?)` -> Excludes only DONE state group (CANCELLED can count as overdue); `formatRelativeTime` provides localized relative timestamps (`src/lib/analytics-logic.ts`).
 - `wouldCreateBlockCycle(edges, newSourceId, newTargetId)` -> When adding X BLOCKS Y, returns true if a path exists from Y back to X; non-recursive iterative DFS (`src/lib/relation-logic.ts`).
-- `hasExistingRelation(existingRelations, a, b)` -> Prevents duplicate relations between any two tasks regardless of type or direction.
 - `shouldDeliverWithPreferences` -> Self-notifications unconditionally blocked (`actorId !== recipientId`), maps `NotificationType` to recipient `UserNotificationPreference` toggles.
+- `sendEmail` / `sendWelcomeEmail` / `sendInviteMemberEmail` -> Non-blocking, Nodemailer-powered universal mail engine (live SMTP / Brevo / Ethereal / console fallback), XSS-safe HTML templates (`src/lib/mail.ts`, `src/lib/email-templates.ts`).
 
 ## Route Map
 - `/`                       -> Dashboard (overview cards, Assigned to Me, Recent Activity, Sprint Velocity, project list)
@@ -155,7 +155,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `/login`                  -> Login Page
 - `/register`               -> Registration Page
 
-## Test Suite Distribution (393 Tests across 21 Suites)
+## Test Suite Distribution (416 Tests across 22 Suites)
 - `sequence.test.ts` (2)
 - `sort-order.test.ts` (4)
 - `colors.test.ts` (3)
@@ -177,11 +177,12 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `seed-data-generators.test.ts` (17)
 - `notification-logic.test.ts` (16)
 - `notification-preferences.test.ts` (29)
-Total: **393 tests, 100% passing**
+- `email-templates.test.ts` (23)
+Total: **416 tests, 100% passing**
 
 ## Mandatory Verification Commands
 ```bash
-npm test          # Must pass 100% (393 tests)
+npm test          # Must pass 100% (416 tests)
 npx tsc --noEmit  # Zero TypeScript errors
 npm run build     # Production build validation
 ```
@@ -189,8 +190,8 @@ npm run build     # Production build validation
 ## New Chat Starter Template
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
-Phases 1 (v0.1.0), 2 (v0.2.0), and 3 (v0.3.0) are fully completed; Phase 4.01 (Dataset), Phase 4.02 (In-App Notifications), and Phase 4.03 (Notification Preferences & Mentions) are complete.
-393 Vitest tests are passing 100%.
+Phases 1 (v0.1.0), 2 (v0.2.0), and 3 (v0.3.0) are fully completed; Phase 4.01 (Dataset), Phase 4.02 (In-App Notifications), Phase 4.03 (Notification Preferences & Mentions), and Phase 4.04 (Email Service & Welcome/Invite Emails) are complete.
+416 Vitest tests are passing 100%.
 We are now ready to implement [new phase / feature].
 [Paste specific task or requirements here]
 ```

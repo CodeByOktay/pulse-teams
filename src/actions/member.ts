@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendInviteMemberEmail } from "@/lib/mail";
 
 // ────────────────────────────────────────────────────────────
 // Helpers
@@ -76,9 +77,21 @@ export async function inviteMember(
     },
   });
 
+  // Dispatch member invitation email asynchronously
+  sendInviteMemberEmail({
+    to: normalizedEmail,
+    projectName: invite.project.name,
+    inviterName: session.user.name || session.user.email || "Bir Pulse kullanıcısı",
+    token: invite.token,
+    role: invite.role,
+  }).catch((err) => {
+    console.error("[inviteMember] Failed to dispatch invitation email:", err);
+  });
+
   revalidatePath(`/projects/${projectId}/settings`);
   return invite;
 }
+
 
 // ────────────────────────────────────────────────────────────
 // acceptInvite

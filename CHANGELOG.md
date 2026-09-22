@@ -3,6 +3,17 @@
 
 Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](https://keepachangelog.com/) standardına uygundur.
 
+## [0.4.4] - 2026-09-21 (Faz 4.04 — E-posta Servisi Entegrasyonu, Hoş Geldiniz & Üye Daveti)
+
+### Eklendi (Added)
+- **Evrensel E-posta Dağıtım Motoru (`src/lib/mail.ts`):** `sendEmail` çekirdeği ile her türlü e-posta gönderimi; canlı SMTP (Gmail, Brevo, Sendgrid vb., TempMail servisleri ile tam uyumlu), yerel geliştirme için Ethereal test hesabı (tarayıcı önizleme bağlantısı) ve test/konsol fallback'i.
+- **Şablon Motoru (`src/lib/email-templates.ts`):** `renderWelcomeEmail` (Hoş geldiniz e-postası) ve `renderInviteMemberEmail` (Proje üyelik davet e-postası, proje adı, rol ve 7 günlük geçerlilik süresi). XSS koruması için `escapeHtml`.
+- **Eylem Entegrasyonları:** Kayıt API'sine (`POST /api/auth/register`) `sendWelcomeEmail` ve proje üye davet eylemine (`inviteMember` server action) `sendInviteMemberEmail` asenkron ve non-blocking olarak bağlandı.
+- **Canlı Test Aracı:** `scripts/test-mail.ts` (`npm run mail:test -- <email> [welcome|invite]`) CLI aracı ile hedef e-postalara anında canlı gönderim testi desteği.
+- **Ortam Değişkenleri:** `.env` ve `.env.example` dosyalarına `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `APP_URL` ayarları eklendi.
+- **Test:** `src/lib/__tests__/email-templates.test.ts` (23 test). Toplam test sayısı 416'ya çıktı (%100 geçiyor).
+
+
 ## [0.4.3] - 2026-09-21 (Faz 4.03 — Bildirim Tercihleri, Mention Desteği & Yaklaşan Son Tarih)
 
 ### Eklendi (Added)
