@@ -92,6 +92,10 @@ model User {
   notifications          Notification[] @relation("UserNotifications")
   triggeredNotifications Notification[] @relation("ActorNotifications")
   notificationPreferences UserNotificationPreference?
+
+  receivedProgressRequests  ProgressRequest[]  @relation("ReceivedProgressRequests")
+  requestedProgressRequests ProgressRequest[]  @relation("RequestedProgressRequests")
+  progressResponses         ProgressResponse[]
 }
 
 model Project {
@@ -110,6 +114,8 @@ model Project {
   labels  Label[]
   sprints Sprint[]
   invites ProjectInvite[]
+
+  progressRequests ProgressRequest[]
 }
 
 model ProjectMember {
@@ -166,6 +172,8 @@ model Task {
 
   sourceRelations TaskRelation[] @relation("SourceRelations")
   targetRelations TaskRelation[] @relation("TargetRelations")
+
+  progressRequests ProgressRequest[]
 
   @@unique([projectId, sequenceId])
   @@index([projectId])
@@ -338,3 +346,47 @@ model UserNotificationPreference {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+
+enum ProgressRequestStatus {
+  PENDING
+  RESPONDED
+  EXPIRED
+  CANCELLED
+}
+
+model ProgressRequest {
+  id            String                @id @default(cuid())
+  projectId     String
+  taskId        String
+  recipientId   String
+  requestedById String?
+  reason        String                @default("manual") // "manual" | "unblocked" | "scheduled"
+  status        ProgressRequestStatus @default(PENDING)
+  dueAt         DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task        Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  recipient   User               @relation("ReceivedProgressRequests", fields: [recipientId], references: [id], onDelete: Cascade)
+  requestedBy User?              @relation("RequestedProgressRequests", fields: [requestedById], references: [id], onDelete: SetNull)
+  responses   ProgressResponse[]
+
+  @@index([taskId])
+  @@index([recipientId, status])
+  @@index([projectId])
+}
+
+model ProgressResponse {
+  id                String   @id @default(cuid())
+  progressRequestId String
+  responderId       String
+  content           String   @db.Text
+  createdAt         DateTime @default(now())
+
+  request   ProgressRequest @relation(fields: [progressRequestId], references: [id], onDelete: Cascade)
+  responder User            @relation(fields: [responderId], references: [id], onDelete: Cascade)
+
+  @@index([progressRequestId])
+  @@index([responderId])
+}

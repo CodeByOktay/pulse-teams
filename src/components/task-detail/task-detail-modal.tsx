@@ -11,6 +11,7 @@ import { TaskComments, type CommentItem } from "@/components/task-detail/task-co
 import { TaskActivity } from "@/components/task-detail/task-activity";
 import { TaskProperties, type StateOption } from "@/components/task-detail/task-properties";
 import { TaskRelations } from "@/components/task-detail/task-relations";
+import { TaskProgressSection } from "@/components/task-detail/task-progress-section";
 import { CopyLinkButton } from "@/components/task-detail/copy-link-button";
 import { buildTaskBreadcrumb, type TaskSprintInfo } from "@/lib/task-detail-ux";
 import type {
@@ -246,6 +247,13 @@ export function TaskDetailModal({
                   reloadDetail();
                   router.refresh();
                 }}
+              />
+
+              <TaskProgressSection
+                taskId={taskId}
+                currentUserId={session?.user?.id ?? ""}
+                refreshKey={detail.assigneeIds.join(",")}
+                onChanged={() => router.refresh()}
               />
 
               <div className="flex flex-col gap-3">
