@@ -45,11 +45,12 @@
   - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (target: ~468 tests)
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (target: ~488 tests)
   - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (target: ~508 tests)
-- **ADR Index:** 28 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-028`.
+- **ADR Index:** 29 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-029`.
 - **Detailed AI Context Snapshots:**
   - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
   - `025-in-app-notifications.md` (ADR-025) — In-app notification polling and trigger hooks.
   - `026-notification-preferences-and-mentions.md` (ADR-026) — Notification preferences, mention parsing, and due date alerts.
   - `027-email-service-and-welcome-email.md` (ADR-027) — Resilient email dispatch engine and welcome email templates.
   - `028-ai-proactive-coordination-architecture.md` (ADR-028) — Three-tier AI coordination, domain event foundation, and dependency automation.
+  - `029-domain-event-foundation.md` (ADR-029) — Domain event foundation, enum expansions, and pure automation logic.
 
