@@ -2,9 +2,10 @@ import type { Activity, ActivityType, Prisma } from "@prisma/client";
 
 export type PrismaTransactionClient = Prisma.TransactionClient;
 
-export type ActivityWithActor = Activity & {
-  actor: { name: string | null } | null;
-};
+export type ActivityWithActor = Omit<Activity, "isAiGenerated"> &
+  Partial<Pick<Activity, "isAiGenerated">> & {
+    actor: { name: string | null } | null;
+  };
 
 export async function logActivity(
   tx: PrismaTransactionClient,
@@ -15,6 +16,7 @@ export async function logActivity(
     oldValue?: string | null;
     newValue?: string | null;
     metadata?: Record<string, unknown>;
+    isAiGenerated?: boolean;
   },
 ): Promise<void> {
   try {
@@ -26,6 +28,7 @@ export async function logActivity(
         oldValue: data.oldValue ?? undefined,
         newValue: data.newValue ?? undefined,
         metadata: data.metadata ? JSON.stringify(data.metadata) : undefined,
+        isAiGenerated: data.isAiGenerated ?? false,
       },
     });
   } catch (err) {
@@ -93,6 +96,18 @@ export function formatActivityMessage(activity: ActivityWithActor): string {
       return `${actor} göreve '${metadataString(activity, "targetIdentifier")}' ile ilişki ekledi.`;
     case "TASK_RELATION_REMOVED":
       return `${actor} görevin '${metadataString(activity, "targetIdentifier")}' ile olan ilişkisini kaldırdı.`;
+    case "TASK_COMPLETED":
+      return `${actor} görevi tamamladı.`;
+    case "TASK_UNBLOCKED":
+      return `${actor} görevin engelini kaldırdı.`;
+    case "PROGRESS_REQUESTED":
+      return `${actor} ilerleme durumu talep etti.`;
+    case "PROGRESS_RESPONDED":
+      return `${actor} ilerleme güncellemesi paylaştı.`;
+    case "AI_SUGGESTION_APPLIED":
+      return `${actor} AI önerisini kabul etti.`;
+    case "AI_SUGGESTION_REJECTED":
+      return `${actor} AI önerisini reddetti.`;
     default:
       return `${actor} bu görevde bir değişiklik yaptı.`;
   }

@@ -81,6 +81,36 @@ describe("formatActivityMessage", () => {
     expect(message).toBe("Ali Veli yorumu sildi.");
   });
 
+  it("TASK_COMPLETED için doğru mesaj üretir", () => {
+    const message = formatActivityMessage(makeActivity({ type: "TASK_COMPLETED" }));
+    expect(message).toBe("Ali Veli görevi tamamladı.");
+  });
+
+  it("TASK_UNBLOCKED için doğru mesaj üretir", () => {
+    const message = formatActivityMessage(makeActivity({ type: "TASK_UNBLOCKED" }));
+    expect(message).toBe("Ali Veli görevin engelini kaldırdı.");
+  });
+
+  it("PROGRESS_REQUESTED için doğru mesaj üretir", () => {
+    const message = formatActivityMessage(makeActivity({ type: "PROGRESS_REQUESTED" }));
+    expect(message).toBe("Ali Veli ilerleme durumu talep etti.");
+  });
+
+  it("PROGRESS_RESPONDED için doğru mesaj üretir", () => {
+    const message = formatActivityMessage(makeActivity({ type: "PROGRESS_RESPONDED" }));
+    expect(message).toBe("Ali Veli ilerleme güncellemesi paylaştı.");
+  });
+
+  it("AI_SUGGESTION_APPLIED için doğru mesaj üretir", () => {
+    const message = formatActivityMessage(makeActivity({ type: "AI_SUGGESTION_APPLIED", isAiGenerated: true }));
+    expect(message).toBe("Ali Veli AI önerisini kabul etti.");
+  });
+
+  it("AI_SUGGESTION_REJECTED için doğru mesaj üretir", () => {
+    const message = formatActivityMessage(makeActivity({ type: "AI_SUGGESTION_REJECTED" }));
+    expect(message).toBe("Ali Veli AI önerisini reddetti.");
+  });
+
   it("bilinmeyen type için hata fırlatmak yerine fallback mesaj döner", () => {
     const activity = makeActivity({ type: "UNKNOWN_TYPE" as ActivityType });
     expect(() => formatActivityMessage(activity)).not.toThrow();

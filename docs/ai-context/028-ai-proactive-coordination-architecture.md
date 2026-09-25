@@ -3,10 +3,10 @@
 ## Overview
 Pulse is adopting a three-tier proactive AI project coordination system: Deterministic Domain Automation (no LLM), AI-Assisted Coordination (LLM for NL interpretation), and Human-Controlled Decisions (approval-gated mutations). The system tracks task dependencies, sends automated notifications when blockers clear, collects progress updates from team members, interprets natural language responses via structured AI output, and applies Kanban/Sprint changes only after human approval.
 
-- **Milestone:** Phase 5, Step 5.01 (`v0.5.0` — Faz 0: Architecture Decisions)
+- **Milestone:** Phase 5, Step 5.01 (`v0.5.1` — Domain Event Foundation, 448 tests)
 - **ADR Reference:** `ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi`
-- **MVP Scope:** Faz 0-4 (Deterministic automation + AI progress interpretation + approval-gated updates)
-- **Total Planned Tests:** 416 (existing) + ~70 new (Faz 1-4) ≈ 486 tests
+- **MVP Scope:** Step 5.00 - 5.04 (Deterministic automation + AI progress interpretation + approval-gated updates)
+- **Total Tests:** 448 passing (416 baseline + 32 new)
 
 ---
 

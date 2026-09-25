@@ -118,6 +118,9 @@ export function shouldDeliverWithPreferences(params: {
       return preferences?.notifyDueDateApproaching !== false;
     case "SPRINT_COMPLETED":
       return preferences?.notifySprintClosed === true;
+    case "TASK_UNBLOCKED":
+    case "PROGRESS_REQUESTED":
+      return true;
     default:
       return true;
   }

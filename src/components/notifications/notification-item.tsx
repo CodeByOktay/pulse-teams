@@ -1,6 +1,6 @@
 "use client";
 
-import { AtSign, CheckCircle2, Clock, MessageSquare, UserPlus } from "lucide-react";
+import { AtSign, CheckCircle2, CircleHelp, Clock, LockOpen, MessageSquare, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/assignees/avatar";
 import { formatRelativeTime } from "@/lib/analytics-logic";
@@ -15,6 +15,8 @@ const TYPE_ICON: Record<NotificationType, typeof UserPlus> = {
   SPRINT_COMPLETED: CheckCircle2,
   TASK_MENTIONED: AtSign,
   DUE_DATE_APPROACHING: Clock,
+  TASK_UNBLOCKED: LockOpen,
+  PROGRESS_REQUESTED: CircleHelp,
 };
 
 const DEFAULT_BADGE_COLOR = "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400";
@@ -25,6 +27,8 @@ const TYPE_BADGE_COLOR: Record<NotificationType, string> = {
   SPRINT_COMPLETED: DEFAULT_BADGE_COLOR,
   TASK_MENTIONED: "bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400",
   DUE_DATE_APPROACHING: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+  TASK_UNBLOCKED: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+  PROGRESS_REQUESTED: "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400",
 };
 
 export function NotificationItem({
