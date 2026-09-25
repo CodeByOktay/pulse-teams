@@ -42,3 +42,6 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# local AI provider config (copy from ai.config.example.json)
+ai.config.json

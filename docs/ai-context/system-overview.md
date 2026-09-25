@@ -2,12 +2,12 @@
 
 ## System Metadata
 - **Project Name:** Pulse (Pulse Project Manager)
-- **Version:** v0.5.3 (Phase 5 in progress — Step 5.03 completed)
+- **Version:** v0.5.4 (Phase 5 MVP Completed — Step 5.04 completed)
 - **Stack:** Next.js 16 (App Router, Turbopack) + TypeScript (Strict) + Prisma v6.19.3 + PostgreSQL 16 + Tailwind CSS v4 + @dnd-kit + Vitest v5 + Nodemailer
 - **Auth Strategy:** NextAuth.js v4 (Strictly CredentialsProvider: email/password + bcryptjs salt:12, JWT session). External OAuth is explicitly out of scope.
-- **Database Models (18):** User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment, Sprint, SprintTask, Activity (with `isAiGenerated`), ProjectInvite, TaskRelation, Notification, UserNotificationPreference, ProgressRequest, ProgressResponse.
-- **Enums (8):** StateGroup, Priority, SprintStatus, ActivityType (23 values), InviteStatus, RelationType (BLOCKS, RELATES_TO, DUPLICATES), NotificationType (7 values), ProgressRequestStatus (4 values).
-- **Test Suite:** 488 tests passing across 25 test suites in `src/lib/__tests__/` (100% pass rate).
+- **Database Models (19):** User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment, Sprint, SprintTask, Activity (with `isAiGenerated`), ProjectInvite, TaskRelation, Notification, UserNotificationPreference, ProgressRequest, ProgressResponse, AgentProposal.
+- **Enums (9):** StateGroup, Priority, SprintStatus, ActivityType (23 values), InviteStatus, RelationType (BLOCKS, RELATES_TO, DUPLICATES), NotificationType (7 values), ProgressRequestStatus (4 values), ProposalStatus (4 values).
+- **Test Suite:** 514 tests passing across 26 test suites in `src/lib/__tests__/` (100% pass rate).
 - **Seeding Infrastructure:** Idempotent, deterministic rich mock data generator (`npm run db:seed-rich` via `prisma/tsconfig.seed.json`) supporting upcoming analytics with 10 users, 5 projects, 40 states, 50 sprints, 500 tasks, 1,000 comments, 3,000 activities, and 100 relations.
 
 ---
@@ -39,13 +39,13 @@
   - **Step 4.02 (v0.4.2):** In-App Notifications with Client Polling, Triggers & Popover UI (`notification-logic.test.ts`). (+16 -> 364 tests)
   - **Step 4.03 (v0.4.3):** User Notification Preferences, Mention Detection (@user) & Approaching Due Date Alerts (`notification-preferences.test.ts`). (+29 -> 393 tests)
   - **Step 4.04 (v0.4.4):** Email Delivery Service, Welcome & Invite Member Email, Universal sendEmail (`email-templates.test.ts`). (+23 -> 416 tests)
-- **Phase 5 (v0.5.0 — In Progress): AI Proactive Project Coordination**
+- **Phase 5 (v0.5.0 — Completed MVP): AI Proactive Project Coordination**
   - **Step 5.00 (v0.5.0):** Architecture Decisions & ADR-028 (416 tests)
   - **Step 5.01 (v0.5.1):** Domain Event Foundation, ActivityType/NotificationType expansion, `automation-logic.ts` (+32 -> 448 tests)
   - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (+20 -> 468 tests)
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (+20 -> 488 tests)
-  - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (target: ~508 tests)
-- **ADR Index:** 31 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-031`.
+  - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (+26 -> 514 tests)
+- **ADR Index:** 32 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-032`.
 - **Detailed AI Context Snapshots:**
   - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
   - `025-in-app-notifications.md` (ADR-025) — In-app notification polling and trigger hooks.
@@ -55,4 +55,5 @@
   - `029-domain-event-foundation.md` (ADR-029) — Domain event foundation, enum expansions, and pure automation logic.
   - `030-dependency-automation.md` (ADR-030) — Task dependency unblocking automation and in-app notifications.
   - `031-progress-request-response-lifecycle.md` (ADR-031) — Interactive progress collection lifecycle and response validation.
+  - `032-ai-progress-interpretation-and-proposals.md` (ADR-032) — AI progress interpretation, AgentProposal, and human approval flow.
 

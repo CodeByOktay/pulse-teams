@@ -253,7 +253,10 @@ export function TaskDetailModal({
                 taskId={taskId}
                 currentUserId={session?.user?.id ?? ""}
                 refreshKey={detail.assigneeIds.join(",")}
-                onChanged={() => router.refresh()}
+                onChanged={() => {
+                  reloadDetail();
+                  router.refresh();
+                }}
               />
 
               <div className="flex flex-col gap-3">

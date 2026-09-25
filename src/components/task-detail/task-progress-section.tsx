@@ -7,6 +7,7 @@ import {
   getTaskProgressData,
   submitProgressResponse,
 } from "@/actions/progress";
+import { AgentProposalCard } from "@/components/task-detail/agent-proposal-card";
 import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
 import { formatRelativeTime } from "@/lib/analytics-logic";
 import {
@@ -189,6 +190,20 @@ export function TaskProgressSection({
         ))}
 
       {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+
+      {data.proposals.pending && (
+        <AgentProposalCard
+          proposal={data.proposals.pending}
+          currentState={data.proposals.currentState}
+          states={data.proposals.states}
+          onResolved={async (err) => {
+            // Hata durumunda öneri bayatlamış olabilir; yeniden yükle ama hatayı göster.
+            setError(err ?? null);
+            await load();
+            onChanged?.();
+          }}
+        />
+      )}
 
       {latest && (
         <div className="flex flex-col gap-2">

@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
 import { createNotification } from "@/actions/notification";
+import { createProposalForResponse, loadTaskProposals } from "@/lib/ai/proposal-service";
 import { buildNotificationDeepLink, shouldDeliverWithPreferences } from "@/lib/notification-logic";
 import {
   canRequestProgress,
@@ -152,7 +153,7 @@ export async function submitProgressResponse(requestId: string, content: string)
 
   const trimmed = content.trim();
 
-  await prisma.$transaction(async (tx) => {
+  const responseId = await prisma.$transaction(async (tx) => {
     // Eşzamanlı yanıtlara karşı: yalnızca hâlâ PENDING ise güncellenir.
     const updated = await tx.progressRequest.updateMany({
       where: { id: requestId, status: "PENDING" },
@@ -163,7 +164,7 @@ export async function submitProgressResponse(requestId: string, content: string)
       throw new Error("Bu ilerleme talebi artık yanıt beklemiyor.");
     }
 
-    await tx.progressResponse.create({
+    const created = await tx.progressResponse.create({
       data: {
         progressRequestId: requestId,
         responderId: session.user.id,
@@ -177,7 +178,13 @@ export async function submitProgressResponse(requestId: string, content: string)
       actorId: session.user.id,
       metadata: { snippet: trimmed.slice(0, 120) },
     });
+
+    return created.id;
   });
+
+  // Transaction dışında: en fazla ~8sn süren LLM çağrısı DB transaction'ını açık tutmaz.
+  // createProposalForResponse asla hata fırlatmaz; başarısızlık yanıt gönderimini etkilemez.
+  await createProposalForResponse(responseId);
 
   revalidateProjectViews(progressRequest.projectId);
 }
@@ -203,7 +210,7 @@ export async function getTaskProgressData(taskId: string) {
 
   const membership = await requireMembership(task.projectId, session.user.id);
 
-  const [pending, history] = await Promise.all([
+  const [pending, history, proposals] = await Promise.all([
     prisma.progressRequest.findFirst({
       where: { taskId, status: "PENDING" },
       orderBy: { createdAt: "desc" },
@@ -225,6 +232,7 @@ export async function getTaskProgressData(taskId: string) {
         },
       },
     }),
+    loadTaskProposals(taskId),
   ]);
 
   return {
@@ -233,5 +241,6 @@ export async function getTaskProgressData(taskId: string) {
     viewerIsAdmin: membership.role === "ADMIN",
     pending,
     history,
+    proposals,
   };
 }

@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.5.3 (Phase 5 in progress — Step 5.03 completed)
+- **Version:** v0.5.4 (Phase 5 MVP Completed — Step 5.04 completed)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -33,12 +33,12 @@
 - `npx prisma generate` — Regenerate Prisma client
 - `npx tsc --noEmit` — Run TypeScript type checking
 
-## Database Models (18 Models across Phases 1–5)
+## Database Models (19 Models across Phases 1–5)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
 Sprint, SprintTask, Activity, ProjectInvite, TaskRelation, Notification, UserNotificationPreference,
-**ProgressRequest, ProgressResponse**
+ProgressRequest, ProgressResponse, **AgentProposal**
 
-Enums (8):
+Enums (9):
 - StateGroup (BACKLOG, TODO, IN_PROGRESS, DONE, CANCELLED)
 - Priority (NONE, LOW, MEDIUM, HIGH, URGENT)
 - SprintStatus (DRAFT, ACTIVE, COMPLETED)
@@ -47,6 +47,7 @@ Enums (8):
 - RelationType (BLOCKS, RELATES_TO, DUPLICATES)
 - **NotificationType** (7 values: TASK_ASSIGNED, COMMENT_ADDED, SPRINT_COMPLETED, TASK_MENTIONED, DUE_DATE_APPROACHING, TASK_UNBLOCKED, PROGRESS_REQUESTED)
 - **ProgressRequestStatus** (PENDING, RESPONDED, EXPIRED, CANCELLED)
+- **ProposalStatus** (PENDING, APPROVED, REJECTED, STALE)
 
 ## Critical Architectural Decisions
 - **Prisma Singleton:** `src/lib/prisma.ts` — `globalThis` pattern (hot-reload safe in development).
@@ -73,7 +74,7 @@ Enums (8):
 - **Advanced Filters & Saved Views:** `BoardFilters` unified via `buildTaskWhereFromFilters` into a single Prisma where input. Quick filter chips provide 1-click toggles. `useSavedViews` manages localStorage persistence (`pulse:saved-views:{projectId}`) with `__me__` dynamic placeholder resolution.
 - **Task Relations (Dependency Graph):** `TaskRelation` is strictly a SINGLE row in the DB. "Blocked By" is an inverted perspective of a BLOCKS record (reverse rows are never inserted). `hasExistingRelation` enforces the single-pair rule across both directions. Cycle detection is strictly enforced for BLOCKS via `wouldCreateBlockCycle` (iterative DFS with stack + visited set, non-recursive, safe against stack overflows). `addTaskRelation` derives `projectId` from verified task records, ensuring both tasks reside in the same project.
 - **Notification Delivery & Preferences:** `shouldDeliverWithPreferences` strictly enforces self-notification suppression (`actorId !== recipientId`) and maps against recipient `UserNotificationPreference` fields. `@mention` parsing (`extractMentions`, `resolveMentionedUserIds`) extracts callouts; mentioned assignees receive only `TASK_MENTIONED` (preventing double notification). Approaching due date alerts (`getApproachingDueTasks`) check calendar day thresholds (0, 1, 3 days) with idempotency per calendar day.
-- **AI Coordination Architecture (ADR-028):** Three-tier automation: (A) Deterministic domain automation (TASK_UNBLOCKED notifications — no LLM), (B) AI-assisted coordination (progress interpretation via structured LLM output — Faz 4), (C) Human-controlled decisions (approval-gated mutations). Technology introduction is phased: LLM API at Faz 4, LangGraph.js at Faz 5, LlamaIndex.TS at Faz 7. Autonomy levels: Level 1 (auto-notify), Level 2 (propose + approve), Human Required (destructive ops). AI bot identity: `pulse-ai-bot` user + `isAiGenerated` Activity flag. Post-transaction hook pattern for domain event triggering.
+- **AI Coordination Architecture (ADR-028 & ADR-032):** Three-tier automation: (A) Deterministic domain automation (TASK_UNBLOCKED notifications — no LLM), (B) AI-assisted coordination (progress interpretation via structured LLM output or zero-failure heuristic fallback with provider-agnostic engine), (C) Human-controlled decisions (approval-gated mutations via `AgentProposalCard`). Technology introduction is phased: LLM API at Step 5.04, LangGraph.js at Step 5.05. Autonomy levels: Level 1 (auto-notify), Level 2 (propose + approve), Human Required (destructive ops). AI bot identity: `pulse-ai-bot` user + `isAiGenerated` Activity flag. Post-transaction hook pattern for domain event triggering.
 
 ## Testing Conventions
 - **Location:** `src/lib/__tests__/*.test.ts`
@@ -90,8 +91,8 @@ Enums (8):
   - `seed-data-generators.test.ts` (17), `notification-logic.test.ts` (16)
   - `notification-preferences.test.ts` (29), `email-templates.test.ts` (23)
   - `automation-logic.test.ts` (33), `dependency-automation.test.ts` (13)
-  - **`progress-logic.test.ts` (20)**
-- **Total:** **488 tests, 100% passing**
+  - `progress-logic.test.ts` (20), **`ai-proposal-logic.test.ts` (26)**
+- **Total:** **514 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -109,16 +110,16 @@ Enums (8):
   - **Step 4.02 (v0.4.2):** In-App Notifications with Client Polling, Triggers & Popover UI (364 tests)
   - **Step 4.03 (v0.4.3):** User Notification Preferences, Mention Detection (@user) & Approaching Due Date Alerts (393 tests)
   - **Step 4.04 (v0.4.4):** Email Delivery Service, Welcome & Invite Member Email, Universal sendEmail (416 tests)
-- **Phase 5 (v0.5.0 — In Progress): AI Proactive Project Coordination**
+- **Phase 5 (v0.5.0 — Completed MVP): AI Proactive Project Coordination**
   - **Step 5.00 (v0.5.0):** Architecture Decisions & ADR-028 (416 tests — no code changes)
   - **Step 5.01 (v0.5.1):** Domain Event Foundation, ActivityType/NotificationType expansion, `automation-logic.ts` (448 tests)
   - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (468 tests)
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (488 tests)
-  - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (target: ~508 tests)
+  - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (514 tests)
 
 ## Verification Rule After Every Step
 ```bash
-npm test          # All test suites must pass 100% (488 tests)
+npm test          # All test suites must pass 100% (514 tests)
 npx tsc --noEmit  # Zero TypeScript compilation errors
 ```
 

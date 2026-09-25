@@ -1,0 +1,13 @@
+{
+  "provider": "openai-compatible",
+  "endpoint": "<AI_ENDPOINT_FROM_INTERNAL_DOCS>",
+  "model": "<MODEL_OR_DEPLOYMENT_NAME>",
+  "apiVersion": "",
+  "apiVersionParam": "api-version",
+  "authHeader": "Authorization",
+  "authScheme": "Bearer",
+  "extraHeaders": {},
+  "providerOptions": {},
+  "jsonMode": true,
+  "timeoutMs": 8000
+}

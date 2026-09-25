@@ -96,6 +96,8 @@ model User {
   receivedProgressRequests  ProgressRequest[]  @relation("ReceivedProgressRequests")
   requestedProgressRequests ProgressRequest[]  @relation("RequestedProgressRequests")
   progressResponses         ProgressResponse[]
+
+  reviewedProposals AgentProposal[] @relation("ReviewedProposals")
 }
 
 model Project {
@@ -116,6 +118,7 @@ model Project {
   invites ProjectInvite[]
 
   progressRequests ProgressRequest[]
+  agentProposals   AgentProposal[]
 }
 
 model ProjectMember {
@@ -143,6 +146,8 @@ model State {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks   Task[]
+
+  suggestedByProposals AgentProposal[]
 
   @@unique([name, projectId])
   @@index([projectId])
@@ -174,6 +179,7 @@ model Task {
   targetRelations TaskRelation[] @relation("TargetRelations")
 
   progressRequests ProgressRequest[]
+  agentProposals   AgentProposal[]
 
   @@unique([projectId, sequenceId])
   @@index([projectId])
@@ -387,6 +393,42 @@ model ProgressResponse {
   request   ProgressRequest @relation(fields: [progressRequestId], references: [id], onDelete: Cascade)
   responder User            @relation(fields: [responderId], references: [id], onDelete: Cascade)
 
+  agentProposals AgentProposal[]
+
   @@index([progressRequestId])
   @@index([responderId])
+}
+
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  STALE
+}
+
+model AgentProposal {
+  id                 String         @id @default(cuid())
+  projectId          String
+  taskId             String
+  progressResponseId String?
+  summary            String
+  suggestedStateId   String?
+  suggestedGroup     StateGroup?
+  blockerDetected    Boolean        @default(false)
+  blockerDetails     String?
+  followUpNeeded     Boolean        @default(false)
+  confidence         Float          @default(0.85)
+  status             ProposalStatus @default(PENDING)
+  reviewedById       String?
+  reviewedAt         DateTime?
+  createdAt          DateTime       @default(now())
+
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task             Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  progressResponse ProgressResponse? @relation(fields: [progressResponseId], references: [id], onDelete: SetNull)
+  suggestedState   State?            @relation(fields: [suggestedStateId], references: [id], onDelete: SetNull)
+  reviewedBy       User?             @relation("ReviewedProposals", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([taskId, status])
+  @@index([projectId])
 }
