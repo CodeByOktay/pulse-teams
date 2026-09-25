@@ -64,33 +64,35 @@ export function wouldCreateBlockCycle(
 ): boolean {
   if (isSelfRelation(newSourceId, newTargetId)) return true;
 
-  const adjacency = new Map<string, string[]>();
-  for (const edge of edges) {
-    const targets = adjacency.get(edge.sourceTaskId);
-    if (targets) {
-      targets.push(edge.targetTaskId);
-    } else {
-      adjacency.set(edge.sourceTaskId, [edge.targetTaskId]);
-    }
-  }
-
-  const visited = new Set<string>();
+  const adjacency = buildAdjacencyList(edges);
+  const visited = new Set<string>([newTargetId]);
   const stack: string[] = [newTargetId];
 
   while (stack.length > 0) {
     const current = stack.pop() as string;
     if (current === newSourceId) return true;
-    if (visited.has(current)) continue;
-    visited.add(current);
 
-    const next = adjacency.get(current);
-    if (!next) continue;
-    for (const targetId of next) {
-      if (!visited.has(targetId)) stack.push(targetId);
+    for (const nextId of adjacency.get(current) ?? []) {
+      if (visited.has(nextId)) continue;
+      visited.add(nextId);
+      stack.push(nextId);
     }
   }
 
   return false;
+}
+
+function buildAdjacencyList(edges: RelationEdge[]): Map<string, string[]> {
+  const adjacency = new Map<string, string[]>();
+  for (const { sourceTaskId, targetTaskId } of edges) {
+    const targets = adjacency.get(sourceTaskId);
+    if (targets) {
+      targets.push(targetTaskId);
+    } else {
+      adjacency.set(sourceTaskId, [targetTaskId]);
+    }
+  }
+  return adjacency;
 }
 
 export type RelatedTaskSummary = {
@@ -130,6 +132,15 @@ export type TargetRelationRecord = {
   sourceTask: RelatedTaskSummary;
 };
 
+/** BLOCKS kaydı perspektife göre blocks ya da blockedBy'a düşer; diğer tipler iki yönde de aynı gruptadır. */
+function resolveGroupKey(
+  type: RelationType,
+  blocksKey: "blocks" | "blockedBy",
+): keyof GroupedRelations {
+  if (type === "BLOCKS") return blocksKey;
+  return type === "RELATES_TO" ? "relatesTo" : "duplicates";
+}
+
 /**
  * Görevin kaynak ve hedef olduğu kayıtları tek bir görünüme indirger:
  * blocks/blockedBy aynı BLOCKS kaydının iki perspektifidir.
@@ -148,30 +159,22 @@ export function groupRelationsForTask(
 
   for (const relation of sourceRelations) {
     if (relation.sourceTaskId !== taskId) continue;
-    const item: GroupedRelationItem = {
+    grouped[resolveGroupKey(relation.type, "blocks")].push({
       id: relation.id,
       type: relation.type,
       direction: "source",
       task: relation.targetTask,
-    };
-
-    if (relation.type === "BLOCKS") grouped.blocks.push(item);
-    else if (relation.type === "RELATES_TO") grouped.relatesTo.push(item);
-    else grouped.duplicates.push(item);
+    });
   }
 
   for (const relation of targetRelations) {
     if (relation.targetTaskId !== taskId) continue;
-    const item: GroupedRelationItem = {
+    grouped[resolveGroupKey(relation.type, "blockedBy")].push({
       id: relation.id,
       type: relation.type,
       direction: "target",
       task: relation.sourceTask,
-    };
-
-    if (relation.type === "BLOCKS") grouped.blockedBy.push(item);
-    else if (relation.type === "RELATES_TO") grouped.relatesTo.push(item);
-    else grouped.duplicates.push(item);
+    });
   }
 
   return grouped;

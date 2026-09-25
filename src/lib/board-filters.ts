@@ -35,28 +35,29 @@ function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function pickValid<T extends string>(values: string[], allowed: readonly T[]): T[] {
+  return values.filter((value): value is T => (allowed as readonly string[]).includes(value));
+}
+
+function pickOne<T extends string>(value: string | undefined, allowed: readonly T[]): T | null {
+  return allowed.find((option) => option === value) ?? null;
+}
+
 export function parseBoardFilters(
   searchParams: Record<string, string | string[] | undefined>,
 ): BoardFilters {
-  const priorities = parseCsvParam(searchParams.priority).filter((p): p is Priority =>
-    VALID_PRIORITIES.includes(p as Priority),
-  );
+  const priorities = pickValid(parseCsvParam(searchParams.priority), VALID_PRIORITIES);
   const labelIds = parseCsvParam(searchParams.label);
   const assigneeIds = parseCsvParam(searchParams.assignee);
-  const groups = parseCsvParam(searchParams.group).filter((g): g is StateGroup =>
-    GROUP_FILTERS.includes(g as StateGroup),
-  );
+  const groups = pickValid(parseCsvParam(searchParams.group), GROUP_FILTERS);
 
-  const rawDue = firstParam(searchParams.due);
-  const due = DUE_FILTERS.includes(rawDue as DueFilter) ? (rawDue as DueFilter) : null;
+  const due = pickOne(firstParam(searchParams.due), DUE_FILTERS);
 
   const query = (firstParam(searchParams.q) ?? "").trim();
 
-  const rawSort = firstParam(searchParams.sort);
-  const sort = SORT_FIELDS.includes(rawSort as SortField) ? (rawSort as SortField) : null;
+  const sort = pickOne(firstParam(searchParams.sort), SORT_FIELDS);
 
-  const rawOrder = firstParam(searchParams.order);
-  const order: SortOrder = rawOrder === "asc" ? "asc" : "desc";
+  const order: SortOrder = firstParam(searchParams.order) === "asc" ? "asc" : "desc";
 
   return { priorities, labelIds, assigneeIds, groups, due, query, sort, order };
 }
@@ -110,8 +111,7 @@ export function startOfWeek(date: Date): Date {
 }
 
 export function endOfWeek(date: Date): Date {
-  const start = startOfWeek(date);
-  const end = new Date(start);
+  const end = startOfWeek(date);
   end.setDate(end.getDate() + 6);
   return endOfDay(end);
 }
@@ -137,9 +137,11 @@ export function matchesDueFilter(
 
   const range = resolveDueDateRange(due, now);
   if (range.kind === "isNull") return false;
-  if (range.lt !== undefined && dueDate.getTime() >= range.lt.getTime()) return false;
-  if (range.gte !== undefined && dueDate.getTime() < range.gte.getTime()) return false;
-  if (range.lte !== undefined && dueDate.getTime() > range.lte.getTime()) return false;
+
+  const time = dueDate.getTime();
+  if (range.lt !== undefined && time >= range.lt.getTime()) return false;
+  if (range.gte !== undefined && time < range.gte.getTime()) return false;
+  if (range.lte !== undefined && time > range.lte.getTime()) return false;
   return true;
 }
 

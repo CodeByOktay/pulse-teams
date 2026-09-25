@@ -8,7 +8,7 @@ Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project m
 - **Project Path:** `C:\Pulse`
 - **Database:** PostgreSQL 16 in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (416 tests across 22 suites, 100% passing)
+- **Tests:** `npm test` (528 tests across 27 suites, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, 500 tasks, 1000 comments, 3000 activities)
 
 ## AI Agent Division of Labor & Guides
@@ -155,7 +155,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `/login`                  -> Login Page
 - `/register`               -> Registration Page
 
-## Test Suite Distribution (416 Tests across 22 Suites)
+## Test Suite Distribution (528 Tests across 27 Suites)
 - `sequence.test.ts` (2)
 - `sort-order.test.ts` (4)
 - `colors.test.ts` (3)
@@ -163,7 +163,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `sprint-utils.test.ts` (13)
 - `sprint-actions.test.ts` (11)
 - `list-view-sort.test.ts` (15)
-- `activity-logger.test.ts` (14)
+- `activity-logger.test.ts` (20)
 - `bulk-selection.test.ts` (18)
 - `markdown-utils.test.ts` (21)
 - `settings-validation.test.ts` (30)
@@ -178,11 +178,16 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `notification-logic.test.ts` (16)
 - `notification-preferences.test.ts` (29)
 - `email-templates.test.ts` (23)
-Total: **416 tests, 100% passing**
+- `automation-logic.test.ts` (33)
+- `dependency-automation.test.ts` (13)
+- `progress-logic.test.ts` (20)
+- `ai-proposal-logic.test.ts` (26)
+- `project-analytics-logic.test.ts` (14)
+Total: **528 tests, 100% passing**
 
 ## Mandatory Verification Commands
 ```bash
-npm test          # Must pass 100% (416 tests)
+npm test          # Must pass 100% (528 tests)
 npx tsc --noEmit  # Zero TypeScript errors
 npm run build     # Production build validation
 ```
@@ -191,7 +196,7 @@ npm run build     # Production build validation
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
 Phases 1 (v0.1.0), 2 (v0.2.0), and 3 (v0.3.0) are fully completed; Phase 4.01 (Dataset), Phase 4.02 (In-App Notifications), Phase 4.03 (Notification Preferences & Mentions), and Phase 4.04 (Email Service & Welcome/Invite Emails) are complete.
-416 Vitest tests are passing 100%.
+528 Vitest tests are passing 100%.
 We are now ready to implement [new phase / feature].
 [Paste specific task or requirements here]
 ```

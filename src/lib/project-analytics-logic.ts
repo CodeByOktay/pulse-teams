@@ -1,5 +1,16 @@
 import type { Priority, StateGroup } from "@prisma/client";
 
+const MS_PER_DAY = 86_400_000;
+
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function mean(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -36,6 +47,46 @@ export type BurndownDayPoint = {
   scopeAdded: number;
 };
 
+type BurndownTaskDates = {
+  completedAt?: Date | null;
+  addedToSprintAt?: Date | null;
+};
+
+function idealRemainingForDay(
+  dayIndex: number,
+  totalDays: number,
+  totalPlannedTasks: number,
+): number {
+  // The last day (which also covers a one-day sprint) is pinned to 0, so the divisor is never 0.
+  if (dayIndex === totalDays) return 0;
+  return Math.max(totalPlannedTasks, 0) * (1 - (dayIndex - 1) / (totalDays - 1));
+}
+
+function countTasksForDay(
+  tasks: BurndownTaskDates[],
+  dayStart: Date,
+  sprintStartMs: number,
+): { completedCount: number; inScopeCount: number; scopeAdded: number } {
+  const dayEndMs = endOfDay(dayStart).getTime();
+  let completedCount = 0;
+  let inScopeCount = 0;
+  let scopeAdded = 0;
+
+  for (const { completedAt, addedToSprintAt } of tasks) {
+    if (completedAt != null && completedAt.getTime() <= dayEndMs) completedCount++;
+
+    if (addedToSprintAt == null) {
+      inScopeCount++;
+    } else {
+      const addedMs = addedToSprintAt.getTime();
+      if (addedMs <= dayEndMs) inScopeCount++;
+      if (addedMs > sprintStartMs && isSameCalendarDay(addedToSprintAt, dayStart)) scopeAdded++;
+    }
+  }
+
+  return { completedCount, inScopeCount, scopeAdded };
+}
+
 export function calculateBurndownSeries(params: {
   sprintStartDate: Date;
   sprintEndDate: Date;
@@ -54,43 +105,24 @@ export function calculateBurndownSeries(params: {
 
   if (endDay.getTime() < startDay.getTime()) return [];
 
-  const totalDays = Math.round((endDay.getTime() - startDay.getTime()) / 86_400_000) + 1;
-  const idealBase = Math.max(totalPlannedTasks, 0);
-  const idealDivisor = totalDays - 1 === 0 ? 1 : totalDays - 1;
+  const totalDays = Math.round((endDay.getTime() - startDay.getTime()) / MS_PER_DAY) + 1;
+  const sprintStartMs = sprintStartDate.getTime();
 
   const points: BurndownDayPoint[] = [];
 
   for (let dayIndex = 1; dayIndex <= totalDays; dayIndex++) {
-    const currentDayStart = addDays(startDay, dayIndex - 1);
-    const currentDayEnd = endOfDay(currentDayStart);
-
-    const idealRemaining =
-      dayIndex === totalDays ? 0 : idealBase * (1 - (dayIndex - 1) / idealDivisor);
-
-    const completedCount = tasksWithActivities.filter(
-      (task) =>
-        task.completedAt != null && task.completedAt.getTime() <= currentDayEnd.getTime(),
-    ).length;
-
-    const inScopeCount = tasksWithActivities.filter(
-      (task) =>
-        task.addedToSprintAt == null || task.addedToSprintAt.getTime() <= currentDayEnd.getTime(),
-    ).length;
-
-    const actualRemaining = Math.max(inScopeCount - completedCount, 0);
-
-    const scopeAdded = tasksWithActivities.filter(
-      (task) =>
-        task.addedToSprintAt != null &&
-        task.addedToSprintAt.getTime() > sprintStartDate.getTime() &&
-        isSameCalendarDay(task.addedToSprintAt, currentDayStart),
-    ).length;
+    const dayStart = addDays(startDay, dayIndex - 1);
+    const { completedCount, inScopeCount, scopeAdded } = countTasksForDay(
+      tasksWithActivities,
+      dayStart,
+      sprintStartMs,
+    );
 
     points.push({
-      date: formatISODate(currentDayStart),
+      date: formatISODate(dayStart),
       dayIndex,
-      idealRemaining,
-      actualRemaining,
+      idealRemaining: idealRemainingForDay(dayIndex, totalDays, totalPlannedTasks),
+      actualRemaining: Math.max(inScopeCount - completedCount, 0),
       completedCount,
       scopeAdded,
     });
@@ -125,14 +157,7 @@ export function calculateVelocityTrend(
       sprint.plannedCount === 0 ? 0 : Math.round((sprint.completedCount / sprint.plannedCount) * 100),
   }));
 
-  const averageVelocity =
-    completedSprints.length === 0
-      ? 0
-      : Math.round(
-          (completedSprints.reduce((sum, sprint) => sum + sprint.completedCount, 0) /
-            completedSprints.length) *
-            10,
-        ) / 10;
+  const averageVelocity = round1(mean(completedSprints.map((sprint) => sprint.completedCount)));
 
   const estimateSprintsForBacklog = (backlogTaskCount: number): number => {
     if (backlogTaskCount <= 0) return 0;
@@ -161,8 +186,8 @@ export type FlowMetrics = {
   stageBreakdown: Record<string, number>;
 };
 
-function round1(value: number): number {
-  return Math.round(value * 10) / 10;
+function elapsedDays(from: Date, to: Date): number {
+  return Math.max((to.getTime() - from.getTime()) / MS_PER_DAY, 0);
 }
 
 export function calculateCycleAndLeadTimes(
@@ -173,24 +198,14 @@ export function calculateCycleAndLeadTimes(
     stageDurations?: Record<string, number> | null;
   }>,
 ): FlowMetrics {
-  const leadTimes = completedTasks.map((task) =>
-    Math.max((task.completedAt.getTime() - task.createdAt.getTime()) / 86_400_000, 0),
-  );
-
-  const cycleTimes = completedTasks
-    .filter((task) => task.inProgressAt != null)
-    .map((task) =>
-      Math.max((task.completedAt.getTime() - (task.inProgressAt as Date).getTime()) / 86_400_000, 0),
-    );
-
-  const medianLeadTimeDays = round1(median(leadTimes));
-  const averageLeadTimeDays =
-    leadTimes.length === 0 ? 0 : round1(leadTimes.reduce((sum, value) => sum + value, 0) / leadTimes.length);
-  const medianCycleTimeDays = cycleTimes.length === 0 ? 0 : round1(median(cycleTimes));
-  const averageCycleTimeDays =
-    cycleTimes.length === 0
-      ? 0
-      : round1(cycleTimes.reduce((sum, value) => sum + value, 0) / cycleTimes.length);
+  const leadTimes: number[] = [];
+  const cycleTimes: number[] = [];
+  for (const task of completedTasks) {
+    leadTimes.push(elapsedDays(task.createdAt, task.completedAt));
+    if (task.inProgressAt != null) {
+      cycleTimes.push(elapsedDays(task.inProgressAt, task.completedAt));
+    }
+  }
 
   const stageTotals: Record<string, number> = {};
   let grandTotal = 0;
@@ -213,10 +228,10 @@ export function calculateCycleAndLeadTimes(
         );
 
   return {
-    medianLeadTimeDays,
-    averageLeadTimeDays,
-    medianCycleTimeDays,
-    averageCycleTimeDays,
+    medianLeadTimeDays: round1(median(leadTimes)),
+    averageLeadTimeDays: round1(mean(leadTimes)),
+    medianCycleTimeDays: round1(median(cycleTimes)),
+    averageCycleTimeDays: round1(mean(cycleTimes)),
     stageBreakdown,
   };
 }

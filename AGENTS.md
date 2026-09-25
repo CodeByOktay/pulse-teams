@@ -91,8 +91,9 @@ Enums (9):
   - `seed-data-generators.test.ts` (17), `notification-logic.test.ts` (16)
   - `notification-preferences.test.ts` (29), `email-templates.test.ts` (23)
   - `automation-logic.test.ts` (33), `dependency-automation.test.ts` (13)
-  - `progress-logic.test.ts` (20), **`ai-proposal-logic.test.ts` (26)**
-- **Total:** **514 tests, 100% passing**
+  - `progress-logic.test.ts` (20), `ai-proposal-logic.test.ts` (26)
+  - `project-analytics-logic.test.ts` (14)
+- **Total:** **528 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -119,7 +120,7 @@ Enums (9):
 
 ## Verification Rule After Every Step
 ```bash
-npm test          # All test suites must pass 100% (514 tests)
+npm test          # All test suites must pass 100% (528 tests)
 npx tsc --noEmit  # Zero TypeScript compilation errors
 ```
 
