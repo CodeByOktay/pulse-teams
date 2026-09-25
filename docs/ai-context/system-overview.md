@@ -7,7 +7,7 @@
 - **Auth Strategy:** NextAuth.js v4 (Strictly CredentialsProvider: email/password + bcryptjs salt:12, JWT session). External OAuth is explicitly out of scope.
 - **Database Models (19):** User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment, Sprint, SprintTask, Activity (with `isAiGenerated`), ProjectInvite, TaskRelation, Notification, UserNotificationPreference, ProgressRequest, ProgressResponse, AgentProposal.
 - **Enums (9):** StateGroup, Priority, SprintStatus, ActivityType (23 values), InviteStatus, RelationType (BLOCKS, RELATES_TO, DUPLICATES), NotificationType (7 values), ProgressRequestStatus (4 values), ProposalStatus (4 values).
-- **Test Suite:** 514 tests passing across 26 test suites in `src/lib/__tests__/` (100% pass rate).
+- **Test Suite:** 528 tests passing across 27 test suites in `src/lib/__tests__/` (100% pass rate).
 - **Seeding Infrastructure:** Idempotent, deterministic rich mock data generator (`npm run db:seed-rich` via `prisma/tsconfig.seed.json`) supporting upcoming analytics with 10 users, 5 projects, 40 states, 50 sprints, 500 tasks, 1,000 comments, 3,000 activities, and 100 relations.
 
 ---
