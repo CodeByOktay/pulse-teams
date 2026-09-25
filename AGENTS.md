@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.4.4 (Phase 4 in progress — Step 4.04 completed)
+- **Version:** v0.5.0 (Phase 5 in progress — Step 5.00 completed)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -71,6 +71,7 @@ Enums (7):
 - **Advanced Filters & Saved Views:** `BoardFilters` unified via `buildTaskWhereFromFilters` into a single Prisma where input. Quick filter chips provide 1-click toggles. `useSavedViews` manages localStorage persistence (`pulse:saved-views:{projectId}`) with `__me__` dynamic placeholder resolution.
 - **Task Relations (Dependency Graph):** `TaskRelation` is strictly a SINGLE row in the DB. "Blocked By" is an inverted perspective of a BLOCKS record (reverse rows are never inserted). `hasExistingRelation` enforces the single-pair rule across both directions. Cycle detection is strictly enforced for BLOCKS via `wouldCreateBlockCycle` (iterative DFS with stack + visited set, non-recursive, safe against stack overflows). `addTaskRelation` derives `projectId` from verified task records, ensuring both tasks reside in the same project.
 - **Notification Delivery & Preferences:** `shouldDeliverWithPreferences` strictly enforces self-notification suppression (`actorId !== recipientId`) and maps against recipient `UserNotificationPreference` fields. `@mention` parsing (`extractMentions`, `resolveMentionedUserIds`) extracts callouts; mentioned assignees receive only `TASK_MENTIONED` (preventing double notification). Approaching due date alerts (`getApproachingDueTasks`) check calendar day thresholds (0, 1, 3 days) with idempotency per calendar day.
+- **AI Coordination Architecture (ADR-028):** Three-tier automation: (A) Deterministic domain automation (TASK_UNBLOCKED notifications — no LLM), (B) AI-assisted coordination (progress interpretation via structured LLM output — Faz 4), (C) Human-controlled decisions (approval-gated mutations). Technology introduction is phased: LLM API at Faz 4, LangGraph.js at Faz 5, LlamaIndex.TS at Faz 7. Autonomy levels: Level 1 (auto-notify), Level 2 (propose + approve), Human Required (destructive ops). AI bot identity: `pulse-ai-bot` user + `isAiGenerated` Activity flag. Post-transaction hook pattern for domain event triggering.
 
 ## Testing Conventions
 - **Location:** `src/lib/__tests__/*.test.ts`
@@ -100,11 +101,17 @@ Enums (7):
 - **Phase 1 (v0.1.0):** Core Kanban, Auth, CRUD, Slide-over (14 tests)
 - **Phase 2 (v0.2.0):** Sprints/Cycles, List View, Audit Log, Bulk Actions, Markdown Editor, Settings (136 tests)
 - **Phase 3 (v0.3.0):** Member Invites, Task Detail UX, Backlog View, Global Search Cmd+K, Dashboard Analytics, Advanced Filters, Task Relations (331 tests)
-- **Phase 4 (v0.4.0 — In Progress):**
+- **Phase 4 (v0.4.0 — Completed):**
   - **Step 4.01 (v0.4.1):** Realistic Analytics Dataset & Generators, Deterministic PRNG Seeding (348 tests)
   - **Step 4.02 (v0.4.2):** In-App Notifications with Client Polling, Triggers & Popover UI (364 tests)
   - **Step 4.03 (v0.4.3):** User Notification Preferences, Mention Detection (@user) & Approaching Due Date Alerts (393 tests)
   - **Step 4.04 (v0.4.4):** Email Delivery Service, Welcome & Invite Member Email, Universal sendEmail (416 tests)
+- **Phase 5 (v0.5.0 — In Progress): AI Proactive Project Coordination**
+  - **Step 5.00 (v0.5.0):** Architecture Decisions & ADR-028 (416 tests — no code changes)
+  - **Step 5.01 (v0.5.1):** Domain Event Foundation, ActivityType/NotificationType expansion, `automation-logic.ts` (target: ~426 tests)
+  - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (target: ~446 tests)
+  - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (target: ~466 tests)
+  - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (target: ~486 tests)
 
 ## Verification Rule After Every Step
 ```bash
