@@ -6,6 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getNextSequenceId } from "@/lib/sequence";
 import { logActivity } from "@/lib/activity-logger";
+import { isCompletionTransition } from "@/lib/automation-logic";
+import { triggerUnblockedDependencies } from "@/lib/dependency-automation";
 import type { Priority } from "@prisma/client";
 
 const PRIORITY_LABEL_TR: Record<Priority, string> = {
@@ -140,8 +142,9 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
 
   const actorId = session.user.id;
 
-  const task = await prisma.$transaction(async (tx) => {
+  const { task, isCompleted } = await prisma.$transaction(async (tx) => {
     const updateData: Record<string, unknown> = {};
+    let isCompleted = false;
 
     if (data.title !== undefined) updateData.title = data.title.trim();
     if (data.description !== undefined) updateData.description = data.description;
@@ -162,6 +165,8 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
 
       const newState = await tx.state.findUnique({ where: { id: data.stateId } });
       newStateName = newState?.name ?? null;
+      isCompleted =
+        newState !== null && isCompletionTransition(existingTask.state.group, newState.group);
     }
 
     const updated = await tx.task.update({
@@ -199,6 +204,14 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
       });
     }
 
+    if (isCompleted) {
+      await logActivity(tx, {
+        type: "TASK_COMPLETED",
+        taskId,
+        actorId,
+      });
+    }
+
     if (data.priority !== undefined && data.priority !== existingTask.priority) {
       await logActivity(tx, {
         type: "TASK_PRIORITY_CHANGED",
@@ -229,8 +242,13 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
       });
     }
 
-    return updated;
+    return { task: updated, isCompleted };
   });
+
+  // Transaction sonrası otomasyon: hata yakalama fonksiyonun içinde, updateTask'ı etkilemez.
+  if (isCompleted) {
+    await triggerUnblockedDependencies(taskId, task.title, existingTask.projectId, actorId);
+  }
 
   revalidatePath(`/projects/${existingTask.projectId}/board`);
 
@@ -414,7 +432,10 @@ export async function reorderTask(taskId: string, newStateId: string, newSortOrd
     throw new Error("Bu işlem için giriş yapmalısınız.");
   }
 
-  const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
+  const existingTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: { state: true },
+  });
   if (!existingTask) {
     throw new Error("Görev bulunamadı.");
   }
@@ -424,7 +445,23 @@ export async function reorderTask(taskId: string, newStateId: string, newSortOrd
   const task = await prisma.task.update({
     where: { id: taskId },
     data: { stateId: newStateId, sortOrder: newSortOrder },
+    include: { state: true },
   });
+
+  // Kanban'da kartı DONE sütununa sürüklemek de bir tamamlanma geçişidir.
+  if (isCompletionTransition(existingTask.state.group, task.state.group)) {
+    await logActivity(prisma, {
+      type: "TASK_COMPLETED",
+      taskId,
+      actorId: session.user.id,
+    });
+    await triggerUnblockedDependencies(
+      taskId,
+      task.title,
+      existingTask.projectId,
+      session.user.id,
+    );
+  }
 
   revalidatePath(`/projects/${existingTask.projectId}/board`);
 

@@ -231,4 +231,68 @@ describe("automation-logic — filterSelfNotifications", () => {
 
     expect(filtered).toEqual([]);
   });
+
+  it("boş alıcı listesi verildiğinde boş dizi döner", () => {
+    expect(filterSelfNotifications([], "user-ozlem")).toEqual([]);
+  });
 });
+
+describe("automation-logic — ilave sınır ve edge case testleri", () => {
+  it("findNewlyUnblockedTasks boş dependentTasks listesiyle çağrıldığında boş dizi döner", () => {
+    const results = findNewlyUnblockedTasks({
+      completedTaskId: "task-1",
+      dependentTasks: [],
+    });
+    expect(results).toEqual([]);
+  });
+
+  it("birden fazla bağımlı görevden sadece biri unblock oluyorsa karma listede doğru filtreleme yapar", () => {
+    const dependentTasks: DependentTaskInput[] = [
+      {
+        id: "task-free",
+        assigneeIds: ["user-1"],
+        blockers: [{ taskId: "task-1", stateGroup: "DONE" }],
+      },
+      {
+        id: "task-still-blocked",
+        assigneeIds: ["user-2"],
+        blockers: [
+          { taskId: "task-1", stateGroup: "DONE" },
+          { taskId: "task-other", stateGroup: "TODO" },
+        ],
+      },
+    ];
+
+    const results = findNewlyUnblockedTasks({
+      completedTaskId: "task-1",
+      dependentTasks,
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0].taskId).toBe("task-free");
+  });
+
+  it("isCompletionTransition geçersiz durum değerlerinde false döner", () => {
+    expect(isCompletionTransition("INVALID_STATE", "NOT_DONE")).toBe(false);
+  });
+
+  it("isReopeningTransition geçersiz durum değerlerinde false döner", () => {
+    expect(isReopeningTransition("NOT_DONE", "ALSO_NOT_DONE")).toBe(false);
+  });
+
+  it("isTaskFullyUnblocked blockerState içinde id yerine taskId veya tersi verildiğinde çalışır", () => {
+    expect(isTaskFullyUnblocked([{ id: "t-1", stateGroup: "DONE" }])).toBe(true);
+    expect(isTaskFullyUnblocked([{ taskId: "t-2", stateGroup: "DONE" }])).toBe(true);
+  });
+
+  it("formatUnblockedNotificationMessage uzun ve tırnak işaretli başlıkları güvenle birleştirir", () => {
+    const res = formatUnblockedNotificationMessage(
+      'Fix "Critical Auth" Bug',
+      "Deploy 'Production' Cluster",
+    );
+    expect(res.title).toBe("Görev engeli kalktı");
+    expect(res.message).toContain('Fix "Critical Auth" Bug');
+    expect(res.message).toContain("Deploy 'Production' Cluster");
+  });
+});
+

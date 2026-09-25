@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.5.1 (Phase 5 in progress — Step 5.01 completed)
+- **Version:** v0.5.2 (Phase 5 in progress — Step 5.02 completed)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -87,8 +87,9 @@ Enums (7):
   - `advanced-filters.test.ts` (36), `task-relations.test.ts` (40)
   - `seed-data-generators.test.ts` (17), `notification-logic.test.ts` (16)
   - `notification-preferences.test.ts` (29), `email-templates.test.ts` (23)
-  - **`automation-logic.test.ts` (26)**
-- **Total:** **448 tests, 100% passing**
+  - `automation-logic.test.ts` (33)
+  - **`dependency-automation.test.ts` (13)**
+- **Total:** **468 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -109,13 +110,13 @@ Enums (7):
 - **Phase 5 (v0.5.0 — In Progress): AI Proactive Project Coordination**
   - **Step 5.00 (v0.5.0):** Architecture Decisions & ADR-028 (416 tests — no code changes)
   - **Step 5.01 (v0.5.1):** Domain Event Foundation, ActivityType/NotificationType expansion, `automation-logic.ts` (448 tests)
-  - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (target: ~468 tests)
+  - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (468 tests)
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (target: ~488 tests)
   - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (target: ~508 tests)
 
 ## Verification Rule After Every Step
 ```bash
-npm test          # All test suites must pass 100% (448 tests)
+npm test          # All test suites must pass 100% (468 tests)
 npx tsc --noEmit  # Zero TypeScript compilation errors
 ```
 

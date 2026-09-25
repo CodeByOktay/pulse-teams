@@ -2,12 +2,12 @@
 
 ## System Metadata
 - **Project Name:** Pulse (Pulse Project Manager)
-- **Version:** v0.5.1 (Phase 5 in progress — Step 5.01 completed)
+- **Version:** v0.5.2 (Phase 5 in progress — Step 5.02 completed)
 - **Stack:** Next.js 16 (App Router, Turbopack) + TypeScript (Strict) + Prisma v6.19.3 + PostgreSQL 16 + Tailwind CSS v4 + @dnd-kit + Vitest v5 + Nodemailer
 - **Auth Strategy:** NextAuth.js v4 (Strictly CredentialsProvider: email/password + bcryptjs salt:12, JWT session). External OAuth is explicitly out of scope.
 - **Database Models (16):** User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment, Sprint, SprintTask, Activity (with `isAiGenerated`), ProjectInvite, TaskRelation, Notification, UserNotificationPreference.
 - **Enums (7):** StateGroup, Priority, SprintStatus, ActivityType (23 values), InviteStatus, RelationType (BLOCKS, RELATES_TO, DUPLICATES), NotificationType (7 values).
-- **Test Suite:** 448 tests passing across 23 test suites in `src/lib/__tests__/` (100% pass rate).
+- **Test Suite:** 468 tests passing across 24 test suites in `src/lib/__tests__/` (100% pass rate).
 - **Seeding Infrastructure:** Idempotent, deterministic rich mock data generator (`npm run db:seed-rich` via `prisma/tsconfig.seed.json`) supporting upcoming analytics with 10 users, 5 projects, 40 states, 50 sprints, 500 tasks, 1,000 comments, 3,000 activities, and 100 relations.
 
 ---
@@ -42,10 +42,10 @@
 - **Phase 5 (v0.5.0 — In Progress): AI Proactive Project Coordination**
   - **Step 5.00 (v0.5.0):** Architecture Decisions & ADR-028 (416 tests)
   - **Step 5.01 (v0.5.1):** Domain Event Foundation, ActivityType/NotificationType expansion, `automation-logic.ts` (+32 -> 448 tests)
-  - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (target: ~468 tests)
+  - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (+20 -> 468 tests)
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (target: ~488 tests)
   - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (target: ~508 tests)
-- **ADR Index:** 29 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-029`.
+- **ADR Index:** 30 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-030`.
 - **Detailed AI Context Snapshots:**
   - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
   - `025-in-app-notifications.md` (ADR-025) — In-app notification polling and trigger hooks.
@@ -53,4 +53,5 @@
   - `027-email-service-and-welcome-email.md` (ADR-027) — Resilient email dispatch engine and welcome email templates.
   - `028-ai-proactive-coordination-architecture.md` (ADR-028) — Three-tier AI coordination, domain event foundation, and dependency automation.
   - `029-domain-event-foundation.md` (ADR-029) — Domain event foundation, enum expansions, and pure automation logic.
+  - `030-dependency-automation.md` (ADR-030) — Task dependency unblocking automation and in-app notifications.
 

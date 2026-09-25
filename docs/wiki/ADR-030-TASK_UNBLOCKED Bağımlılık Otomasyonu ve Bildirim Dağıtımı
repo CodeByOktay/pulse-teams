@@ -1,0 +1,64 @@
+# ADR-030: TASK_UNBLOCKED Bağımlılık Otomasyonu ve Bildirim Dağıtımı
+
+- **Durum:** Kabul Edildi (Accepted)
+- **Tarih:** 2026-09-25
+- **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder)
+- **Sürüm:** v0.5.2 (Phase 5 — Step 5.02)
+- **İlgili ADR:** [ADR-023-Görev İlişkileri ve Bağımlılık Mimarisi](file:///c:/Pulse/docs/wiki/ADR-023-Görev%20İlişkileri%20ve%20Bağımlılık%20Mimarisi), [ADR-025-Uygulama İçi Bildirimler](file:///c:/Pulse/docs/wiki/ADR-025-Uygulama%20İçi%20Bildirimler%20ve%20İstemci%20Polling%20Mimarisi), [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](file:///c:/Pulse/docs/wiki/ADR-028-AI%20Destekli%20Proaktif%20Proje%20Koordinasyon%20Mimarisi), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](file:///c:/Pulse/docs/wiki/ADR-029-Domain%20Event%20Temeli%20ve%20Aktivite%20Genişletmesi)
+
+---
+
+## 1. Bağlam ve Problem Tanımı (Context)
+
+Pulse v0.5.1 itibariyle `NotificationType.TASK_UNBLOCKED` ve `ActivityType.TASK_UNBLOCKED` enumları tanımlanmış, `src/lib/automation-logic.ts` saf fonksiyonları hazırlanmıştı. Ancak bu mekanizma henüz canlı görev mutasyonlarına (`updateTask` ve `reorderTask`) bağlanmamıştı.
+
+İhtiyaç duyulan özellik:
+Bir kullanıcı (örn: Özlem) bir görevi **DONE** durumuna getirdiğinde, o görevin engellediği tüm bağımlı görevlerin (örn: Uygar'ın Dashboard görevi) durumu taranmalı; üzerindeki tüm aktif kilitler kalkan görevler tespit edilerek atananlarına in-app bildirimi iletilmeli ve aktivite geçmişine `TASK_UNBLOCKED` kaydı düşülmelidir.
+
+Kritik kısıtlar ve güvenlik gereksinimleri:
+1. **Çoklu Engelleyici Koruması (Quiet Protection):** Hedef görevi engelleyen 2 farklı görev varsa ve sadece biri bittiyse hedef görev serbest kalmaz; sistem sessiz kalmalı ve gereksiz/yanıltıcı bildirim üretmemelidir.
+2. **Dayanıklılık ve Hata İzolasyonu (Resilience):** Bağımlılık çözümleme ve bildirim gönderimindeki herhangi bir ağ/veritabanı hatası, kullanıcının asıl görev güncelleme mutasyonunu asla geri almamalıdır (rollback yapmamalıdır).
+3. **RPC ve Yetkilendirme Güvenliği:** Otomasyon fonksiyonu `"use server"` dosyasından doğrudan export edilmemeli; istemciden sahte `actorId` ile tetiklenememelidir. Yalnızca oturum açmış kullanıcının doğrulanmış kimliğiyle sunucu içerisinden çağrılmalıdır.
+4. **Self-Notification Engellemesi:** Görevi tamamlayan kullanıcı bağımlı görevin de atananı ise kendisine bildirim gitmemelidir.
+5. **Kanban Sürükle-Bırak Entegrasyonu:** Kullanıcılar görev durumunu genellikle detay panelinden değil, Kanban üzerinde sürükleyip DONE sütununa bırakarak (`reorderTask`) günceller. Bu işlem de tamamlanma geçişi olarak tanınmalıdır.
+
+---
+
+## 2. Alınan Mimari Kararlar (Decisions)
+
+### A. Bağımlılık Otomasyon Servisi (`src/lib/dependency-automation.ts`)
+- Servis, `"use server"` direktifi taşımayan ayrı bir yardımcı kütüphane dosyasında (`src/lib/`) konumlandırıldı. Böylece istemci tarafından RPC endpoint'i olarak kötüye kullanılması engellendi.
+- `triggerUnblockedDependencies(completedTaskId, completedTaskTitle, projectId, actorId)` fonksiyonu:
+  - Tüm gövde `try / catch` ile sarmalandı; olası hatalar `console.error` ile yakalanıp ana mutasyonu etkilemeyecek şekilde izole edildi.
+  - Hedef görevler `Map` ile tekilleştirildi; zaten `DONE` veya `CANCELLED` durumunda olan hedefler işlemden muaf tutuldu.
+  - N+1 sorgu problemini önlemek için etkilenen tüm hedeflerin gelen engelleyicileri tek bir `prisma.taskRelation.findMany` sorgusunda çekildi (`targetTaskId: { in: [...] }`).
+  - `isTaskFullyUnblocked` fonksiyonu ile her hedefin tüm engelleyicilerinin `DONE` olduğu doğrulandı.
+  - Engeli kalkan her hedef için `TASK_UNBLOCKED` aktivitesi yazıldı.
+  - `filterSelfNotifications` ile aktör alıcı listesinden çıkarılarak kalan atananlara `createNotification` ile in-app bildirim iletildi.
+  - Deep link formatı: `/projects/${projectId}/board?task=${targetTaskId}`.
+
+### B. Görev Mutasyon Kancaları (`src/actions/task.ts`)
+- `updateTask`:
+  - Transaction içinde `isCompletionTransition(existingTask.state.group, newState.group)` kontrolü yapıldı.
+  - Eğer görev tamamlandıysa transaction içinde `TASK_COMPLETED` aktivitesi günlüğe kaydedildi.
+  - Transaction başarıyla commit edildikten hemen sonra (post-transaction) `triggerUnblockedDependencies` asenkron tetiklendi.
+- `reorderTask` (Kanban Sürükle-Bırak):
+  - Görev başka bir sütuna taşındığında `isCompletionTransition(existingTask.state.group, task.state.group)` kontrolü eklendi.
+  - `DONE` sütununa bırakıldığında `TASK_COMPLETED` loglanıp `triggerUnblockedDependencies` tetiklendi.
+
+---
+
+## 3. Sonuçlar (Consequences)
+
+### Olumlu Sonuçlar (Pros)
+- **Kusursuz İş Akışı:** Özlem debug görevini tamamladığı anda Uygar'ın bildirim çanında 🔓 rozeti anında belirir; tıklayınca doğrudan ilgili göreve odaklanır.
+- **Yüksek Performans:** Tek sorguda toplu blocker gruplaması sayesinde N+1 veritabanı sorgusu önlendi.
+- **Sıfır LLM Maliyeti:** Tüm bağımlılık ve bildirim mantığı tamamen deterministik kurallarla çalışır.
+- **Tam Test Kapsamı:** Yazılan 13 entegrasyon testi ve 7 ilave sınır testi ile 468 test %100 başarıyla geçti.
+
+---
+
+## 4. Doğrulama ve İmzalar
+- `npm test`: **468 test, 24 suite, %100 başarılı**
+- `npx tsc --noEmit`: **0 derleme hatası**
+- Git Commit: `v0.5.2` adayı
