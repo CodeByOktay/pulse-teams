@@ -4,11 +4,23 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { logActivity } from "@/lib/activity-logger";
+import { logActivity, type PrismaTransactionClient } from "@/lib/activity-logger";
 import { isCompletionTransition } from "@/lib/automation-logic";
 import { triggerUnblockedDependencies } from "@/lib/dependency-automation";
 import { isProposalStale } from "@/lib/ai-proposal-logic";
 import { createProposalForResponse, loadTaskProposals } from "@/lib/ai/proposal-service";
+
+const PROPOSAL_NOT_PENDING_MESSAGE = "Bu öneri artık geçerli değil.";
+const STATE_NOT_IN_PROJECT_MESSAGE = "Seçilen durum bu projeye ait değil.";
+
+async function requireUserId(): Promise<string> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  return session.user.id;
+}
 
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
@@ -28,11 +40,46 @@ function revalidateProjectViews(projectId: string) {
   revalidatePath(`/projects/${projectId}/backlog`);
 }
 
-export async function generateProposalForResponse(responseId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
+// Atomik PENDING -> APPROVED/REJECTED geçişi; eşzamanlı ikinci istek hata alır.
+async function claimPendingProposal(
+  tx: PrismaTransactionClient,
+  proposalId: string,
+  status: "APPROVED" | "REJECTED",
+  reviewerId: string,
+) {
+  const claimed = await tx.agentProposal.updateMany({
+    where: { id: proposalId, status: "PENDING" },
+    data: { status, reviewedById: reviewerId, reviewedAt: new Date() },
+  });
+
+  if (claimed.count === 0) {
+    throw new Error(PROPOSAL_NOT_PENDING_MESSAGE);
   }
+}
+
+async function hasProposalGoneStale(
+  proposal: { createdAt: Date },
+  task: { id: string; stateId: string },
+  targetStateId: string,
+): Promise<boolean> {
+  if (isProposalStale(task.stateId, targetStateId)) {
+    return true;
+  }
+
+  const stateChangedSince = await prisma.activity.findFirst({
+    where: {
+      taskId: task.id,
+      type: "TASK_STATE_CHANGED",
+      createdAt: { gt: proposal.createdAt },
+    },
+    select: { id: true },
+  });
+
+  return stateChangedSince !== null;
+}
+
+export async function generateProposalForResponse(responseId: string) {
+  const userId = await requireUserId();
 
   const response = await prisma.progressResponse.findUnique({
     where: { id: responseId },
@@ -44,7 +91,7 @@ export async function generateProposalForResponse(responseId: string) {
   }
 
   const projectId = response.request.projectId;
-  await requireMembership(projectId, session.user.id);
+  await requireMembership(projectId, userId);
 
   const proposal = await createProposalForResponse(responseId);
   if (!proposal) {
@@ -57,23 +104,23 @@ export async function generateProposalForResponse(responseId: string) {
 }
 
 export async function approveProposal(proposalId: string, overrideStateId?: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
-
-  const reviewerId = session.user.id;
+  const reviewerId = await requireUserId();
 
   const proposal = await prisma.agentProposal.findUnique({
     where: { id: proposalId },
-    include: {
+    select: {
+      status: true,
+      suggestedStateId: true,
+      suggestedGroup: true,
+      summary: true,
+      createdAt: true,
       task: {
         select: {
           id: true,
           title: true,
           projectId: true,
           stateId: true,
-          state: { select: { id: true, name: true, group: true } },
+          state: { select: { name: true, group: true } },
         },
       },
     },
@@ -87,16 +134,17 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
   await requireMembership(task.projectId, reviewerId);
 
   if (proposal.status !== "PENDING") {
-    throw new Error("Bu öneri artık geçerli değil.");
+    throw new Error(PROPOSAL_NOT_PENDING_MESSAGE);
   }
 
+  let overrideState: { id: string; name: string; group: string } | null = null;
   if (overrideStateId !== undefined) {
-    const overrideState = await prisma.state.findFirst({
+    overrideState = await prisma.state.findFirst({
       where: { id: overrideStateId, projectId: task.projectId },
-      select: { id: true },
+      select: { id: true, name: true, group: true },
     });
     if (!overrideState) {
-      throw new Error("Seçilen durum bu projeye ait değil.");
+      throw new Error(STATE_NOT_IN_PROJECT_MESSAGE);
     }
   }
 
@@ -105,16 +153,7 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
   // Açık bir override varsa insanın seçimi kazanır; bayatlık kontrolü yalnızca override yokken yapılır.
   // Hedef durumu olmayan öneriler (ör. yalnızca engel bildirimi) durum değişikliği içermez, bayatlamaz.
   if (overrideStateId === undefined && target !== null) {
-    const stateChangedSince = await prisma.activity.findFirst({
-      where: {
-        taskId: task.id,
-        type: "TASK_STATE_CHANGED",
-        createdAt: { gt: proposal.createdAt },
-      },
-      select: { id: true },
-    });
-
-    if (isProposalStale(task.stateId, target) || stateChangedSince !== null) {
+    if (await hasProposalGoneStale(proposal, task, target)) {
       await prisma.agentProposal.updateMany({
         where: { id: proposalId, status: "PENDING" },
         data: { status: "STALE" },
@@ -124,31 +163,29 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
     }
   }
 
-  const { moved, completed } = await prisma.$transaction(async (tx) => {
-    const claimed = await tx.agentProposal.updateMany({
-      where: { id: proposalId, status: "PENDING" },
-      data: { status: "APPROVED", reviewedById: reviewerId, reviewedAt: new Date() },
-    });
+  // Görev zaten hedef durumdaysa taşıma yoktur; override durumu yukarıda okundu, tekrar sorgulanmaz.
+  const moveTargetId = target && target !== task.stateId ? target : null;
+  const targetState =
+    moveTargetId === null
+      ? null
+      : (overrideState ??
+        (await prisma.state.findUnique({
+          where: { id: moveTargetId },
+          select: { id: true, name: true, group: true },
+        })));
+  if (moveTargetId !== null && !targetState) {
+    throw new Error(STATE_NOT_IN_PROJECT_MESSAGE);
+  }
 
-    if (claimed.count === 0) {
-      throw new Error("Bu öneri artık geçerli değil.");
-    }
+  const completed =
+    targetState !== null && isCompletionTransition(task.state.group, targetState.group);
 
-    let moved = false;
-    let completed = false;
+  await prisma.$transaction(async (tx) => {
+    await claimPendingProposal(tx, proposalId, "APPROVED", reviewerId);
 
-    if (target && target !== task.stateId) {
-      const targetState = await tx.state.findUnique({
-        where: { id: target },
-        select: { id: true, name: true, group: true },
-      });
-
-      if (!targetState) {
-        throw new Error("Seçilen durum bu projeye ait değil.");
-      }
-
+    if (targetState) {
       const lastTask = await tx.task.findFirst({
-        where: { stateId: target },
+        where: { stateId: targetState.id },
         orderBy: { sortOrder: "desc" },
         select: { sortOrder: true },
       });
@@ -156,7 +193,7 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
       await tx.task.update({
         where: { id: task.id },
         data: {
-          stateId: target,
+          stateId: targetState.id,
           sortOrder: lastTask ? lastTask.sortOrder + 10000 : 65535,
         },
       });
@@ -169,16 +206,13 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
         newValue: targetState.name,
       });
 
-      if (isCompletionTransition(task.state.group, targetState.group)) {
+      if (completed) {
         await logActivity(tx, {
           type: "TASK_COMPLETED",
           taskId: task.id,
           actorId: reviewerId,
         });
-        completed = true;
       }
-
-      moved = true;
     }
 
     await logActivity(tx, {
@@ -193,8 +227,6 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
         overridden: overrideStateId !== undefined && overrideStateId !== proposal.suggestedStateId,
       },
     });
-
-    return { moved, completed };
   });
 
   // Transaction sonrası otomasyon: hata yakalama fonksiyonun içinde, onay işlemini etkilemez.
@@ -204,20 +236,15 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
 
   revalidateProjectViews(task.projectId);
 
-  return { moved };
+  return { moved: targetState !== null };
 }
 
 export async function rejectProposal(proposalId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
-
-  const reviewerId = session.user.id;
+  const reviewerId = await requireUserId();
 
   const proposal = await prisma.agentProposal.findUnique({
     where: { id: proposalId },
-    select: { id: true, taskId: true, task: { select: { projectId: true } } },
+    select: { taskId: true, task: { select: { projectId: true } } },
   });
 
   if (!proposal) {
@@ -227,14 +254,7 @@ export async function rejectProposal(proposalId: string) {
   await requireMembership(proposal.task.projectId, reviewerId);
 
   await prisma.$transaction(async (tx) => {
-    const claimed = await tx.agentProposal.updateMany({
-      where: { id: proposalId, status: "PENDING" },
-      data: { status: "REJECTED", reviewedById: reviewerId, reviewedAt: new Date() },
-    });
-
-    if (claimed.count === 0) {
-      throw new Error("Bu öneri artık geçerli değil.");
-    }
+    await claimPendingProposal(tx, proposalId, "REJECTED", reviewerId);
 
     await logActivity(tx, {
       type: "AI_SUGGESTION_REJECTED",
@@ -248,21 +268,18 @@ export async function rejectProposal(proposalId: string) {
 }
 
 export async function getTaskProposals(taskId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { projectId: true, stateId: true },
+    select: { projectId: true },
   });
 
   if (!task) {
     throw new Error("Görev bulunamadı.");
   }
 
-  await requireMembership(task.projectId, session.user.id);
+  await requireMembership(task.projectId, userId);
 
   return loadTaskProposals(taskId);
 }

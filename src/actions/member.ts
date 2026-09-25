@@ -11,6 +11,12 @@ import { sendInviteMemberEmail } from "@/lib/mail";
 // Helpers
 // ────────────────────────────────────────────────────────────
 
+async function requireSession(message = "Oturum açmanız gerekiyor.") {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) throw new Error(message);
+  return session;
+}
+
 async function requireMembership(projectId: string, userId: string) {
   const member = await prisma.projectMember.findUnique({
     where: { projectId_userId: { projectId, userId } },
@@ -25,6 +31,20 @@ async function requireAdmin(projectId: string, userId: string) {
   return member;
 }
 
+async function requireAdminSession(projectId: string) {
+  const session = await requireSession();
+  await requireAdmin(projectId, session.user.id);
+  return session;
+}
+
+async function assertNotProjectOwner(projectId: string, userId: string, message: string) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true },
+  });
+  if (project?.ownerId === userId) throw new Error(message);
+}
+
 // ────────────────────────────────────────────────────────────
 // inviteMember
 // ────────────────────────────────────────────────────────────
@@ -34,29 +54,22 @@ export async function inviteMember(
   email: string,
   role: "MEMBER" | "ADMIN" = "MEMBER"
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) throw new Error("Oturum açmanız gerekiyor.");
-
-  await requireAdmin(projectId, session.user.id);
+  const session = await requireAdminSession(projectId);
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  // Hedef kullanıcı zaten üye mi?
-  const targetUser = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-  });
-
-  if (targetUser) {
-    const existingMember = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: targetUser.id } },
-    });
-    if (existingMember) throw new Error("Bu kullanıcı zaten projenin üyesi.");
-  }
-
-  // Bekleyen davet var mı?
-  const existingInvite = await prisma.projectInvite.findFirst({
-    where: { projectId, email: normalizedEmail, status: "PENDING" },
-  });
+  // Hedef kullanıcı zaten üye mi? Bekleyen davet var mı?
+  const [existingMember, existingInvite] = await Promise.all([
+    prisma.projectMember.findFirst({
+      where: { projectId, user: { email: normalizedEmail } },
+      select: { id: true },
+    }),
+    prisma.projectInvite.findFirst({
+      where: { projectId, email: normalizedEmail, status: "PENDING" },
+      select: { id: true },
+    }),
+  ]);
+  if (existingMember) throw new Error("Bu kullanıcı zaten projenin üyesi.");
   if (existingInvite) throw new Error("Bu e-posta adresine zaten bekleyen bir davet gönderilmiş.");
 
   // Token üret, 7 gün geçerli
@@ -92,29 +105,33 @@ export async function inviteMember(
   return invite;
 }
 
-
 // ────────────────────────────────────────────────────────────
 // acceptInvite
 // ────────────────────────────────────────────────────────────
 
 export async function acceptInvite(token: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) throw new Error("Daveti kabul etmek için oturum açmanız gerekiyor.");
+  const session = await requireSession("Daveti kabul etmek için oturum açmanız gerekiyor.");
+  const userId = session.user.id;
 
   const invite = await prisma.projectInvite.findUnique({
     where: { token },
-    include: { project: { select: { id: true, name: true } } },
+    include: { project: { select: { name: true } } },
   });
 
   if (!invite) throw new Error("Davet bulunamadı.");
   if (invite.status === "ACCEPTED") throw new Error("Bu davet daha önce kabul edilmiş.");
   if (invite.status === "EXPIRED" || invite.expiresAt < new Date()) {
-    await prisma.projectInvite.update({ where: { token }, data: { status: "EXPIRED" } });
+    if (invite.status !== "EXPIRED") {
+      await prisma.projectInvite.update({ where: { token }, data: { status: "EXPIRED" } });
+    }
     throw new Error("Bu davet süresi dolmuş.");
   }
 
   // E-posta eşleşiyor mu?
-  const sessionUser = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const sessionUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
   if (!sessionUser) throw new Error("Kullanıcı bulunamadı.");
 
   if (sessionUser.email.toLowerCase() !== invite.email.toLowerCase()) {
@@ -125,7 +142,8 @@ export async function acceptInvite(token: string) {
 
   // Zaten üye mi?
   const existingMember = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId: invite.projectId, userId: session.user.id } },
+    where: { projectId_userId: { projectId: invite.projectId, userId } },
+    select: { id: true },
   });
   if (existingMember) {
     await prisma.projectInvite.update({ where: { token }, data: { status: "ACCEPTED" } });
@@ -136,7 +154,7 @@ export async function acceptInvite(token: string) {
     prisma.projectMember.create({
       data: {
         projectId: invite.projectId,
-        userId: session.user.id,
+        userId,
         role: invite.role,
       },
     }),
@@ -155,19 +173,10 @@ export async function acceptInvite(token: string) {
 // ────────────────────────────────────────────────────────────
 
 export async function removeMember(projectId: string, targetUserId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) throw new Error("Oturum açmanız gerekiyor.");
-
-  await requireAdmin(projectId, session.user.id);
+  await requireAdminSession(projectId);
 
   // Proje sahibini çıkartamazsın
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { ownerId: true },
-  });
-  if (project?.ownerId === targetUserId) {
-    throw new Error("Proje sahibi projeden çıkartılamaz.");
-  }
+  await assertNotProjectOwner(projectId, targetUserId, "Proje sahibi projeden çıkartılamaz.");
 
   await prisma.projectMember.delete({
     where: { projectId_userId: { projectId, userId: targetUserId } },
@@ -185,18 +194,9 @@ export async function changeMemberRole(
   targetUserId: string,
   newRole: "MEMBER" | "ADMIN"
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) throw new Error("Oturum açmanız gerekiyor.");
+  await requireAdminSession(projectId);
 
-  await requireAdmin(projectId, session.user.id);
-
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { ownerId: true },
-  });
-  if (project?.ownerId === targetUserId) {
-    throw new Error("Proje sahibinin rolü değiştirilemez.");
-  }
+  await assertNotProjectOwner(projectId, targetUserId, "Proje sahibinin rolü değiştirilemez.");
 
   await prisma.projectMember.update({
     where: { projectId_userId: { projectId, userId: targetUserId } },
@@ -211,12 +211,9 @@ export async function changeMemberRole(
 // ────────────────────────────────────────────────────────────
 
 export async function cancelInvite(projectId: string, inviteId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) throw new Error("Oturum açmanız gerekiyor.");
+  await requireAdminSession(projectId);
 
-  await requireAdmin(projectId, session.user.id);
-
-  await prisma.projectInvite.delete({ where: { id: inviteId } });
+  await prisma.projectInvite.delete({ where: { id: inviteId, projectId } });
   revalidatePath(`/projects/${projectId}/settings`);
 }
 
@@ -225,8 +222,7 @@ export async function cancelInvite(projectId: string, inviteId: string) {
 // ────────────────────────────────────────────────────────────
 
 export async function getProjectMembers(projectId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) throw new Error("Oturum açmanız gerekiyor.");
+  const session = await requireSession();
 
   await requireMembership(projectId, session.user.id);
 

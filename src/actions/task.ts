@@ -5,10 +5,10 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getNextSequenceId } from "@/lib/sequence";
-import { logActivity } from "@/lib/activity-logger";
+import { logActivity, type PrismaTransactionClient } from "@/lib/activity-logger";
 import { isCompletionTransition } from "@/lib/automation-logic";
 import { triggerUnblockedDependencies } from "@/lib/dependency-automation";
-import type { Priority } from "@prisma/client";
+import type { Prisma, Priority } from "@prisma/client";
 
 const PRIORITY_LABEL_TR: Record<Priority, string> = {
   NONE: "Yok",
@@ -17,6 +17,14 @@ const PRIORITY_LABEL_TR: Record<Priority, string> = {
   HIGH: "Yüksek",
   URGENT: "Acil",
 };
+
+const relatedTaskSelect = {
+  id: true,
+  sequenceId: true,
+  title: true,
+  state: { select: { name: true, color: true } },
+  project: { select: { identifier: true } },
+} satisfies Prisma.TaskSelect;
 
 function dateOnly(date: Date | null | undefined): string | null {
   if (!date) return null;
@@ -28,6 +36,15 @@ function datesDiffer(a: Date | null, b: Date | null | undefined): boolean {
   const aTime = a ? a.getTime() : null;
   const bTime = b ? b.getTime() : null;
   return aTime !== bTime;
+}
+
+async function requireUserId(): Promise<string> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  return session.user.id;
 }
 
 async function requireMembership(projectId: string, userId: string) {
@@ -42,6 +59,28 @@ async function requireMembership(projectId: string, userId: string) {
   return membership;
 }
 
+async function nextSortOrder(tx: PrismaTransactionClient, stateId: string): Promise<number> {
+  const lastTask = await tx.task.findFirst({
+    where: { stateId },
+    orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
+  });
+
+  return lastTask ? lastTask.sortOrder + 10000 : 65535;
+}
+
+async function resolveDefaultStateId(projectId: string): Promise<string> {
+  const defaultState = await prisma.state.findFirst({
+    where: { projectId, isDefault: true },
+    select: { id: true },
+  });
+  if (!defaultState) {
+    throw new Error("Projede varsayılan bir state bulunamadı.");
+  }
+
+  return defaultState.id;
+}
+
 export type CreateTaskInput = {
   projectId: string;
   title: string;
@@ -53,39 +92,19 @@ export type CreateTaskInput = {
 };
 
 export async function createTask(input: CreateTaskInput) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
-  await requireMembership(input.projectId, session.user.id);
+  await requireMembership(input.projectId, userId);
 
   if (!input.title.trim()) {
     throw new Error("Görev başlığı zorunludur.");
   }
 
+  const stateId = input.stateId || (await resolveDefaultStateId(input.projectId));
+
   const task = await prisma.$transaction(async (tx) => {
-    let stateId = input.stateId;
-
-    if (!stateId) {
-      const defaultState = await tx.state.findFirst({
-        where: { projectId: input.projectId, isDefault: true },
-      });
-      if (!defaultState) {
-        throw new Error("Projede varsayılan bir state bulunamadı.");
-      }
-      stateId = defaultState.id;
-    }
-
     const sequenceId = await getNextSequenceId(input.projectId, tx);
-
-    const lastTask = await tx.task.findFirst({
-      where: { stateId },
-      orderBy: { sortOrder: "desc" },
-      select: { sortOrder: true },
-    });
-
-    const sortOrder = lastTask ? lastTask.sortOrder + 10000 : 65535;
+    const sortOrder = await nextSortOrder(tx, stateId);
 
     const created = await tx.task.create({
       data: {
@@ -104,7 +123,7 @@ export async function createTask(input: CreateTaskInput) {
     await logActivity(tx, {
       type: "TASK_CREATED",
       taskId: created.id,
-      actorId: session.user.id,
+      actorId: userId,
     });
 
     return created;
@@ -125,26 +144,32 @@ export type UpdateTaskInput = {
 };
 
 export async function updateTask(taskId: string, data: UpdateTaskInput) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const actorId = await requireUserId();
 
   const existingTask = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { state: true },
+    include: { state: { select: { name: true, group: true } } },
   });
   if (!existingTask) {
     throw new Error("Görev bulunamadı.");
   }
 
-  await requireMembership(existingTask.projectId, session.user.id);
+  await requireMembership(existingTask.projectId, actorId);
 
-  const actorId = session.user.id;
+  const newStateId =
+    data.stateId !== undefined && data.stateId !== existingTask.stateId ? data.stateId : null;
+  const newState =
+    newStateId !== null
+      ? await prisma.state.findUnique({
+          where: { id: newStateId },
+          select: { name: true, group: true },
+        })
+      : null;
+  const isCompleted =
+    newState !== null && isCompletionTransition(existingTask.state.group, newState.group);
 
-  const { task, isCompleted } = await prisma.$transaction(async (tx) => {
+  const task = await prisma.$transaction(async (tx) => {
     const updateData: Record<string, unknown> = {};
-    let isCompleted = false;
 
     if (data.title !== undefined) updateData.title = data.title.trim();
     if (data.description !== undefined) updateData.description = data.description;
@@ -152,21 +177,9 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
     if (data.startDate !== undefined) updateData.startDate = data.startDate;
     if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
 
-    let newStateName: string | null = null;
-    if (data.stateId !== undefined && data.stateId !== existingTask.stateId) {
-      const lastTask = await tx.task.findFirst({
-        where: { stateId: data.stateId },
-        orderBy: { sortOrder: "desc" },
-        select: { sortOrder: true },
-      });
-
-      updateData.stateId = data.stateId;
-      updateData.sortOrder = lastTask ? lastTask.sortOrder + 10000 : 65535;
-
-      const newState = await tx.state.findUnique({ where: { id: data.stateId } });
-      newStateName = newState?.name ?? null;
-      isCompleted =
-        newState !== null && isCompletionTransition(existingTask.state.group, newState.group);
+    if (newStateId !== null) {
+      updateData.stateId = newStateId;
+      updateData.sortOrder = await nextSortOrder(tx, newStateId);
     }
 
     const updated = await tx.task.update({
@@ -194,13 +207,13 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
       });
     }
 
-    if (newStateName !== null) {
+    if (newState !== null) {
       await logActivity(tx, {
         type: "TASK_STATE_CHANGED",
         taskId,
         actorId,
         oldValue: existingTask.state.name,
-        newValue: newStateName,
+        newValue: newState.name,
       });
     }
 
@@ -242,7 +255,7 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
       });
     }
 
-    return { task: updated, isCompleted };
+    return updated;
   });
 
   // Transaction sonrası otomasyon: hata yakalama fonksiyonun içinde, updateTask'ı etkilemez.
@@ -256,17 +269,17 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
 }
 
 export async function deleteTask(taskId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
-  const existingTask = await prisma.task.findUnique({ where: { id: taskId } });
+  const existingTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { projectId: true },
+  });
   if (!existingTask) {
     throw new Error("Görev bulunamadı.");
   }
 
-  await requireMembership(existingTask.projectId, session.user.id);
+  await requireMembership(existingTask.projectId, userId);
 
   await prisma.task.delete({ where: { id: taskId } });
 
@@ -274,10 +287,7 @@ export async function deleteTask(taskId: string) {
 }
 
 export async function getTaskDetail(taskId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -292,31 +302,11 @@ export async function getTaskDetail(taskId: string) {
       },
       sourceRelations: {
         orderBy: { createdAt: "asc" },
-        include: {
-          targetTask: {
-            select: {
-              id: true,
-              sequenceId: true,
-              title: true,
-              state: { select: { name: true, color: true } },
-              project: { select: { identifier: true } },
-            },
-          },
-        },
+        include: { targetTask: { select: relatedTaskSelect } },
       },
       targetRelations: {
         orderBy: { createdAt: "asc" },
-        include: {
-          sourceTask: {
-            select: {
-              id: true,
-              sequenceId: true,
-              title: true,
-              state: { select: { name: true, color: true } },
-              project: { select: { identifier: true } },
-            },
-          },
-        },
+        include: { sourceTask: { select: relatedTaskSelect } },
       },
     },
   });
@@ -325,7 +315,7 @@ export async function getTaskDetail(taskId: string) {
     throw new Error("Görev bulunamadı.");
   }
 
-  await requireMembership(task.projectId, session.user.id);
+  await requireMembership(task.projectId, userId);
 
   return task;
 }
@@ -335,6 +325,20 @@ export type BulkUpdateTasksInput = {
   priority?: Priority;
   assigneeId?: string;
 };
+
+function assertBulkTaskCount(
+  taskIds: string[],
+  limit: number,
+  verb: "güncellenebilir" | "silinebilir",
+) {
+  if (taskIds.length === 0) {
+    throw new Error("En az bir görev seçilmelidir.");
+  }
+
+  if (taskIds.length > limit) {
+    throw new Error(`Aynı anda en fazla ${limit} görev ${verb}.`);
+  }
+}
 
 async function requireSameProjectTasks(taskIds: string[], userId: string) {
   const tasks = await prisma.task.findMany({
@@ -358,39 +362,25 @@ async function requireSameProjectTasks(taskIds: string[], userId: string) {
 }
 
 export async function bulkUpdateTasks(taskIds: string[], data: BulkUpdateTasksInput) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
-  if (taskIds.length === 0) {
-    throw new Error("En az bir görev seçilmelidir.");
-  }
+  assertBulkTaskCount(taskIds, 100, "güncellenebilir");
 
-  if (taskIds.length > 100) {
-    throw new Error("Aynı anda en fazla 100 görev güncellenebilir.");
-  }
+  const projectId = await requireSameProjectTasks(taskIds, userId);
 
-  const projectId = await requireSameProjectTasks(taskIds, session.user.id);
+  const { stateId, priority, assigneeId } = data;
 
   await prisma.$transaction(async (tx) => {
-    if (data.stateId !== undefined) {
+    if (stateId !== undefined || priority !== undefined) {
       await tx.task.updateMany({
         where: { id: { in: taskIds } },
-        data: { stateId: data.stateId },
+        data: { stateId, priority },
       });
     }
 
-    if (data.priority !== undefined) {
-      await tx.task.updateMany({
-        where: { id: { in: taskIds } },
-        data: { priority: data.priority },
-      });
-    }
-
-    if (data.assigneeId !== undefined) {
+    if (assigneeId !== undefined) {
       await tx.taskAssignee.createMany({
-        data: taskIds.map((taskId) => ({ taskId, userId: data.assigneeId as string })),
+        data: taskIds.map((taskId) => ({ taskId, userId: assigneeId })),
         skipDuplicates: true,
       });
     }
@@ -403,20 +393,11 @@ export async function bulkUpdateTasks(taskIds: string[], data: BulkUpdateTasksIn
 }
 
 export async function bulkDeleteTasks(taskIds: string[]) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
-  if (taskIds.length === 0) {
-    throw new Error("En az bir görev seçilmelidir.");
-  }
+  assertBulkTaskCount(taskIds, 50, "silinebilir");
 
-  if (taskIds.length > 50) {
-    throw new Error("Aynı anda en fazla 50 görev silinebilir.");
-  }
-
-  const projectId = await requireSameProjectTasks(taskIds, session.user.id);
+  const projectId = await requireSameProjectTasks(taskIds, userId);
 
   const { count } = await prisma.task.deleteMany({ where: { id: { in: taskIds } } });
 
@@ -427,20 +408,17 @@ export async function bulkDeleteTasks(taskIds: string[]) {
 }
 
 export async function reorderTask(taskId: string, newStateId: string, newSortOrder: number) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
   const existingTask = await prisma.task.findUnique({
     where: { id: taskId },
-    include: { state: true },
+    select: { projectId: true, state: { select: { group: true } } },
   });
   if (!existingTask) {
     throw new Error("Görev bulunamadı.");
   }
 
-  await requireMembership(existingTask.projectId, session.user.id);
+  await requireMembership(existingTask.projectId, userId);
 
   const task = await prisma.task.update({
     where: { id: taskId },
@@ -453,14 +431,9 @@ export async function reorderTask(taskId: string, newStateId: string, newSortOrd
     await logActivity(prisma, {
       type: "TASK_COMPLETED",
       taskId,
-      actorId: session.user.id,
+      actorId: userId,
     });
-    await triggerUnblockedDependencies(
-      taskId,
-      task.title,
-      existingTask.projectId,
-      session.user.id,
-    );
+    await triggerUnblockedDependencies(taskId, task.title, existingTask.projectId, userId);
   }
 
   revalidatePath(`/projects/${existingTask.projectId}/board`);

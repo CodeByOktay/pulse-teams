@@ -17,6 +17,15 @@ import {
 } from "@/lib/relation-logic";
 import type { Prisma, RelationType } from "@prisma/client";
 
+async function requireUserId(): Promise<string> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error("Bu işlem için giriş yapmalısınız.");
+  }
+
+  return session.user.id;
+}
+
 async function requireMembership(projectId: string, userId: string) {
   const membership = await prisma.projectMember.findUnique({
     where: { projectId_userId: { projectId, userId } },
@@ -40,10 +49,7 @@ export async function addTaskRelation(
   targetTaskId: string,
   type: RelationType,
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
   if (isSelfRelation(sourceTaskId, targetTaskId)) {
     throw new Error("Bir görev kendisiyle ilişkilendirilemez.");
@@ -72,7 +78,7 @@ export async function addTaskRelation(
 
   // projectId istemciden değil, doğrulanmış görev kaydından alınır.
   const projectId = sourceTask.projectId;
-  await requireMembership(projectId, session.user.id);
+  await requireMembership(projectId, userId);
 
   const projectRelations = await prisma.taskRelation.findMany({
     where: { sourceTask: { projectId } },
@@ -103,7 +109,7 @@ export async function addTaskRelation(
     await logActivity(tx, {
       type: "TASK_RELATION_ADDED",
       taskId: sourceTaskId,
-      actorId: session.user.id,
+      actorId: userId,
       metadata: { targetIdentifier, type },
     });
 
@@ -116,15 +122,14 @@ export async function addTaskRelation(
 }
 
 export async function removeTaskRelation(relationId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
   const relation = await prisma.taskRelation.findUnique({
     where: { id: relationId },
-    include: {
-      sourceTask: { select: { id: true, projectId: true } },
+    select: {
+      sourceTaskId: true,
+      type: true,
+      sourceTask: { select: { projectId: true } },
       targetTask: {
         select: { sequenceId: true, project: { select: { identifier: true } } },
       },
@@ -136,7 +141,7 @@ export async function removeTaskRelation(relationId: string) {
   }
 
   const projectId = relation.sourceTask.projectId;
-  await requireMembership(projectId, session.user.id);
+  await requireMembership(projectId, userId);
 
   const targetIdentifier = formatTaskIdentifier(
     relation.targetTask.project.identifier,
@@ -149,7 +154,7 @@ export async function removeTaskRelation(relationId: string) {
     await logActivity(tx, {
       type: "TASK_RELATION_REMOVED",
       taskId: relation.sourceTaskId,
-      actorId: session.user.id,
+      actorId: userId,
       metadata: { targetIdentifier, type: relation.type },
     });
   });
@@ -162,14 +167,11 @@ export async function searchTasksForRelation(
   currentTaskId: string,
   query: string,
 ): Promise<RelatedTaskSummary[]> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const userId = await requireUserId();
 
   const currentTask = await prisma.task.findUnique({
     where: { id: currentTaskId },
-    select: { id: true, projectId: true },
+    select: { projectId: true },
   });
 
   if (!currentTask) {
@@ -180,7 +182,7 @@ export async function searchTasksForRelation(
     throw new Error("Görev bu projeye ait değil.");
   }
 
-  await requireMembership(currentTask.projectId, session.user.id);
+  await requireMembership(currentTask.projectId, userId);
 
   const existingRelations = await prisma.taskRelation.findMany({
     where: { OR: [{ sourceTaskId: currentTaskId }, { targetTaskId: currentTaskId }] },
@@ -188,8 +190,10 @@ export async function searchTasksForRelation(
   });
 
   const excludeIds = [
-    currentTaskId,
-    ...existingRelations.flatMap((relation) => [relation.sourceTaskId, relation.targetTaskId]),
+    ...new Set([
+      currentTaskId,
+      ...existingRelations.flatMap((relation) => [relation.sourceTaskId, relation.targetTaskId]),
+    ]),
   ];
 
   const normalized = query.trim();
