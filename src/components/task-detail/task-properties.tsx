@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateTask } from "@/actions/task";
+import { updateTask, type UpdateTaskInput } from "@/actions/task";
 import { LabelPicker, type LabelOption } from "@/components/labels/label-picker";
 import { AssigneePicker, type AssigneeOption } from "@/components/assignees/assignee-picker";
 import { LabelBadge } from "@/components/labels/label-badge";
@@ -10,19 +10,36 @@ import { Avatar } from "@/components/assignees/avatar";
 import { StatusPicker } from "@/components/task-detail/status-picker";
 import { PriorityPicker } from "@/components/task-detail/priority-picker";
 import { DateField } from "@/components/task-detail/date-field";
-import { formatTaskDate, resolveTaskSprintBadge, type TaskSprintInfo } from "@/lib/task-detail-ux";
+import {
+  formatTaskDate,
+  resolveTaskSprintBadge,
+  type TaskSprintBadge,
+  type TaskSprintInfo,
+} from "@/lib/task-detail-ux";
 import type { Priority } from "@prisma/client";
 
 export type StateOption = { id: string; name: string; color: string };
 
-const SPRINT_STATUS_BADGE: Record<string, string> = {
+const SPRINT_BADGE_BASE_CLASS =
+  "inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium";
+
+const SPRINT_BADGE_TONE: Record<string, string> = {
   ACTIVE: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
   DRAFT: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
+  BACKLOG: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
 };
 
 function toDateInputValue(iso: string | null): string {
   if (!iso) return "";
   return iso.slice(0, 10);
+}
+
+function toDateOrNull(value: string): Date | null {
+  return value ? new Date(value) : null;
+}
+
+function toDisplayIso(value: string): string | null {
+  return value ? `${value}T12:00:00.000Z` : null;
 }
 
 export function TaskProperties({
@@ -63,20 +80,21 @@ export function TaskProperties({
   const [dueDateValue, setDueDateValue] = useState(toDateInputValue(dueDate));
   const [, startTransition] = useTransition();
 
-  function handleStartDateChange(value: string) {
-    setStartDateValue(value);
+  function saveDate(data: UpdateTaskInput) {
     startTransition(async () => {
-      await updateTask(taskId, { startDate: value ? new Date(value) : null });
+      await updateTask(taskId, data);
       router.refresh();
     });
   }
 
+  function handleStartDateChange(value: string) {
+    setStartDateValue(value);
+    saveDate({ startDate: toDateOrNull(value) });
+  }
+
   function handleDueDateChange(value: string) {
     setDueDateValue(value);
-    startTransition(async () => {
-      await updateTask(taskId, { dueDate: value ? new Date(value) : null });
-      router.refresh();
-    });
+    saveDate({ dueDate: toDateOrNull(value) });
   }
 
   const selectedLabels = availableLabels.filter((label) => selectedLabelIds.includes(label.id));
@@ -137,23 +155,13 @@ export function TaskProperties({
       </PropertyRow>
 
       <PropertyRow label="Sprint">
-        {sprintBadge.kind === "backlog" ? (
-          <span className="inline-flex w-fit items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-            Backlog
-          </span>
-        ) : (
-          <span
-            className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${SPRINT_STATUS_BADGE[sprintBadge.status] ?? SPRINT_STATUS_BADGE.DRAFT}`}
-          >
-            {sprintBadge.name}
-          </span>
-        )}
+        <SprintBadge badge={sprintBadge} />
       </PropertyRow>
 
       <PropertyRow label="Başlangıç Tarihi">
         <DateField
           value={startDateValue}
-          displayIso={startDateValue ? `${startDateValue}T12:00:00.000Z` : null}
+          displayIso={toDisplayIso(startDateValue)}
           placeholder="Tarih Belirtilmedi"
           onChange={handleStartDateChange}
         />
@@ -162,7 +170,7 @@ export function TaskProperties({
       <PropertyRow label="Bitiş Tarihi">
         <DateField
           value={dueDateValue}
-          displayIso={dueDateValue ? `${dueDateValue}T12:00:00.000Z` : null}
+          displayIso={toDisplayIso(dueDateValue)}
           placeholder="Tarih Belirtilmedi"
           onChange={handleDueDateChange}
         />
@@ -173,6 +181,15 @@ export function TaskProperties({
       </PropertyRow>
     </div>
   );
+}
+
+function SprintBadge({ badge }: { badge: TaskSprintBadge }) {
+  const { label, tone } =
+    badge.kind === "backlog"
+      ? { label: "Backlog", tone: SPRINT_BADGE_TONE.BACKLOG }
+      : { label: badge.name, tone: SPRINT_BADGE_TONE[badge.status] ?? SPRINT_BADGE_TONE.DRAFT };
+
+  return <span className={`${SPRINT_BADGE_BASE_CLASS} ${tone}`}>{label}</span>;
 }
 
 function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, FilterX } from "lucide-react";
 import {
@@ -24,6 +24,8 @@ import type { LabelOption } from "@/components/labels/label-picker";
 import type { AssigneeOption } from "@/components/assignees/assignee-picker";
 import type { BoardState, BoardTask } from "@/types/board";
 
+const POINTER_SENSOR_OPTIONS = { activationConstraint: { distance: 5 } };
+
 function calculateNewSortOrder(tasks: BoardTask[], overIndex: number): number {
   if (tasks.length === 0) return 65535;
   if (overIndex >= tasks.length) return tasks[tasks.length - 1].sortOrder + 10000;
@@ -31,6 +33,41 @@ function calculateNewSortOrder(tasks: BoardTask[], overIndex: number): number {
   const above = tasks[overIndex - 1].sortOrder;
   const below = tasks[overIndex].sortOrder;
   return (above + below) / 2;
+}
+
+function findColumnId(columns: BoardState[], id: string): string | undefined {
+  if (columns.some((column) => column.id === id)) return id;
+  return columns.find((column) => column.tasks.some((task) => task.id === id))?.id;
+}
+
+function moveTaskAcrossColumns(
+  columns: BoardState[],
+  activeId: string,
+  activeColumnId: string,
+  overColumnId: string,
+  overId: string,
+): BoardState[] {
+  const activeColumn = columns.find((c) => c.id === activeColumnId);
+  const overColumn = columns.find((c) => c.id === overColumnId);
+  if (!activeColumn || !overColumn) return columns;
+
+  const activeTaskItem = activeColumn.tasks.find((t) => t.id === activeId);
+  if (!activeTaskItem) return columns;
+
+  const overTaskIndex = overColumn.tasks.findIndex((t) => t.id === overId);
+  const insertIndex = overTaskIndex >= 0 ? overTaskIndex : overColumn.tasks.length;
+
+  return columns.map((column) => {
+    if (column.id === activeColumnId) {
+      return { ...column, tasks: column.tasks.filter((t) => t.id !== activeId) };
+    }
+    if (column.id === overColumnId) {
+      const newTasks = [...column.tasks];
+      newTasks.splice(insertIndex, 0, { ...activeTaskItem, stateId: overColumnId });
+      return { ...column, tasks: newTasks };
+    }
+    return column;
+  });
 }
 
 export function KanbanBoard({
@@ -50,7 +87,9 @@ export function KanbanBoard({
   totalTaskCount: number;
   isFiltered: boolean;
 }) {
+  const router = useRouter();
   const [columns, setColumns] = useState<BoardState[]>(initialStates);
+  const [syncedStates, setSyncedStates] = useState(initialStates);
   const [activeTask, setActiveTask] = useState<BoardTask | null>(null);
   const { clearAll, searchParams, setParam } = useBoardQuery();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => searchParams.get("task"));
@@ -67,24 +106,16 @@ export function KanbanBoard({
     if (searchParams.get("task")) setParam("task", nextTaskId);
   }
 
-  useEffect(() => {
+  if (syncedStates !== initialStates) {
+    setSyncedStates(initialStates);
     setColumns(initialStates);
-  }, [initialStates]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    }),
-  );
-
-  function findContainerId(id: string): string | undefined {
-    if (columns.some((column) => column.id === id)) return id;
-    return columns.find((column) => column.tasks.some((task) => task.id === id))?.id;
   }
+
+  const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR_OPTIONS));
 
   function handleDragStart(event: DragStartEvent) {
     const id = String(event.active.id);
-    const containerId = findContainerId(id);
+    const containerId = findColumnId(columns, id);
     const task = columns
       .find((column) => column.id === containerId)
       ?.tasks.find((t) => t.id === id);
@@ -97,36 +128,16 @@ export function KanbanBoard({
 
     const activeId = String(active.id);
     const overId = String(over.id);
-    const activeContainerId = findContainerId(activeId);
-    const overContainerId = findContainerId(overId);
+    const activeContainerId = findColumnId(columns, activeId);
+    const overContainerId = findColumnId(columns, overId);
 
     if (!activeContainerId || !overContainerId || activeContainerId === overContainerId) {
       return;
     }
 
-    setColumns((prev) => {
-      const activeColumn = prev.find((c) => c.id === activeContainerId);
-      const overColumn = prev.find((c) => c.id === overContainerId);
-      if (!activeColumn || !overColumn) return prev;
-
-      const activeTaskItem = activeColumn.tasks.find((t) => t.id === activeId);
-      if (!activeTaskItem) return prev;
-
-      const overTaskIndex = overColumn.tasks.findIndex((t) => t.id === overId);
-      const insertIndex = overTaskIndex >= 0 ? overTaskIndex : overColumn.tasks.length;
-
-      return prev.map((column) => {
-        if (column.id === activeContainerId) {
-          return { ...column, tasks: column.tasks.filter((t) => t.id !== activeId) };
-        }
-        if (column.id === overContainerId) {
-          const newTasks = [...column.tasks];
-          newTasks.splice(insertIndex, 0, { ...activeTaskItem, stateId: overContainerId });
-          return { ...column, tasks: newTasks };
-        }
-        return column;
-      });
-    });
+    setColumns((prev) =>
+      moveTaskAcrossColumns(prev, activeId, activeContainerId, overContainerId, overId),
+    );
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -136,8 +147,8 @@ export function KanbanBoard({
 
     const activeId = String(active.id);
     const overId = String(over.id);
-    const activeContainerId = findContainerId(activeId);
-    const overContainerId = findContainerId(overId) ?? activeContainerId;
+    const activeContainerId = findColumnId(columns, activeId);
+    const overContainerId = findColumnId(columns, overId) ?? activeContainerId;
 
     if (!activeContainerId || !overContainerId) return;
 
@@ -146,6 +157,7 @@ export function KanbanBoard({
 
     const activeIndex = overColumn.tasks.findIndex((t) => t.id === activeId);
     const overIndex = overColumn.tasks.findIndex((t) => t.id === overId);
+    const movedTask = overColumn.tasks.find((t) => t.id === activeId);
 
     const tasksWithoutActive = overColumn.tasks.filter((t) => t.id !== activeId);
     let targetIndex = overIndex >= 0 ? overIndex : tasksWithoutActive.length;
@@ -155,23 +167,21 @@ export function KanbanBoard({
 
     const newSortOrder = calculateNewSortOrder(tasksWithoutActive, targetIndex);
 
-    setColumns((prev) =>
-      prev.map((column) => {
-        if (column.id !== overContainerId) return column;
-        const reordered = [...tasksWithoutActive];
-        const movedTask = overColumn.tasks.find((t) => t.id === activeId);
-        if (!movedTask) return column;
-        reordered.splice(targetIndex, 0, { ...movedTask, sortOrder: newSortOrder });
-        return { ...column, tasks: reordered };
-      }),
-    );
+    if (movedTask) {
+      const reordered = [...tasksWithoutActive];
+      reordered.splice(targetIndex, 0, { ...movedTask, sortOrder: newSortOrder });
+      setColumns((prev) =>
+        prev.map((column) =>
+          column.id === overContainerId ? { ...column, tasks: reordered } : column,
+        ),
+      );
+    }
 
     reorderTask(activeId, overContainerId, newSortOrder).catch(() => {
       setColumns(initialStates);
     });
   }
 
-  const router = useRouter();
   const visibleTaskCount = columns.reduce((sum, column) => sum + column.tasks.length, 0);
 
   function handleCreateFirstTask() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Ban, ChevronDown, Copy, Link2, Loader2, Plus, Search, Timer, X } from "lucide-react";
 import { addTaskRelation, removeTaskRelation, searchTasksForRelation } from "@/actions/relation";
 import { useClickOutside } from "@/lib/use-click-outside";
@@ -35,6 +35,8 @@ const RELATION_TYPE_OPTIONS: { value: RelationType; label: string }[] = [
   { value: "RELATES_TO", label: "İlişkili" },
   { value: "DUPLICATES", label: "Kopyası" },
 ];
+
+const RESULT_LIST_CLASS = "flex max-h-56 flex-col gap-0.5 overflow-y-auto";
 
 export function TaskRelations({
   taskId,
@@ -157,10 +159,7 @@ function RelationSection({
               className="flex min-w-0 flex-1 items-center gap-2 text-left"
               title={getRelationLabel(item.type, item.direction)}
             >
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: item.task.stateColor }}
-              />
+              <StateDot color={item.task.stateColor} />
               <span className="shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                 {formatTaskIdentifier(item.task.projectIdentifier, item.task.sequenceId)}
               </span>
@@ -203,7 +202,9 @@ function AddRelationPopover({
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useClickOutside(containerRef, () => setIsOpen(false));
+  const closePopover = useCallback(() => setIsOpen(false), []);
+
+  useClickOutside(containerRef, closePopover);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -234,11 +235,23 @@ function AddRelationPopover({
     };
   }, [isOpen, projectId, taskId, query, onError]);
 
+  function openPopover() {
+    setResults([]);
+    setIsSearching(true);
+    setIsOpen(true);
+  }
+
+  function togglePopover() {
+    onError(null);
+    if (isOpen) closePopover();
+    else openPopover();
+  }
+
   function handleSelect(targetTaskId: string) {
     setPendingTaskId(targetTaskId);
     onAdd(targetTaskId, type)
       .then(() => {
-        setIsOpen(false);
+        closePopover();
         setQuery("");
       })
       .catch((err: unknown) => {
@@ -251,16 +264,7 @@ function AddRelationPopover({
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => {
-          onError(null);
-          setIsOpen((open) => {
-            if (!open) {
-              setResults([]);
-              setIsSearching(true);
-            }
-            return !open;
-          });
-        }}
+        onClick={togglePopover}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         className="flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -274,7 +278,7 @@ function AddRelationPopover({
           role="dialog"
           aria-label="İlişki ekle"
           onKeyDown={(event) => {
-            if (event.key === "Escape") setIsOpen(false);
+            if (event.key === "Escape") closePopover();
           }}
           className="absolute right-0 top-full z-40 mt-1 w-80 rounded-md border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
         >
@@ -307,45 +311,73 @@ function AddRelationPopover({
             />
           </div>
 
-          <ul className="flex max-h-56 flex-col gap-0.5 overflow-y-auto">
-            {isSearching && results.length === 0 ? (
-              <li className="flex items-center gap-2 px-2 py-2 text-xs text-zinc-500 dark:text-zinc-400">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Aranıyor...
-              </li>
-            ) : results.length === 0 ? (
-              <li className="px-2 py-2 text-xs text-zinc-500 dark:text-zinc-400">
-                Eklenebilecek görev bulunamadı.
-              </li>
-            ) : (
-              results.map((task) => (
-                <li key={task.id}>
-                  <button
-                    type="button"
-                    disabled={pendingTaskId !== null}
-                    onClick={() => handleSelect(task.id)}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-zinc-800"
-                  >
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: task.stateColor }}
-                    />
-                    <span className="shrink-0 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                      {formatTaskIdentifier(task.projectIdentifier, task.sequenceId)}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm text-zinc-700 dark:text-zinc-300">
-                      {task.title}
-                    </span>
-                    {pendingTaskId === task.id ? (
-                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-zinc-400" />
-                    ) : null}
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
+          <RelationSearchResults
+            results={results}
+            isSearching={isSearching}
+            pendingTaskId={pendingTaskId}
+            onSelect={handleSelect}
+          />
         </div>
       ) : null}
     </div>
   );
+}
+
+function RelationSearchResults({
+  results,
+  isSearching,
+  pendingTaskId,
+  onSelect,
+}: {
+  results: RelatedTaskSummary[];
+  isSearching: boolean;
+  pendingTaskId: string | null;
+  onSelect: (targetTaskId: string) => void;
+}) {
+  if (results.length === 0) {
+    return (
+      <ul className={RESULT_LIST_CLASS}>
+        {isSearching ? (
+          <li className="flex items-center gap-2 px-2 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Aranıyor...
+          </li>
+        ) : (
+          <li className="px-2 py-2 text-xs text-zinc-500 dark:text-zinc-400">
+            Eklenebilecek görev bulunamadı.
+          </li>
+        )}
+      </ul>
+    );
+  }
+
+  return (
+    <ul className={RESULT_LIST_CLASS}>
+      {results.map((task) => (
+        <li key={task.id}>
+          <button
+            type="button"
+            disabled={pendingTaskId !== null}
+            onClick={() => onSelect(task.id)}
+            className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-zinc-800"
+          >
+            <StateDot color={task.stateColor} />
+            <span className="shrink-0 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+              {formatTaskIdentifier(task.projectIdentifier, task.sequenceId)}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm text-zinc-700 dark:text-zinc-300">
+              {task.title}
+            </span>
+            {pendingTaskId === task.id ? (
+              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-zinc-400" />
+            ) : null}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function StateDot({ color }: { color: string }) {
+  return <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />;
 }

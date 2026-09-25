@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { X, Loader2 } from "lucide-react";
@@ -40,6 +40,19 @@ type TaskDetail = {
   sourceRelations: SourceRelationRecord[];
   targetRelations: TargetRelationRecord[];
 };
+
+type DetailTab = "activity" | "comments";
+
+const DETAIL_TABS: { key: DetailTab; label: string }[] = [
+  { key: "activity", label: "Aktivite" },
+  { key: "comments", label: "Yorumlar" },
+];
+
+const TAB_BASE_CLASS = "px-3 py-2 text-sm font-medium transition-colors";
+const TAB_ACTIVE_CLASS =
+  "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100";
+const TAB_INACTIVE_CLASS =
+  "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200";
 
 type TaskDetailPayload = Awaited<ReturnType<typeof getTaskDetail>>;
 
@@ -117,59 +130,55 @@ export function TaskDetailModal({
 }) {
   const router = useRouter();
   const { data: session } = useSession();
+  const currentUserId = session?.user?.id ?? "";
   const [detail, setDetail] = useState<TaskDetail | null>(null);
-  const [titleValue, setTitleValue] = useState("");
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"activity" | "comments">("activity");
-
-  /** İlişki eklendikten/kaldırıldıktan sonra detayı sessizce tazeler. */
-  const reloadDetail = useCallback(async () => {
-    const task = await getTaskDetail(taskId);
-    setDetail(toTaskDetail(task));
-    setTitleValue(task.title);
-  }, [taskId]);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [activeTab, setActiveTab] = useState<DetailTab>("activity");
+  const isLoading = detail?.id !== taskId;
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
 
     getTaskDetail(taskId).then((task) => {
       if (cancelled) return;
       setDetail(toTaskDetail(task));
-      setTitleValue(task.title);
-      setIsLoading(false);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [taskId]);
+  }, [taskId, reloadToken]);
+
+  const handleEscape = useEffectEvent(() => onClose());
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        onClose();
+        handleEscape();
       }
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, []);
+
+  function patchDetail(patch: Partial<TaskDetail>) {
+    setDetail((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
+  /** İlişki veya ilerleme değiştikten sonra detayı sessizce tazeler. */
+  function handleRelatedChange() {
+    setReloadToken((token) => token + 1);
+    router.refresh();
+  }
 
   function handleClose() {
     router.refresh();
     onClose();
   }
 
-  function saveTitle() {
-    setIsEditingTitle(false);
-    const trimmed = titleValue.trim();
-    if (!detail || !trimmed || trimmed === detail.title) {
-      if (detail) setTitleValue(detail.title);
-      return;
-    }
-    setDetail({ ...detail, title: trimmed });
-    updateTask(taskId, { title: trimmed }).then(() => router.refresh());
+  function saveTitle(title: string) {
+    patchDetail({ title });
+    updateTask(taskId, { title }).then(() => router.refresh());
   }
 
   return (
@@ -196,7 +205,7 @@ export function TaskDetailModal({
           </div>
         </div>
 
-        {isLoading || !detail ? (
+        {isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
           </div>
@@ -210,30 +219,7 @@ export function TaskDetailModal({
                 onDeleted={onClose}
               />
 
-              {isEditingTitle ? (
-                <input
-                  autoFocus
-                  type="text"
-                  value={titleValue}
-                  onChange={(e) => setTitleValue(e.target.value)}
-                  onBlur={saveTitle}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") e.currentTarget.blur();
-                    if (e.key === "Escape") {
-                      setTitleValue(detail.title);
-                      setIsEditingTitle(false);
-                    }
-                  }}
-                  className="w-full rounded-md border border-zinc-300 px-2 py-1 text-lg font-semibold outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
-                />
-              ) : (
-                <h1
-                  onClick={() => setIsEditingTitle(true)}
-                  className="cursor-text rounded-md px-2 py-1 text-lg font-semibold text-zinc-900 hover:bg-zinc-50 dark:text-zinc-50 dark:hover:bg-zinc-800"
-                >
-                  {detail.title}
-                </h1>
-              )}
+              <EditableTitle title={detail.title} onSave={saveTitle} />
 
               <TaskDescription taskId={taskId} initialDescription={detail.description ?? ""} />
 
@@ -243,55 +229,39 @@ export function TaskDetailModal({
                 sourceRelations={detail.sourceRelations}
                 targetRelations={detail.targetRelations}
                 onNavigateToTask={onNavigateToTask}
-                onChanged={() => {
-                  reloadDetail();
-                  router.refresh();
-                }}
+                onChanged={handleRelatedChange}
               />
 
               <TaskProgressSection
                 taskId={taskId}
-                currentUserId={session?.user?.id ?? ""}
+                currentUserId={currentUserId}
                 refreshKey={detail.assigneeIds.join(",")}
-                onChanged={() => {
-                  reloadDetail();
-                  router.refresh();
-                }}
+                onChanged={handleRelatedChange}
               />
 
               <div className="flex flex-col gap-3">
                 <div className="flex gap-1 border-b border-zinc-200 dark:border-zinc-800">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("activity")}
-                    className={`px-3 py-2 text-sm font-medium transition-colors ${
-                      activeTab === "activity"
-                        ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
-                        : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                    }`}
-                  >
-                    Aktivite
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("comments")}
-                    className={`px-3 py-2 text-sm font-medium transition-colors ${
-                      activeTab === "comments"
-                        ? "border-b-2 border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
-                        : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                    }`}
-                  >
-                    Yorumlar
-                  </button>
+                  {DETAIL_TABS.map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`${TAB_BASE_CLASS} ${
+                        activeTab === tab.key ? TAB_ACTIVE_CLASS : TAB_INACTIVE_CLASS
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
 
                 {activeTab === "activity" ? (
-                  <TaskActivity taskId={taskId} currentUserId={session?.user?.id ?? ""} />
+                  <TaskActivity taskId={taskId} currentUserId={currentUserId} />
                 ) : (
                   <TaskComments
                     taskId={taskId}
                     initialComments={detail.comments}
-                    currentUserId={session?.user?.id ?? ""}
+                    currentUserId={currentUserId}
                   />
                 )}
               </div>
@@ -312,13 +282,55 @@ export function TaskDetailModal({
                 dueDate={detail.dueDate}
                 createdAt={detail.createdAt}
                 sprints={detail.sprints}
-                onLabelsChange={(labelIds) => setDetail({ ...detail, labelIds })}
-                onAssigneesChange={(assigneeIds) => setDetail({ ...detail, assigneeIds })}
+                onLabelsChange={(labelIds) => patchDetail({ labelIds })}
+                onAssigneesChange={(assigneeIds) => patchDetail({ assigneeIds })}
               />
             </div>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function EditableTitle({ title, onSave }: { title: string; onSave: (title: string) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+
+  function startEditing() {
+    setDraft(title);
+    setIsEditing(true);
+  }
+
+  function commit() {
+    setIsEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== title) onSave(trimmed);
+  }
+
+  if (isEditing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") setIsEditing(false);
+        }}
+        className="w-full rounded-md border border-zinc-300 px-2 py-1 text-lg font-semibold outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
+      />
+    );
+  }
+
+  return (
+    <h1
+      onClick={startEditing}
+      className="cursor-text rounded-md px-2 py-1 text-lg font-semibold text-zinc-900 hover:bg-zinc-50 dark:text-zinc-50 dark:hover:bg-zinc-800"
+    >
+      {title}
+    </h1>
   );
 }
