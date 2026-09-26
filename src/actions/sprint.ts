@@ -143,6 +143,11 @@ export async function updateSprint(sprintId: string, data: UpdateSprintInput) {
     throw new Error("Sprint durumu doğrudan ACTIVE yapılamaz; sprinti başlatın.");
   }
 
+  // COMPLETED geçişi yalnızca completeSprint üzerinden yapılabilir.
+  if (data.status === "COMPLETED" && existingSprint.status !== "COMPLETED") {
+    throw new Error("Sprint durumu doğrudan COMPLETED yapılamaz; sprinti tamamlayın.");
+  }
+
   const updateData: Record<string, unknown> = {};
 
   if (data.name !== undefined) updateData.name = data.name.trim();
@@ -266,6 +271,16 @@ export async function completeSprint(sprintId: string) {
     throw new Error("Sadece aktif sprintler tamamlanabilir.");
   }
 
+  // Atomik geçiş: yalnızca hâlâ ACTIVE ise günceller; eşzamanlı yinelenen
+  // istekler count === 0 ile elenir ve bildirim tekrar gönderilmez.
+  const updated = await prisma.sprint.updateMany({
+    where: { id: sprintId, status: "ACTIVE" },
+    data: { status: "COMPLETED" },
+  });
+  if (updated.count === 0) {
+    throw new Error("Sadece aktif sprintler tamamlanabilir.");
+  }
+
   const incompleteCount = await prisma.sprintTask.count({
     where: {
       sprintId,
@@ -277,35 +292,34 @@ export async function completeSprint(sprintId: string) {
     },
   });
 
-  await prisma.sprint.update({
-    where: { id: sprintId },
-    data: { status: "COMPLETED" },
-  });
+  try {
+    const members = await prisma.projectMember.findMany({
+      where: { projectId: sprint.projectId },
+      select: { userId: true, user: { select: { notificationPreferences: true } } },
+    });
 
-  const members = await prisma.projectMember.findMany({
-    where: { projectId: sprint.projectId },
-    select: { userId: true, user: { select: { notificationPreferences: true } } },
-  });
-
-  const notificationEntries: Prisma.NotificationCreateManyInput[] = members
-    .filter((member) =>
-      shouldDeliverWithPreferences({
-        actorId: userId,
-        recipientId: member.userId,
+    const notificationEntries: Prisma.NotificationCreateManyInput[] = members
+      .filter((member) =>
+        shouldDeliverWithPreferences({
+          actorId: userId,
+          recipientId: member.userId,
+          type: "SPRINT_COMPLETED",
+          preferences: member.user.notificationPreferences,
+        }),
+      )
+      .map((member) => ({
         type: "SPRINT_COMPLETED",
-        preferences: member.user.notificationPreferences,
-      }),
-    )
-    .map((member) => ({
-      type: "SPRINT_COMPLETED",
-      title: "Sprint tamamlandı",
-      message: sprint.name,
-      link: buildSprintNotificationDeepLink(sprint.projectId),
-      actorId: userId,
-      userId: member.userId,
-    }));
+        title: "Sprint tamamlandı",
+        message: sprint.name,
+        link: buildSprintNotificationDeepLink(sprint.projectId),
+        actorId: userId,
+        userId: member.userId,
+      }));
 
-  await createNotifications(notificationEntries);
+    await createNotifications(notificationEntries);
+  } catch (err) {
+    console.error("Sprint tamamlama bildirimleri gönderilemedi:", err);
+  }
 
   revalidatePath(`/projects/${sprint.projectId}/sprints`);
 

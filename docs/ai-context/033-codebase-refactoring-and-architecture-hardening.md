@@ -53,6 +53,33 @@ Pulse executed a comprehensive, 4-wave full-stack refactoring and hardening cycl
 
 ---
 
+## 3 Targeted Hardening Packages (Post-Wave Optimization)
+
+Following the 4 waves, 3 dedicated packages were identified, verified, and executed:
+
+### Package 1: Backend Hardening, Security, Data Integrity & authz Consolidation
+- Centralized `src/lib/authz.ts` providing standard server-only guards: `requireSession`, `requireUserId`, `requireMembership`, `requireAdmin`, `requireAdminSession`, `assertNotProjectOwner`.
+- Refactored all 12 action files in `src/actions/` to use `@/lib/authz`, eliminating 200+ redundant boilerplate lines.
+- Pre-transaction cross-project ID verification in `src/actions/task.ts` for states and assignees.
+- Expiration check scoping (`expiresAt > new Date()`) in `src/actions/member.ts`.
+- Removed erroneous active sprint check from `createSprint`; added draft requirement in `startSprint`.
+
+### Package 2: UI, UX, Modal Interactions & Frontend Hardening
+- Created `src/lib/use-task-navigation.ts` hook unifying `?task=` search param synchronization across `kanban-board.tsx`, `list-view-container.tsx`, and `backlog-page-container.tsx`.
+- Modal Escape isolation in `EditableTitle`, `InlineSelectPopover`, and `task-relations.tsx` preventing unintentional closure of the parent task slide-over.
+- Optimistic title rollback on update failure in `task-detail-modal.tsx`.
+- Disabled delete action with tooltip when only a single state remains in `states-manager.tsx`.
+- Converted ambiguous status dropdown in `edit-sprint-modal.tsx` to an informative read-only badge.
+
+### Package 3: Performance, Concurrency & Polish
+- Atomic concurrency guard in `completeSprint` via `updateMany({ where: { id: sprintId, status: "ACTIVE" } })`, eliminating race conditions and duplicate notification dispatch.
+- Resilient notification dispatch wrapped in `try/catch` within `completeSprint`.
+- Enforced invalid direct `COMPLETED` transitions in `updateSprint`.
+- Render-phase prop synchronization in `ColorPicker` with 200ms input debounce and blur/unmount pending color flush.
+- Extracted shared `InlineNameInput` (`src/components/settings/inline-name-input.tsx`), removing duplication across `states-manager.tsx` and `labels-manager.tsx`.
+
+---
+
 ## Architectural Invariants Maintained
 1. **Zero Public Signature Drift:** All server actions and pure domain logic retained identical parameter and return types.
 2. **Deterministic Test Inviolability:** Existing test suites in `src/lib/__tests__/` were strictly untouched by Claude; Antigravity authored the new test suite.

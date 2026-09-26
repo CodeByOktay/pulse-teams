@@ -82,14 +82,34 @@ Projenin tamamı "Aşamalı ve Kontrollü (Incremental) 4 Dalga Mimarisi" ile re
 ### Pozitif Kazanımlar:
 1. **Sıfır Regresyon:** 528 Vitest birim ve entegrasyon testi 27 suite genelinde **%100 yeşil** kaldı.
 2. **Kusursuz Tip Güvenliği:** `npx tsc --noEmit` sıfır hata verdi.
-3. **Üretim Derlemesi Başarısı:** `npm run build` ile tüm sayfalar (`/`, `/login`, `/register`, `/invite/[token]`, `/projects/[projectId]/board`, `/list`, `/backlog`, `/sprints`, `/settings`) 3.9 saniyede başarıyla derlendi.
-4. **Temiz Kod Tabanı:** Dış bileşenlerin bağımlı olduğu hiçbir genel API (`.d.ts`) sözleşmesi değişmedi; 180 dosyalık projede en karmaşık 15 dosya yüksek okunabilirlik ve performans seviyesine ulaştı.
-5. **Kritik Güvenlik Güçlendirmesi:** Projeler arası davet silme (IDOR) riski ortadan kaldırıldı.
+3. **Üretim Derlemesi Başarısı:** `npm run build` ile tüm sayfalar (`/`, `/login`, `/register`, `/invite/[token]`, `/projects/[projectId]/board`, `/list`, `/backlog`, `/sprints`, `/settings`) başarıyla derlendi.
+4. **Temiz Kod Tabanı:** Dış bileşenlerin bağımlı olduğu hiçbir genel API (`.d.ts`) sözleşmesi değişmedi; 180 dosyalık projede en karmaşık dosyalar yüksek okunabilirlik ve performans seviyesine ulaştı.
+5. **Kritik Güvenlik Güçlendirmesi:** Projeler arası davet silme (IDOR) riski ortadan kaldırıldı; durum ve atanan kullanıcıların proje sahipliği transaction öncesi doğrulanarak veri bütünlüğü sağlandı.
+6. **Merkezi Yetkilendirme (Authz):** 12 Server Action dosyasındaki yetki kontrolleri `src/lib/authz.ts` altında konsolide edildi.
+7. **Kusursuz Modal ve Klavye UX:** Slide-over ve popover modallarında Escape tuşu izolasyonu sağlandı; başlık güncellemelerinde iyimser hata geri alma (`rollback`) ve `useTaskNavigation` ile URL senkronizasyonu tekilleştirildi.
+8. **Eşzamanlılık ve Performans İyileştirmeleri:** `completeSprint` atomik `updateMany` ile yarış durumlarına karşı kilitlendi, bildirim gönderimi `try/catch` ile dayanıklı hale getirildi; `ColorPicker` 200ms debounce ve render-phase prop senkronizasyonuna geçirildi.
 
 ---
 
-## 4. Kaydedilen Gelecek İyileştirmeler (Backlog)
-Refaktör sırasında tespit edilen ve mevcut sözleşmeleri korumak adına sonraya bırakılan mimari maddeler:
-1. `requireMembership` ve `requireAdmin` mantıklarının ortak bir `src/lib/authz.ts` sunucu yardımcısında konsolide edilmesi.
-2. Board, List ve Backlog görünümlerinde yinelenen `closeTaskDetail` ve `navigateToTask` fonksiyonlarının ortak `useTaskNavigation` hook'una toplanması.
-3. Tek durum kaldığında istemci tarafında silme butonunun `disabled` yapılması.
+## 4. Tamamlanan Sağlamlaştırma Paketleri (Hardening Packages)
+
+4 dalgalı temel refaktörün ardından Claude Code tarafından raporlanan ve Antigravity gözetiminde uygulanan 3 öncelikli paket:
+
+### Paket 1: Backend Hardening, Security, Data Integrity & authz Consolidation
+- `src/lib/authz.ts`: `requireSession`, `requireUserId`, `requireMembership`, `requireAdmin`, `requireAdminSession`, `assertNotProjectOwner` yardımcıları merkezi `server-only` modülünde toplandı.
+- `src/actions/*.ts` (12 dosya): Merkezi `authz` modülüne geçirildi, 200+ satır tekrar eden yetki kodu elendi.
+- `src/actions/task.ts`: `createTask` ve `updateTask` içinde `stateId` ve `assigneeIds` için cross-project doğrulama eklendi.
+- `src/actions/member.ts`: Davet kontrolleri `expiresAt > new Date()` ile sınırlandı; P2025 ham hataları kullanıcı dostu Türkçe hata mesajına dönüştürüldü.
+- `src/actions/sprint.ts`: `createSprint` içindeki hatalı aktif sprint engeli kaldırıldı; `startSprint` içine `DRAFT` statü kontrolü eklendi.
+
+### Paket 2: UI, UX, Modal Interactions & Frontend Hardening
+- `src/lib/use-task-navigation.ts`: Board, List ve Backlog ekranlarındaki URL parametre (`?task=`) ve slide-over açma/kapama senkronizasyonu ortak hook'a bağlandı.
+- `src/components/task-detail/task-detail-modal.tsx`: `EditableTitle` içine Escape tuşu izolasyonu ve sunucu hatasında önceki başlığa otomatik geri alma eklendi.
+- `src/components/task-detail/inline-select-popover.tsx` & `task-relations.tsx`: Popover ve combobox'larda Escape tuşunun ebeveyn slide-over modalını kapatması `stopPropagation` ile engellendi.
+- `src/components/settings/states-manager.tsx`: Projede tek kalan durumun silinmesi arayüzde `disabled` ve açıklayıcı tooltip ile engellendi.
+- `src/components/sprints/edit-sprint-modal.tsx`: Durum değiştirme dropdown'ı kaldırılarak salt-okunur rozet ve açıklayıcı yönlendirme metnine dönüştürüldü.
+
+### Paket 3: Performance, Concurrency & Polish
+- `src/actions/sprint.ts`: `completeSprint` eylemi `prisma.sprint.updateMany({ where: { id, status: "ACTIVE" } })` atomik sorgusuna geçirildi; eşzamanlı çift istekler `count === 0` ile elendi. Bildirim gönderimi `try/catch` ile izole edildi. `updateSprint` doğrudan `COMPLETED` geçişini reddedecek şekilde kilitlendi.
+- `src/components/settings/color-picker.tsx`: React 19 render-phase prop senkronizasyonuna geçirildi; renk seçici `onChange` 200ms debounce ile sınırlandı, `onBlur` ve `unmount` anlarında bekleyen renk temizlenerek veri kaybı önlendi.
+- `src/components/settings/inline-name-input.tsx`: `states-manager.tsx` ve `labels-manager.tsx` içindeki kopya isim düzenleme bileşeni tek bir ortak bileşene çıkartıldı.
