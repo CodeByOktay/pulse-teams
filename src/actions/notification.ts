@@ -1,9 +1,8 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireSession, requireMembership } from "@/lib/authz";
 import {
   buildNotificationDeepLink,
   formatDueDateNotificationSnippet,
@@ -11,18 +10,6 @@ import {
   shouldDeliverWithPreferences,
 } from "@/lib/notification-logic";
 import type { NotificationType, Prisma } from "@prisma/client";
-
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
 
 /**
  * Bildirim oluşturmayı try/catch ile sarmalayan yardımcı fonksiyon.
@@ -71,10 +58,7 @@ export async function createNotifications(
 }
 
 export async function getNotifications(options?: { limit?: number; unreadOnly?: boolean }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const notifications = await prisma.notification.findMany({
     where: {
@@ -90,10 +74,7 @@ export async function getNotifications(options?: { limit?: number; unreadOnly?: 
 }
 
 export async function getUnreadNotificationCount(): Promise<number> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   return prisma.notification.count({
     where: { userId: session.user.id, read: false },
@@ -101,10 +82,7 @@ export async function getUnreadNotificationCount(): Promise<number> {
 }
 
 export async function markNotificationAsRead(notificationId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   await prisma.notification.updateMany({
     where: { id: notificationId, userId: session.user.id },
@@ -115,10 +93,7 @@ export async function markNotificationAsRead(notificationId: string) {
 }
 
 export async function markAllNotificationsAsRead() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   await prisma.notification.updateMany({
     where: { userId: session.user.id, read: false },
@@ -129,10 +104,7 @@ export async function markAllNotificationsAsRead() {
 }
 
 export async function getUserNotificationPreferences() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const preferences = await prisma.userNotificationPreference.upsert({
     where: { userId: session.user.id },
@@ -152,10 +124,7 @@ export async function updateUserNotificationPreferences(
     notifySprintClosed: boolean;
   }>,
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const updated = await prisma.userNotificationPreference.upsert({
     where: { userId: session.user.id },
@@ -169,10 +138,7 @@ export async function updateUserNotificationPreferences(
 }
 
 export async function checkApproachingDueDates(projectId?: string): Promise<number> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   if (projectId) {
     await requireMembership(projectId, session.user.id);

@@ -1,23 +1,10 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireSession, requireMembership } from "@/lib/authz";
 import { logActivity } from "@/lib/activity-logger";
 import { validateLabelName, validateHexColor } from "@/lib/settings-logic";
-
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
 
 export async function createLabel({
   projectId,
@@ -28,10 +15,7 @@ export async function createLabel({
   name: string;
   color: string;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   await requireMembership(projectId, session.user.id);
 
@@ -68,10 +52,7 @@ export async function updateLabel(
   labelId: string,
   data: Partial<{ name: string; color: string }>,
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const existingLabel = await prisma.label.findUnique({ where: { id: labelId } });
   if (!existingLabel) {
@@ -121,10 +102,7 @@ export async function updateLabel(
 }
 
 export async function deleteLabel(labelId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const label = await prisma.label.findUnique({ where: { id: labelId } });
   if (!label) {
@@ -140,10 +118,7 @@ export async function deleteLabel(labelId: string) {
 }
 
 export async function addLabelToTask(taskId: string, labelId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task) {
@@ -171,10 +146,7 @@ export async function addLabelToTask(taskId: string, labelId: string) {
 }
 
 export async function removeLabelFromTask(taskId: string, labelId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task) {

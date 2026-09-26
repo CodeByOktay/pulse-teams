@@ -1,9 +1,8 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireUserId, requireMembership } from "@/lib/authz";
 import { logActivity, type PrismaTransactionClient } from "@/lib/activity-logger";
 import { isCompletionTransition } from "@/lib/automation-logic";
 import { triggerUnblockedDependencies } from "@/lib/dependency-automation";
@@ -12,27 +11,6 @@ import { createProposalForResponse, loadTaskProposals } from "@/lib/ai/proposal-
 
 const PROPOSAL_NOT_PENDING_MESSAGE = "Bu öneri artık geçerli değil.";
 const STATE_NOT_IN_PROJECT_MESSAGE = "Seçilen durum bu projeye ait değil.";
-
-async function requireUserId(): Promise<string> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
-
-  return session.user.id;
-}
-
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
 
 function revalidateProjectViews(projectId: string) {
   revalidatePath(`/projects/${projectId}/board`);

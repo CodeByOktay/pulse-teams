@@ -1,8 +1,7 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireSession, requireMembership } from "@/lib/authz";
 import {
   calculateBurndownSeries,
   calculateCycleAndLeadTimes,
@@ -15,18 +14,6 @@ import {
   type VelocitySummary,
 } from "@/lib/project-analytics-logic";
 import type { StateGroup } from "@prisma/client";
-
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
 
 function addDays(date: Date, days: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
@@ -109,10 +96,7 @@ export async function getProjectAnalytics(
   projectId: string,
   options?: { sprintId?: string },
 ): Promise<ProjectAnalyticsResult> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
   const userId = session.user.id;
 
   await requireMembership(projectId, userId);

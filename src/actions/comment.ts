@@ -1,9 +1,8 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireSession, requireMembership } from "@/lib/authz";
 import { logActivity } from "@/lib/activity-logger";
 import { createNotifications } from "@/actions/notification";
 import {
@@ -15,23 +14,8 @@ import {
 } from "@/lib/notification-logic";
 import type { Prisma } from "@prisma/client";
 
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
-
 export async function createComment({ taskId, content }: { taskId: string; content: string }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const trimmed = content.trim();
   if (!trimmed) {
@@ -134,10 +118,7 @@ export async function createComment({ taskId, content }: { taskId: string; conte
 }
 
 export async function deleteComment(commentId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },

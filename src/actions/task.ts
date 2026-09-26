@@ -1,9 +1,8 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireUserId, requireMembership } from "@/lib/authz";
 import { getNextSequenceId } from "@/lib/sequence";
 import { logActivity, type PrismaTransactionClient } from "@/lib/activity-logger";
 import { isCompletionTransition } from "@/lib/automation-logic";
@@ -38,27 +37,6 @@ function datesDiffer(a: Date | null, b: Date | null | undefined): boolean {
   return aTime !== bTime;
 }
 
-async function requireUserId(): Promise<string> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
-
-  return session.user.id;
-}
-
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
-
 async function nextSortOrder(tx: PrismaTransactionClient, stateId: string): Promise<number> {
   const lastTask = await tx.task.findFirst({
     where: { stateId },
@@ -81,6 +59,35 @@ async function resolveDefaultStateId(projectId: string): Promise<string> {
   return defaultState.id;
 }
 
+const STATE_NOT_IN_PROJECT_MESSAGE = "Seçilen durum bu projeye ait değil.";
+const ASSIGNEE_NOT_IN_PROJECT_MESSAGE = "Atanan kullanıcılar bu projenin üyesi olmalıdır.";
+
+/** Cross-project bütünlük: state gerçekten bu projeye ait olmalı. Transaction öncesi çağrılır. */
+async function requireStateInProject(stateId: string, projectId: string) {
+  const state = await prisma.state.findFirst({
+    where: { id: stateId, projectId },
+    select: { name: true, group: true },
+  });
+  if (!state) {
+    throw new Error(STATE_NOT_IN_PROJECT_MESSAGE);
+  }
+
+  return state;
+}
+
+/** Cross-project bütünlük: tüm kullanıcılar bu projenin üyesi olmalı (tekilleştirilmiş sayım). */
+async function requireUsersInProject(userIds: string[], projectId: string) {
+  const uniqueIds = [...new Set(userIds)];
+  if (uniqueIds.length === 0) return;
+
+  const memberCount = await prisma.projectMember.count({
+    where: { projectId, userId: { in: uniqueIds } },
+  });
+  if (memberCount !== uniqueIds.length) {
+    throw new Error(ASSIGNEE_NOT_IN_PROJECT_MESSAGE);
+  }
+}
+
 export type CreateTaskInput = {
   projectId: string;
   title: string;
@@ -98,6 +105,10 @@ export async function createTask(input: CreateTaskInput) {
 
   if (!input.title.trim()) {
     throw new Error("Görev başlığı zorunludur.");
+  }
+
+  if (input.stateId) {
+    await requireStateInProject(input.stateId, input.projectId);
   }
 
   const stateId = input.stateId || (await resolveDefaultStateId(input.projectId));
@@ -159,12 +170,7 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
   const newStateId =
     data.stateId !== undefined && data.stateId !== existingTask.stateId ? data.stateId : null;
   const newState =
-    newStateId !== null
-      ? await prisma.state.findUnique({
-          where: { id: newStateId },
-          select: { name: true, group: true },
-        })
-      : null;
+    newStateId !== null ? await requireStateInProject(newStateId, existingTask.projectId) : null;
   const isCompleted =
     newState !== null && isCompletionTransition(existingTask.state.group, newState.group);
 
@@ -370,6 +376,14 @@ export async function bulkUpdateTasks(taskIds: string[], data: BulkUpdateTasksIn
 
   const { stateId, priority, assigneeId } = data;
 
+  // Cross-project bütünlük doğrulamaları transaction açılmadan önce yapılır.
+  if (stateId !== undefined) {
+    await requireStateInProject(stateId, projectId);
+  }
+  if (assigneeId !== undefined) {
+    await requireUsersInProject([assigneeId], projectId);
+  }
+
   await prisma.$transaction(async (tx) => {
     if (stateId !== undefined || priority !== undefined) {
       await tx.task.updateMany({
@@ -419,6 +433,7 @@ export async function reorderTask(taskId: string, newStateId: string, newSortOrd
   }
 
   await requireMembership(existingTask.projectId, userId);
+  await requireStateInProject(newStateId, existingTask.projectId);
 
   const task = await prisma.task.update({
     where: { id: taskId },

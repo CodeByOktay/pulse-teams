@@ -1,30 +1,14 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireSession, requireMembership } from "@/lib/authz";
 import { logActivity } from "@/lib/activity-logger";
 import { createNotification } from "@/actions/notification";
 import { buildNotificationDeepLink, shouldDeliverWithPreferences } from "@/lib/notification-logic";
 
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
-
 export async function assignUserToTask(taskId: string, userId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task) {
@@ -75,10 +59,7 @@ export async function assignUserToTask(taskId: string, userId: string) {
 }
 
 export async function unassignUserFromTask(taskId: string, userId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task) {

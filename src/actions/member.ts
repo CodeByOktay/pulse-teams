@@ -2,48 +2,14 @@
 
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  assertNotProjectOwner,
+  requireAdminSession,
+  requireMembership,
+  requireSession,
+} from "@/lib/authz";
 import { sendInviteMemberEmail } from "@/lib/mail";
-
-// ────────────────────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────────────────────
-
-async function requireSession(message = "Oturum açmanız gerekiyor.") {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) throw new Error(message);
-  return session;
-}
-
-async function requireMembership(projectId: string, userId: string) {
-  const member = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-  if (!member) throw new Error("Bu projeye erişim yetkiniz yok.");
-  return member;
-}
-
-async function requireAdmin(projectId: string, userId: string) {
-  const member = await requireMembership(projectId, userId);
-  if (member.role !== "ADMIN") throw new Error("Bu işlem için yönetici yetkisi gerekiyor.");
-  return member;
-}
-
-async function requireAdminSession(projectId: string) {
-  const session = await requireSession();
-  await requireAdmin(projectId, session.user.id);
-  return session;
-}
-
-async function assertNotProjectOwner(projectId: string, userId: string, message: string) {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { ownerId: true },
-  });
-  if (project?.ownerId === userId) throw new Error(message);
-}
 
 // ────────────────────────────────────────────────────────────
 // inviteMember
@@ -58,14 +24,20 @@ export async function inviteMember(
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  // Hedef kullanıcı zaten üye mi? Bekleyen davet var mı?
+  // Hedef kullanıcı zaten üye mi? Süresi dolmamış bekleyen davet var mı?
+  // (Süresi dolmuş PENDING davet yeniden davet etmeyi engellemez.)
   const [existingMember, existingInvite] = await Promise.all([
     prisma.projectMember.findFirst({
       where: { projectId, user: { email: normalizedEmail } },
       select: { id: true },
     }),
     prisma.projectInvite.findFirst({
-      where: { projectId, email: normalizedEmail, status: "PENDING" },
+      where: {
+        projectId,
+        email: normalizedEmail,
+        status: "PENDING",
+        expiresAt: { gt: new Date() },
+      },
       select: { id: true },
     }),
   ]);
@@ -178,6 +150,12 @@ export async function removeMember(projectId: string, targetUserId: string) {
   // Proje sahibini çıkartamazsın
   await assertNotProjectOwner(projectId, targetUserId, "Proje sahibi projeden çıkartılamaz.");
 
+  const member = await prisma.projectMember.findUnique({
+    where: { projectId_userId: { projectId, userId: targetUserId } },
+    select: { id: true },
+  });
+  if (!member) throw new Error("Üye bulunamadı.");
+
   await prisma.projectMember.delete({
     where: { projectId_userId: { projectId, userId: targetUserId } },
   });
@@ -197,6 +175,12 @@ export async function changeMemberRole(
   await requireAdminSession(projectId);
 
   await assertNotProjectOwner(projectId, targetUserId, "Proje sahibinin rolü değiştirilemez.");
+
+  const member = await prisma.projectMember.findUnique({
+    where: { projectId_userId: { projectId, userId: targetUserId } },
+    select: { id: true },
+  });
+  if (!member) throw new Error("Üye bulunamadı.");
 
   await prisma.projectMember.update({
     where: { projectId_userId: { projectId, userId: targetUserId } },
@@ -222,7 +206,7 @@ export async function cancelInvite(projectId: string, inviteId: string) {
 // ────────────────────────────────────────────────────────────
 
 export async function getProjectMembers(projectId: string) {
-  const session = await requireSession();
+  const session = await requireSession("Oturum açmanız gerekiyor.");
 
   await requireMembership(projectId, session.user.id);
 

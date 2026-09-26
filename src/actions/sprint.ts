@@ -1,36 +1,14 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireUserId, requireMembership } from "@/lib/authz";
 import { canDeleteSprint, canStartSprint, validateSprintDates } from "@/lib/sprint-logic";
 import { canMoveTaskToSprint, getRemovableSprintIds } from "@/lib/backlog-logic";
 import { logActivity, type PrismaTransactionClient } from "@/lib/activity-logger";
 import { createNotifications } from "@/actions/notification";
 import { buildSprintNotificationDeepLink, shouldDeliverWithPreferences } from "@/lib/notification-logic";
 import type { Prisma, SprintStatus } from "@prisma/client";
-
-async function requireUserId(): Promise<string> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
-
-  return session.user.id;
-}
-
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
 
 async function requireSprintAccess(sprintId: string, userId: string) {
   const sprint = await prisma.sprint.findUnique({ where: { id: sprintId } });
@@ -123,8 +101,8 @@ export async function createSprint(input: CreateSprintInput) {
     throw new Error(dateValidation.error);
   }
 
-  await assertNoActiveSprint(input.projectId);
-
+  // DRAFT sprint oluşturmak, aktif bir sprint varken de geçerlidir; tekil aktif
+  // sprint kısıtı yalnızca startSprint içinde uygulanır.
   const sprint = await prisma.sprint.create({
     data: {
       name: input.name.trim(),
@@ -158,6 +136,11 @@ export async function updateSprint(sprintId: string, data: UpdateSprintInput) {
   const dateValidation = validateSprintDates(nextStartDate, nextEndDate);
   if (!dateValidation.valid) {
     throw new Error(dateValidation.error);
+  }
+
+  // ACTIVE geçişi yalnızca startSprint üzerinden yapılabilir (tekil aktif sprint kısıtı).
+  if (data.status === "ACTIVE" && existingSprint.status !== "ACTIVE") {
+    throw new Error("Sprint durumu doğrudan ACTIVE yapılamaz; sprinti başlatın.");
   }
 
   const updateData: Record<string, unknown> = {};
@@ -254,6 +237,10 @@ export async function startSprint(sprintId: string) {
   const userId = await requireUserId();
 
   const sprint = await requireSprintAccess(sprintId, userId);
+
+  if (sprint.status !== "DRAFT") {
+    throw new Error("Sadece taslak sprintler başlatılabilir.");
+  }
 
   await assertNoActiveSprint(sprint.projectId);
 

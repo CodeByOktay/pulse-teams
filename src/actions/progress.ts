@@ -1,9 +1,8 @@
 "use server";
 
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireSession, requireMembership } from "@/lib/authz";
 import { logActivity } from "@/lib/activity-logger";
 import { createNotification } from "@/actions/notification";
 import { createProposalForResponse, loadTaskProposals } from "@/lib/ai/proposal-service";
@@ -13,18 +12,6 @@ import {
   formatProgressRequestNotification,
   validateProgressResponseContent,
 } from "@/lib/progress-logic";
-
-async function requireMembership(projectId: string, userId: string) {
-  const membership = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-  });
-
-  if (!membership) {
-    throw new Error("Bu proje üzerinde işlem yapma yetkiniz yok.");
-  }
-
-  return membership;
-}
 
 function revalidateProjectViews(projectId: string) {
   revalidatePath(`/projects/${projectId}/board`);
@@ -37,10 +24,7 @@ export async function createProgressRequest(
   recipientId: string,
   reason: string = "manual",
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -122,10 +106,7 @@ export async function createProgressRequest(
 }
 
 export async function submitProgressResponse(requestId: string, content: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const progressRequest = await prisma.progressRequest.findUnique({
     where: { id: requestId },
@@ -190,10 +171,7 @@ export async function submitProgressResponse(requestId: string, content: string)
 }
 
 export async function getTaskProgressData(taskId: string) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    throw new Error("Bu işlem için giriş yapmalısınız.");
-  }
+  const session = await requireSession();
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
