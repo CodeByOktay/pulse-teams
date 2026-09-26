@@ -186,6 +186,7 @@ export function StatesManager({
               <StateRow
                 key={item.id}
                 item={item}
+                isOnlyState={items.length <= 1}
                 onNameSave={handleNameSave}
                 onColorChange={handleColorChange}
                 onGroupChange={handleGroupChange}
@@ -213,12 +214,14 @@ export function StatesManager({
 
 function StateRow({
   item,
+  isOnlyState,
   onNameSave,
   onColorChange,
   onGroupChange,
   onDelete,
 }: {
   item: StateItem;
+  isOnlyState: boolean;
   onNameSave: (id: string, name: string) => void;
   onColorChange: (id: string, color: string) => void;
   onGroupChange: (id: string, group: StateGroup) => void;
@@ -264,8 +267,14 @@ function StateRow({
       <button
         type="button"
         onClick={onDelete}
+        disabled={isOnlyState}
+        title={isOnlyState ? "Projede en az bir durum kalmalıdır." : undefined}
         aria-label="Durumu sil"
-        className="rounded-md p-1.5 text-zinc-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-950"
+        className={`rounded-md p-1.5 text-zinc-300 transition-opacity ${
+          isOnlyState
+            ? "cursor-not-allowed opacity-40"
+            : "opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-950"
+        }`}
       >
         <Trash2 className="h-4 w-4" />
       </button>

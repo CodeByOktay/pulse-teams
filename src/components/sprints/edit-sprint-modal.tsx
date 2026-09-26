@@ -7,11 +7,11 @@ import type { SprintStatus } from "@prisma/client";
 import { updateSprint } from "@/actions/sprint";
 import { validateSprintDates } from "@/lib/sprint-logic";
 
-const STATUS_OPTIONS: { value: SprintStatus; label: string }[] = [
-  { value: "DRAFT", label: "Taslak" },
-  { value: "ACTIVE", label: "Aktif" },
-  { value: "COMPLETED", label: "Tamamlandı" },
-];
+const STATUS_LABELS: Record<SprintStatus, string> = {
+  DRAFT: "Taslak",
+  ACTIVE: "Aktif",
+  COMPLETED: "Tamamlandı",
+};
 
 function toDateInputValue(date: Date | null): string {
   if (!date) return "";
@@ -37,7 +37,6 @@ export function EditSprintModal({ sprint }: { sprint: EditableSprint }) {
   const [goal, setGoal] = useState(sprint.goal ?? "");
   const [startDate, setStartDate] = useState(toDateInputValue(sprint.startDate));
   const [endDate, setEndDate] = useState(toDateInputValue(sprint.endDate));
-  const [status, setStatus] = useState<SprintStatus>(sprint.status);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -46,7 +45,6 @@ export function EditSprintModal({ sprint }: { sprint: EditableSprint }) {
     setGoal(sprint.goal ?? "");
     setStartDate(toDateInputValue(sprint.startDate));
     setEndDate(toDateInputValue(sprint.endDate));
-    setStatus(sprint.status);
     setError(null);
     setIsOpen(true);
   }
@@ -81,7 +79,6 @@ export function EditSprintModal({ sprint }: { sprint: EditableSprint }) {
           goal: goal.trim(),
           startDate: start,
           endDate: end,
-          status,
         });
         router.refresh();
         close();
@@ -182,21 +179,17 @@ export function EditSprintModal({ sprint }: { sprint: EditableSprint }) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="edit-status" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Sprint Durumu
-                </label>
-                <select
-                  id="edit-status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as SprintStatus)}
-                  className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                    {STATUS_LABELS[sprint.status]}
+                  </span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Durum yalnızca sprinti başlatarak veya tamamlayarak değişir.
+                  </span>
+                </div>
               </div>
 
               <div className="mt-2 flex justify-end gap-2">

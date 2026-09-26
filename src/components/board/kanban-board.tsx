@@ -20,20 +20,13 @@ import { TaskCard } from "@/components/board/task-card";
 import { TaskDetailModal } from "@/components/task-detail/task-detail-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useBoardQuery } from "@/lib/use-board-query";
+import { calculateNewSortOrder } from "@/lib/sort-order";
+import { useTaskNavigation } from "@/lib/use-task-navigation";
 import type { LabelOption } from "@/components/labels/label-picker";
 import type { AssigneeOption } from "@/components/assignees/assignee-picker";
 import type { BoardState, BoardTask } from "@/types/board";
 
 const POINTER_SENSOR_OPTIONS = { activationConstraint: { distance: 5 } };
-
-function calculateNewSortOrder(tasks: BoardTask[], overIndex: number): number {
-  if (tasks.length === 0) return 65535;
-  if (overIndex >= tasks.length) return tasks[tasks.length - 1].sortOrder + 10000;
-  if (overIndex === 0) return tasks[0].sortOrder - 10000;
-  const above = tasks[overIndex - 1].sortOrder;
-  const below = tasks[overIndex].sortOrder;
-  return (above + below) / 2;
-}
 
 function findColumnId(columns: BoardState[], id: string): string | undefined {
   if (columns.some((column) => column.id === id)) return id;
@@ -91,20 +84,9 @@ export function KanbanBoard({
   const [columns, setColumns] = useState<BoardState[]>(initialStates);
   const [syncedStates, setSyncedStates] = useState(initialStates);
   const [activeTask, setActiveTask] = useState<BoardTask | null>(null);
-  const { clearAll, searchParams, setParam } = useBoardQuery();
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => searchParams.get("task"));
+  const { clearAll } = useBoardQuery();
+  const { selectedTaskId, openTask, navigateToTask, closeTaskDetail } = useTaskNavigation();
   const [isCreatingFirstTask, startCreatingFirstTask] = useTransition();
-
-  function closeTaskDetail() {
-    setSelectedTaskId(null);
-    if (searchParams.get("task")) setParam("task", null);
-  }
-
-  /** İlişkili bir göreve tıklanınca modal o göreve geçer, derin bağlantı varsa URL de güncellenir. */
-  function navigateToTask(nextTaskId: string) {
-    setSelectedTaskId(nextTaskId);
-    if (searchParams.get("task")) setParam("task", nextTaskId);
-  }
 
   if (syncedStates !== initialStates) {
     setSyncedStates(initialStates);
@@ -240,7 +222,7 @@ export function KanbanBoard({
               projectId={projectId}
               projectIdentifier={projectIdentifier}
               state={column}
-              onOpenTask={setSelectedTaskId}
+              onOpenTask={openTask}
             />
           ))}
         </div>

@@ -278,7 +278,11 @@ function AddRelationPopover({
           role="dialog"
           aria-label="İlişki ekle"
           onKeyDown={(event) => {
-            if (event.key === "Escape") closePopover();
+            if (event.key === "Escape") {
+              // Yalnızca popover kapanır; slide-over'ın document Escape dinleyicisine ulaşmaz.
+              event.stopPropagation();
+              closePopover();
+            }
           }}
           className="absolute right-0 top-full z-40 mt-1 w-80 rounded-md border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
         >

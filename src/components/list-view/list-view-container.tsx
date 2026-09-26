@@ -9,6 +9,7 @@ import { TaskDetailModal } from "@/components/task-detail/task-detail-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useBoardQuery } from "@/lib/use-board-query";
+import { useTaskNavigation } from "@/lib/use-task-navigation";
 import { useBulkSelection } from "@/lib/use-bulk-selection";
 import { validateBulkDeleteLimit } from "@/lib/bulk-selection-logic";
 import { bulkDeleteTasks, bulkUpdateTasks } from "@/actions/task";
@@ -40,22 +41,11 @@ export function ListViewContainer({
   activeSprint?: { id: string; name: string } | null;
 }) {
   const router = useRouter();
-  const { clearAll, searchParams, setParam } = useBoardQuery();
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => searchParams.get("task"));
+  const { clearAll } = useBoardQuery();
+  const { selectedTaskId, openTask, navigateToTask, closeTaskDetail } = useTaskNavigation();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const bulk = useBulkSelection(tasks);
-
-  function closeTaskDetail() {
-    setSelectedTaskId(null);
-    if (searchParams.get("task")) setParam("task", null);
-  }
-
-  /** İlişkili bir göreve tıklanınca modal o göreve geçer, derin bağlantı varsa URL de güncellenir. */
-  function navigateToTask(nextTaskId: string) {
-    setSelectedTaskId(nextTaskId);
-    if (searchParams.get("task")) setParam("task", nextTaskId);
-  }
 
   function runBulkUpdate(data: { stateId?: string; priority?: Priority }) {
     const ids = [...bulk.selectedIds];
@@ -136,7 +126,7 @@ export function ListViewContainer({
             tasks={tasks}
             projectId={projectId}
             projectIdentifier={projectIdentifier}
-            onOpenTask={setSelectedTaskId}
+            onOpenTask={openTask}
             selectedTaskIds={[...bulk.selectedIds]}
             onToggleSelect={bulk.toggleSelect}
             isAllSelected={bulk.isAllSelected}

@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { Inbox } from "lucide-react";
 import { BacklogTaskTable } from "@/components/backlog/backlog-task-table";
 import { SprintProgressCard, type BacklogSprintCardData } from "@/components/backlog/sprint-progress-card";
 import type { MoveToSprintOption } from "@/components/backlog/move-to-sprint-menu";
 import { TaskDetailModal } from "@/components/task-detail/task-detail-modal";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useBoardQuery } from "@/lib/use-board-query";
+import { useTaskNavigation } from "@/lib/use-task-navigation";
 import type { LabelOption } from "@/components/labels/label-picker";
 import type { AssigneeOption } from "@/components/assignees/assignee-picker";
 import type { ListTask, ListState } from "@/types/list";
@@ -29,19 +28,7 @@ export function BacklogPageContainer({
   availableLabels: LabelOption[];
   members: AssigneeOption[];
 }) {
-  const { searchParams, setParam } = useBoardQuery();
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => searchParams.get("task"));
-
-  function closeTaskDetail() {
-    setSelectedTaskId(null);
-    if (searchParams.get("task")) setParam("task", null);
-  }
-
-  /** İlişkili bir göreve tıklanınca modal o göreve geçer, derin bağlantı varsa URL de güncellenir. */
-  function navigateToTask(nextTaskId: string) {
-    setSelectedTaskId(nextTaskId);
-    if (searchParams.get("task")) setParam("task", nextTaskId);
-  }
+  const { selectedTaskId, openTask, navigateToTask, closeTaskDetail } = useTaskNavigation();
 
   const sprintOptions: MoveToSprintOption[] = activeDraftSprints.map((sprint) => ({
     id: sprint.id,
@@ -79,7 +66,7 @@ export function BacklogPageContainer({
             tasks={tasks}
             projectIdentifier={projectIdentifier}
             availableSprints={sprintOptions}
-            onOpenTask={setSelectedTaskId}
+            onOpenTask={openTask}
           />
         )}
       </div>

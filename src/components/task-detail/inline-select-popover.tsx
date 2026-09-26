@@ -46,7 +46,9 @@ export function InlineSelectPopover({
     }
 
     if (event.key === "Escape") {
+      // Yalnızca açılır liste kapanır; slide-over'ın document Escape dinleyicisine ulaşmaz.
       event.preventDefault();
+      event.stopPropagation();
       setIsOpen(false);
       return;
     }

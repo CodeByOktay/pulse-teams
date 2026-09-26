@@ -177,8 +177,15 @@ export function TaskDetailModal({
   }
 
   function saveTitle(title: string) {
+    if (!detail) return;
+    const previousTitle = detail.title;
     patchDetail({ title });
-    updateTask(taskId, { title }).then(() => router.refresh());
+    updateTask(taskId, { title })
+      .then(() => router.refresh())
+      .catch((err: unknown) => {
+        patchDetail({ title: previousTitle });
+        alert(err instanceof Error ? err.message : "Başlık güncellenemedi.");
+      });
   }
 
   return (
@@ -318,7 +325,11 @@ function EditableTitle({ title, onSave }: { title: string; onSave: (title: strin
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") e.currentTarget.blur();
-          if (e.key === "Escape") setIsEditing(false);
+          if (e.key === "Escape") {
+            // Modal Escape dinleyicisi document'ta; React kökünde durdurmak ona ulaşmasını engeller.
+            e.stopPropagation();
+            setIsEditing(false);
+          }
         }}
         className="w-full rounded-md border border-zinc-300 px-2 py-1 text-lg font-semibold outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
       />
