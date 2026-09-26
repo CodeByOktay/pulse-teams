@@ -27,6 +27,9 @@
    - Single active sprint constraint: at most one `ACTIVE` sprint per project (`canStartSprint`).
    - Backlog invariant: tasks not assigned to any ACTIVE or DRAFT sprint (`isTaskInBacklog`).
    - Non-blocking resilient email dispatch: auth registration succeeds regardless of SMTP latency or transport errors.
+   - Centralized authorization: all Server Actions delegate access control to `src/lib/authz.ts` (`requireMembership`, `requireAdmin`, etc.).
+   - Atomic concurrency guards: `completeSprint` uses `updateMany({ where: { id, status: "ACTIVE" } })` to eliminate double-completion races.
+   - Unified navigation: `useTaskNavigation` hook standardizes `?task=` URL state synchronization across board, list, and backlog views.
 
 ---
 
@@ -46,6 +49,7 @@
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (+20 -> 488 tests)
   - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (+26 -> 514 tests)
   - **Hardening & Refactoring (v0.5.4):** 4-Wave Full-Stack Refactoring & Test Hardening (`project-analytics-logic.test.ts`) (+14 -> 528 tests)
+  - **Targeted Hardening Packages (v0.5.4):** Package 1 (authz consolidation & cross-project ID safety), Package 2 (modal Escape isolation, title rollback, unified navigation), Package 3 (sprint concurrency guard, ColorPicker debounce, InlineNameInput consolidation) (528 tests)
 - **ADR Index:** 33 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-033`.
 - **Detailed AI Context Snapshots:**
   - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
@@ -57,5 +61,5 @@
   - `030-dependency-automation.md` (ADR-030) — Task dependency unblocking automation and in-app notifications.
   - `031-progress-request-response-lifecycle.md` (ADR-031) — Interactive progress collection lifecycle and response validation.
   - `032-ai-progress-interpretation-and-proposals.md` (ADR-032) — AI progress interpretation, AgentProposal, and human approval flow.
-  - `033-codebase-refactoring-and-architecture-hardening.md` (ADR-033) — 4-wave refactoring, cross-tenant invite security fix, React 19 / ESLint hydration fixes, and project analytics test suite.
+  - `033-codebase-refactoring-and-architecture-hardening.md` (ADR-033) — 4-wave refactoring, 3 targeted hardening packages (authz, modal UX, concurrency), React 19 / ESLint hydration fixes, and project analytics test suite.
 

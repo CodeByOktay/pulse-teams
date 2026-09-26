@@ -75,6 +75,10 @@ Enums (9):
 - **Task Relations (Dependency Graph):** `TaskRelation` is strictly a SINGLE row in the DB. "Blocked By" is an inverted perspective of a BLOCKS record (reverse rows are never inserted). `hasExistingRelation` enforces the single-pair rule across both directions. Cycle detection is strictly enforced for BLOCKS via `wouldCreateBlockCycle` (iterative DFS with stack + visited set, non-recursive, safe against stack overflows). `addTaskRelation` derives `projectId` from verified task records, ensuring both tasks reside in the same project.
 - **Notification Delivery & Preferences:** `shouldDeliverWithPreferences` strictly enforces self-notification suppression (`actorId !== recipientId`) and maps against recipient `UserNotificationPreference` fields. `@mention` parsing (`extractMentions`, `resolveMentionedUserIds`) extracts callouts; mentioned assignees receive only `TASK_MENTIONED` (preventing double notification). Approaching due date alerts (`getApproachingDueTasks`) check calendar day thresholds (0, 1, 3 days) with idempotency per calendar day.
 - **AI Coordination Architecture (ADR-028 & ADR-032):** Three-tier automation: (A) Deterministic domain automation (TASK_UNBLOCKED notifications — no LLM), (B) AI-assisted coordination (progress interpretation via structured LLM output or zero-failure heuristic fallback with provider-agnostic engine), (C) Human-controlled decisions (approval-gated mutations via `AgentProposalCard`). Technology introduction is phased: LLM API at Step 5.04, LangGraph.js at Step 5.05. Autonomy levels: Level 1 (auto-notify), Level 2 (propose + approve), Human Required (destructive ops). AI bot identity: `pulse-ai-bot` user + `isAiGenerated` Activity flag. Post-transaction hook pattern for domain event triggering.
+- **Centralized Authorization (`src/lib/authz.ts`):** `requireSession`, `requireUserId`, `requireMembership`, `requireAdmin`, `requireAdminSession`, and `assertNotProjectOwner` reside in a centralized `server-only` module, eliminating ad-hoc auth boilerplate across all 12 server action files.
+- **Unified Task Navigation (`useTaskNavigation`):** `src/lib/use-task-navigation.ts` synchronizes the `?task=` URL query parameter and task slide-over modal across board, list, and backlog views.
+- **Atomic Concurrency Guards:** `completeSprint` uses atomic conditional update (`updateMany` with `status: "ACTIVE"` guard) to prevent double-completion races and duplicate notifications. Notification dispatch is safely wrapped in `try/catch`.
+- **Render-Phase State Sync & Debounce:** `ColorPicker` uses React 19 render-phase prop sync with a 200ms debounce (flushing on blur and unmount). Shared `InlineNameInput` consolidates inline editing across settings managers.
 
 ## Testing Conventions
 - **Location:** `src/lib/__tests__/*.test.ts`
@@ -118,6 +122,7 @@ Enums (9):
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (488 tests)
   - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (514 tests)
   - **Hardening & Refactoring (v0.5.4):** 4-Wave Codebase Refactoring & Project Analytics Tests (528 tests)
+  - **Post-MVP Hardening Packages (v0.5.4):** Package 1 (Backend Hardening, Security, Data Integrity & authz Consolidation), Package 2 (UI, UX, Modal Escape Isolation, Title Rollback & Unified Navigation), Package 3 (Performance, Concurrency, ColorPicker Debounce & Settings Polish) (528 tests)
 
 ## Verification Rule After Every Step
 ```bash

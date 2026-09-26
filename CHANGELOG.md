@@ -3,6 +3,37 @@
 
 Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](https://keepachangelog.com/) standardına uygundur.
 
+## [0.5.4] - 2026-09-26 (Faz 5 — AI Proaktif Proje Koordinasyonu, 4-Dalga Refaktör & 3 Sağlamlaştırma Paketi)
+
+### Eklendi (Added)
+- **Alan Etkinlikleri Temeli (Faz 5.01):** `ActivityType` enum'ına `PROGRESS_REQUESTED`, `PROGRESS_RESPONDED`, `PROPOSAL_GENERATED`, `PROPOSAL_APPROVED`, `PROPOSAL_REJECTED`, `TASK_UNBLOCKED` değerleri; `NotificationType` enum'ına `TASK_UNBLOCKED` ve `PROGRESS_REQUESTED` değerleri eklendi. Saf kural motoru `src/lib/automation-logic.ts` (33 test).
+- **Bağımlılık Çözülme Otomasyonu (Faz 5.02):** Görev tamamlandığında engellediği görevleri tespit eden ve engel kalkan görev sahiplerine otomatik `TASK_UNBLOCKED` bildirimi gönderen kural motoru (`src/lib/dependency-automation.ts`, 13 test).
+- **İlerleme Talebi & Yanıtlama Yaşam Döngüsü (Faz 5.03):** `ProgressRequest` ve `ProgressResponse` modelleri, `ProgressRequestStatus` enum'u, talep gönderme ve yanıtlama arayüzü (`src/lib/progress-logic.ts`, 20 test).
+- **AI İlerleme Yorumlama & Öneri Sistemi (Faz 5.04):** `AgentProposal` modeli, `ProposalStatus` enum'u, doğal dil yanıtlarından durum/tamamlanma/blokaj çıkarımı yapan sağlayıcı-bağımsız motor, `AgentProposalCard` insan onay arayüzü (`src/lib/ai-proposal-logic.ts`, 26 test).
+- **Analitik Test Paketi:** `src/lib/__tests__/project-analytics-logic.test.ts` (14 test) ile burndown, hız ve akış metrikleri doğrudan güvence altına alındı. Test sayısı 514'ten 528'e çıktı.
+- **Merkezi Yetkilendirme Modülü (`src/lib/authz.ts`):** `requireSession`, `requireUserId`, `requireMembership`, `requireAdmin`, `requireAdminSession`, `assertNotProjectOwner` standart yardımcıları (Paket 1).
+- **Ortak Görev Navigasyonu (`src/lib/use-task-navigation.ts`):** Board, List ve Backlog ekranlarında `?task=` URL parametresini ve slide-over modalını senkronize eden ortak React hook'u (Paket 2).
+- **Ortak İsim Düzenleyici (`src/components/settings/inline-name-input.tsx`):** Durum ve etiket yöneticilerinde kullanılan satır içi isim düzenleme bileşeni tekilleştirildi (Paket 3).
+
+### Güvenlik & Dayanıklılık (Security & Reliability)
+- **Projeler Arası IDOR Koruması:** `cancelInvite` eylemi `where: { id, projectId }` ile sınırlandı; `createTask` ve `updateTask` içinde `stateId` ve `assigneeIds` değerlerinin aynı projeye ait olduğu transaction öncesinde doğrulandı (Paket 1).
+- **Davet Süresi Denetimi:** Üye davet kontrolleri `expiresAt > new Date()` ile filtrelendi; Prisma P2025 hataları dostça Türkçe mesajlara çevrildi (Paket 1).
+- **Eşzamanlılık Koruması (Concurrency Guard):** `completeSprint` eylemi `prisma.sprint.updateMany({ where: { id, status: "ACTIVE" } })` atomik sorgusu ile kilitlendi; yarışan isteklerin çift bildirim göndermesi önlendi (Paket 3).
+- **Dayanıklı Bildirim Dağıtımı:** Sprint tamamlama bildirimleri `try/catch` içine alınarak olası bildirim hatalarının birincil işlemi aksatması engellendi (Paket 3).
+
+### İyileştirmeler & Arayüz (Refactoring & UX)
+- **React 19 Render-Phase Senkronizasyonu:** `kanban-board.tsx`, `task-detail-modal.tsx` ve `color-picker.tsx` bileşenlerinde `useEffect` tabanlı prop dinleme yerine React 19 render-phase senkronizasyonuna geçildi; ESLint uyarıları sıfırlandı.
+- **Klavye & Modal İzolasyonu:** `EditableTitle`, `InlineSelectPopover` ve `task-relations.tsx` bileşenlerinde Escape tuşu `e.stopPropagation()` ile yalıtıldı; iç modal kapatılırken ana slide-over'ın kapanması önlendi (Paket 2).
+- **Başlık Güncellemesinde İyimser Geri Alma (Rollback):** Başlık düzenlemesi sunucu tarafında başarısız olursa arayüz otomatik olarak önceki başlığa geri döner (Paket 2).
+- **Tek Durum Silme Koruması:** Projede tek bir durum kaldığında arayüzde silme butonu devre dışı bırakıldı (`disabled`) ve açıklayıcı tooltip eklendi (Paket 2).
+- **Debounced ColorPicker:** Renk seçici `onChange` çağrıları 200ms debounce ile optimize edildi; `onBlur` ve `unmount` anlarında bekleyen renk temizlenerek veri kaybı önlendi (Paket 3).
+
+### Test
+- Toplam Vitest testi 416'dan **528**'e çıktı (27 test dosyası), %100 geçiyor.
+- `npx tsc --noEmit` ve `npm run build` tam üretim uyumluluğunda 0 hata ile doğrulandı.
+
+---
+
 ## [0.4.4] - 2026-09-21 (Faz 4.04 — E-posta Servisi Entegrasyonu, Hoş Geldiniz & Üye Daveti)
 
 ### Eklendi (Added)

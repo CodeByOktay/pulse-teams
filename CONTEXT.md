@@ -98,7 +98,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
   - `task-relations.test.ts` (40 tests).
 - Total Phase 3: 331 Vitest tests (100% pass).
 
-## Phase 4 In-Progress Features (v0.4.0)
+## Phase 4 Completed Features (v0.4.0)
 - **[Step 4.01] Realistic Analytics Dataset & Generators (v0.4.1):**
   - `seed-data-generators.ts`: Pure domain module, deterministic `mulberry32` PRNG (seed: 42), weighted task-type/priority distributions, GFM checklist (~40%) and simulated attachment link (~30%) generators, and 14-day sprint window calculators.
   - `seed-realistic-data.ts`: Idempotent bulk insertion script (`npm run db:seed-rich` via `prisma/tsconfig.seed.json`). Reuses `wouldCreateBlockCycle` and `hasExistingRelation` to guarantee zero dependency cycles, and preserves the backlog invariant (`isTaskInBacklog`).
@@ -119,11 +119,32 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
   - `comment.ts`: Dispatches `TASK_MENTIONED` to mentioned project members and suppresses `COMMENT_ADDED` for mentioned assignees to prevent duplicate notifications.
   - UI: `NotificationPreferencesModal` with 5 switches, optimistic state & rollback; gear icon in `NotificationPopover`; `AtSign` & `Clock` icons in `NotificationItem`.
   - `notification-preferences.test.ts` (29 tests).
-- Total: 393 Vitest tests (100% pass).
+- **[Step 4.04] Email Delivery Service & Templates (v0.4.4):**
+  - `sendEmail` universal engine (`src/lib/mail.ts`) with live SMTP, Ethereal testing, and console fallback.
+  - HTML templates: `renderWelcomeEmail` and `renderInviteMemberEmail` (`src/lib/email-templates.ts`).
+  - `email-templates.test.ts` (23 tests).
+- Total Phase 4: 416 Vitest tests (100% pass).
+
+## Phase 5 Completed Features (v0.5.0 MVP — AI Proactive Project Coordination)
+- **[Step 5.00] Architecture Decisions & ADR-028:** Three-tier coordination, domain events, provider-agnostic AI engine.
+- **[Step 5.01] Domain Event Foundation (v0.5.1):** Enums expanded (`ActivityType` to 23 values, `NotificationType` to 7 values); `automation-logic.ts` (32 tests).
+- **[Step 5.02] Dependency Automation (v0.5.2):** `TASK_UNBLOCKED` automatic notifications when blocking tasks are completed; `dependency-automation.test.ts` (13 tests).
+- **[Step 5.03] Progress Request & Response Lifecycle (v0.5.3):** `ProgressRequest` and `ProgressResponse` models, interactive response slide-over, token validation; `progress-logic.test.ts` (20 tests).
+- **[Step 5.04] AI Progress Interpretation & Agent Proposals (v0.5.4):** Structured progress extraction, `AgentProposal` approval workflow, human-in-the-loop review UI (`AgentProposalCard`); `ai-proposal-logic.test.ts` (26 tests).
+- **4-Wave Full-Stack Refactoring & Hardening (v0.5.4):**
+  - Wave 1 (Domain Logic): Analytics optimization, pure cycle detection helpers, and `project-analytics-logic.test.ts` (14 tests). Total: 528 tests.
+  - Wave 2 (Server Actions & Auth): Cross-tenant invite IDOR fix, pre-transaction proposal checks.
+  - Wave 3 (Kanban & Modals): React 19 render-phase state sync, rapid task navigation race condition fix.
+  - Wave 4 (Project Settings): Optimistic renames with rollback, clipboard error handling, timeout leak cleanup.
+- **Post-MVP Hardening Packages (v0.5.4):**
+  - Package 1: Centralized `src/lib/authz.ts` (12 action files), cross-project state/assignee validation in `task.ts`, invite expiration filters.
+  - Package 2: Unified `src/lib/use-task-navigation.ts` hook, modal Escape isolation in `EditableTitle`/popovers, single-state delete prevention.
+  - Package 3: Atomic `updateMany` concurrency guard in `completeSprint`, resilient try/catch notifications, 200ms `ColorPicker` debounce, shared `InlineNameInput`.
 
 ## Critical Technical Invariants
-- `requireMembership(projectId, userId)` -> Enforced in every server action.
-- `requireAdmin(projectId, userId)` -> Enforced in settings/state actions (`role === "ADMIN"`).
+- Centralized authz: all actions delegate authorization to `src/lib/authz.ts` (`requireMembership`, `requireAdmin`, `requireSession`, `assertNotProjectOwner`).
+- Unified navigation: `useTaskNavigation` hook standardizes `?task=` URL state synchronization across board, list, and backlog views.
+- Atomic concurrency guards: `completeSprint` uses `updateMany({ where: { id, status: "ACTIVE" } })` to eliminate double-completion races; notifications dispatched in try/catch.
 - `getNextSequenceId(projectId, tx)` -> Generates project-scoped monotonically increasing IDs (`src/lib/sequence.ts`).
 - `getAvatarColor(name)` -> Bitwise hash to one of 10 curated Tailwind palette colors (`src/lib/colors.ts`).
 - `parseBoardFilters(searchParams)` -> URL params to `BoardFilters`; `buildTaskWhereFromFilters(filters)` -> single `Prisma.TaskWhereInput` (`src/lib/board-filters.ts`); `serializeBoardFilters` provides roundtrip URL query serialization.

@@ -2,14 +2,14 @@
 
 > Next.js 16 (App Router), PostgreSQL, Prisma ORM, NextAuth ve @dnd-kit kullanılarak geliştirilmiş modern, hızlı ve kurumsal seviyede proje yönetim platformu.
 
-![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v0.3.0-blue.svg)
+![Sürüm](https://img.shields.io/badge/s%C3%BCr%C3%BCm-v0.5.4-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?logo=tailwind-css)
 ![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)
-![Testler](https://img.shields.io/badge/Vitest-331%20passed-success?logo=vitest)
+![Testler](https://img.shields.io/badge/Vitest-528%20passed-success?logo=vitest)
 
 ---
 
@@ -34,7 +34,7 @@ Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan a
 - 🔍 **URL Tabanlı Filtreleme & Sıralama:** Yer imlerine eklenebilir ve paylaşılabilir filtreler (`?priority=...&label=...&sort=...`), dinamik sayaç, tek tıkla filtre temizleme.
 - 🧭 **Navigasyon & Boş Durumlar:** Breadcrumb ekmek kırıntısı, 256px koyu tema Sidebar, kullanıcı avatar açılır menüsü ve 3 farklı senaryoya özel Empty State kartları.
 
-## 🚀 Yeni Özellikler (Faz 2 — v0.2.0)
+## 🚀 Faz 2 Özellikleri (v0.2.0)
 
 - 🏃 **Sprint / Cycle Yönetimi:** Taslak → Aktif → Tamamlandı durum akışı, tek seferde tek aktif sprint kısıtı, sprint bazlı ilerleme çubuğu ve gecikme (overdue) rozeti.
 - 📊 **Liste Görünümü:** Kanban'a alternatif, sıralanabilir sütun başlıklı, state'e göre gruplanan ve gruplar açılıp kapanabilen (collapsible) tablo görünümü; `ViewSwitcher` ile Board ↔ Liste geçişi.
@@ -43,7 +43,7 @@ Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan a
 - ✍️ **Markdown Desteği:** Görev açıklamalarında Yaz/Önizle sekmeli editör, seçili metni saran araç çubuğu (kalın/italik/kod/liste/link), Kanban kartında düz metin önizleme.
 - ⚙️ **Proje Ayarları:** Yalnızca `ADMIN` rolüne açık durum (state) ve etiket yönetim paneli; sürükle-bırakla durum sıralama, renk seçici, kullanım sayısı gösterimi ve güvenli silme kısıtları.
 
-## 🎯 Yeni Özellikler (Faz 3 — v0.3.0)
+## 🎯 Faz 3 Özellikleri (v0.3.0)
 
 - 👥 **Üye Yönetimi & Davet Sistemi:** `ADMIN` yetkisiyle e-posta daveti (32 byte token, 7 gün geçerli), davet linki kopyalama, rol değiştirme ve üye çıkarma; proje sahibi çıkarılamaz ve rolü değiştirilemez.
 - 🎛️ **Görev Detayı Premium UX:** Satır içi durum/öncelik seçicileri (klavye ile gezinilebilir, iyimser güncelleme + geri alma), breadcrumb, tıkla-düzenle tarih alanları ve paylaşılabilir görev bağlantısı (`?task=`).
@@ -51,7 +51,27 @@ Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan a
 - 🔎 **Global Arama & Komut Paleti:** `Ctrl+K` / `Cmd+K` ile açılan, görev başlığı ve `PRJ-12` tanımlayıcısıyla arama yapan, ok tuşlarıyla gezilebilen komut paleti ve proje bazlı hızlı aksiyonlar.
 - 📈 **Dashboard & Analytics:** 4 istatistik kartı, "Bana Atananlar" widget'ı, son aktivite akışı ve sprint hızı paneli (tamamlanma oranı, burndown, ortalama hız) — harici grafik kütüphanesi kullanılmadan, saf Tailwind ile.
 - 🧰 **Gelişmiş Filtreler & Kayıtlı Görünümler:** Durum grubu, bitiş tarihi (gecikmiş/bugün/bu hafta/tarihsiz) ve metin araması; tek tıklık hızlı filtre çipleri ve `localStorage` tabanlı, proje bazlı kayıtlı görünümler.
-- 🔗 **Görev İlişkileri & Bağımlılıklar:** `Engelliyor` / `Tarafından engelleniyor` / `İlişkili` / `Kopyası` ilişkileri; her ilişki tek yönlü tek kayıt olarak saklanır, aynı çift ikinci kez ilişkilendirilemez ve döngüsel `BLOCKS` bağımlılıkları sunucu tarafında iteratif DFS ile engellenir.
+- 🔗 **Görev İlişkileri & Bağımlılıklar:** `Engelliyor` / `Tarafından engelleniyor` / `İlişkili` / `Kopyası` ilişkileri; tek yönlü tek kayıt depolama, çift ilişki engelleme ve iteratif DFS ile döngü önleme.
+
+## 🔔 Faz 4 Özellikleri (v0.4.0 — Bildirimler & İletişim)
+
+- 📬 **Uygulama İçi Bildirimler & Polling:** Görev atamaları, yorumlar ve sprint tamamlanma olaylarında anlık bildirimler, okunmamış sayacı rozeti, 30 saniyelik sekme duyarlı polling.
+- ⚙️ **Kullanıcı Bildirim Tercihleri & @Mention:** `@kullanici` etiketleme tespiti, çift bildirim engelleme, 5 farklı kanal için kullanıcı tercih anahtarları, 0/1/3 takvim günü yaklaşan son tarih uyarıları.
+- ✉️ **Evrensel E-posta Servisi (Nodemailer):** Canlı SMTP, Brevo, Ethereal test hesabı desteği; modern ve XSS-güvenli hoş geldiniz ve üye davet e-posta şablonları.
+- 🎲 **Zengin Analitik Veri Tohumlayıcı:** 10 persona, 5 proje, 500 görev, 1.000 yorum ve 3.000 aktivite içeren deterministik PRNG veri seti (`npm run db:seed-rich`).
+
+## 🤖 Faz 5 Özellikleri (v0.5.4 — AI Koordinasyonu & Mimari Sağlamlaştırma)
+
+- ⚡ **Alan Olayları & Otomasyon Temeli:** 23 aktivite tipi, 7 bildirim tipi; engelleyici görev tamamlandığında otomatik `TASK_UNBLOCKED` bildirimi.
+- 💬 **İlerleme Talebi ve Yanıtlama (Progress Collection):** Yöneticilerin görev sahiplerinden tek tıkla durum sorgulaması ve kullanıcıların modal üzerinden ilerleme yanıtı vermesi.
+- 🧠 **AI İlerleme Yorumlama & Öneri Sistemi (AgentProposal):** Doğal dil ilerleme yanıtlarını analiz ederek durum, yüzde ve blokaj çıkarımı yapan sağlayıcı-bağımsız AI motoru; insan onaylı `AgentProposalCard` onay arayüzü.
+- 🛡️ **Kapsamlı Kod Tabanı Refaktörü & 3 Sağlamlaştırma Paketi:**
+  - `src/lib/authz.ts` merkezi yetkilendirmesi ile 12 server action'ın sadeleştirilmesi.
+  - Projeler arası IDOR güvenlik açığının kapatılması (`cancelInvite`, `createTask`, `updateTask`).
+  - React 19 render-phase senkronizasyonu ve `useTaskNavigation` hook'u ile URL derin bağlantı birleştirmesi.
+  - `completeSprint` atomik `updateMany` kilidi ile yarış durumlarının (race condition) önlenmesi.
+  - `ColorPicker` bileşeninde 200ms debounce ve render-phase prop senkronizasyonu.
+  - 528 Vitest birim/entegrasyon testi (%100 yeşil).
 
 ---
 
@@ -67,13 +87,14 @@ Küçük ve orta ölçekli yazılım ekipleri için gereksiz karmaşıklıktan a
 | **ORM** | Prisma ORM 6.19 | Tip güvenli veritabanı modelleme ve migration |
 | **Veritabanı** | PostgreSQL 16 (Docker) | Güçlü ilişkisel veritabanı altyapısı |
 | **Kimlik Doğrulama** | NextAuth.js v4 + bcryptjs | JWT oturum stratejisi ve Edge Middleware |
-| **Test Aracı** | Vitest 5 | Hızlı ve ESM uyumlu otomatik birim testi çalıştırma |
+| **E-posta Servisi** | Nodemailer | Universal SMTP / Ethereal / console e-posta motoru |
+| **Test Aracı** | Vitest 5 | 528 birim ve entegrasyon testi (27 test paketi) |
 
 ---
 
 ## 🏛️ Mimari Varlık Modeli (Entity-Relationship)
 
-Veritabanında tanımlı 14 ana model ve ilişkileri:
+Veritabanında tanımlı 19 ana model ve ilişkileri:
 
 ```mermaid
 erDiagram
@@ -83,6 +104,11 @@ erDiagram
     User ||--o{ Comment : "yazar"
     User ||--o{ Activity : "gerçekleştirir"
     User ||--o{ ProjectInvite : "davet gönderir"
+    User ||--o{ Notification : "alır"
+    User ||--o| UserNotificationPreference : "sahiptir"
+    User ||--o{ ProgressRequest : "talep eder"
+    User ||--o{ ProgressResponse : "yanıtlar"
+    User ||--o{ AgentProposal : "inceler / onaylar"
 
     Project ||--o{ ProjectMember : "barındırır"
     Project ||--o{ State : "tanımlar"
@@ -100,6 +126,11 @@ erDiagram
     Task ||--o{ Activity : "kaydeder"
     Task ||--o{ TaskRelation : "kaynak (Blocks/Relates/Duplicates)"
     Task ||--o{ TaskRelation : "hedef"
+    Task ||--o{ ProgressRequest : "izler"
+    Task ||--o{ AgentProposal : "öneri alır"
+
+    ProgressRequest ||--o| ProgressResponse : "yanıtlanır"
+    ProgressResponse ||--o| AgentProposal : "yorumlanır"
 
     Label ||--o{ TaskLabel : "etiketler"
 
