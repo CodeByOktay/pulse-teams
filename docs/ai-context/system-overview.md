@@ -45,7 +45,8 @@
   - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (+20 -> 468 tests)
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (+20 -> 488 tests)
   - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (+26 -> 514 tests)
-- **ADR Index:** 32 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-032`.
+  - **Hardening & Refactoring (v0.5.4):** 4-Wave Full-Stack Refactoring & Test Hardening (`project-analytics-logic.test.ts`) (+14 -> 528 tests)
+- **ADR Index:** 33 Architecture Decision Records stored in `docs/wiki/ADR-001` through `ADR-033`.
 - **Detailed AI Context Snapshots:**
   - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
   - `025-in-app-notifications.md` (ADR-025) — In-app notification polling and trigger hooks.
@@ -56,4 +57,5 @@
   - `030-dependency-automation.md` (ADR-030) — Task dependency unblocking automation and in-app notifications.
   - `031-progress-request-response-lifecycle.md` (ADR-031) — Interactive progress collection lifecycle and response validation.
   - `032-ai-progress-interpretation-and-proposals.md` (ADR-032) — AI progress interpretation, AgentProposal, and human approval flow.
+  - `033-codebase-refactoring-and-architecture-hardening.md` (ADR-033) — 4-wave refactoring, cross-tenant invite security fix, React 19 / ESLint hydration fixes, and project analytics test suite.
 

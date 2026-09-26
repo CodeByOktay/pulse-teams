@@ -117,6 +117,7 @@ Enums (9):
   - **Step 5.02 (v0.5.2):** TASK_UNBLOCKED Dependency Automation & Notification (468 tests)
   - **Step 5.03 (v0.5.3):** ProgressRequest/ProgressResponse Lifecycle (488 tests)
   - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (514 tests)
+  - **Hardening & Refactoring (v0.5.4):** 4-Wave Codebase Refactoring & Project Analytics Tests (528 tests)
 
 ## Verification Rule After Every Step
 ```bash

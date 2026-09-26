@@ -1,8 +1,8 @@
-# CONTEXT - Pulse Project Manager (v0.4.4 -> Phase 4.04 Completed)
+# CONTEXT - Pulse Project Manager (v0.5.4 -> Phase 5 MVP & Codebase Hardening Completed)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, and 3 are fully completed; Phase 4.01 (Analytics Dataset), Phase 4.02 (In-App Notifications with Polling), Phase 4.03 (Notification Preferences & Mentions), and Phase 4.04 (Email Delivery & Welcome Email) are completed.
+Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, and Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal) are fully completed; 4-Wave Codebase Refactoring & Hardening is complete.
 
 ## Location & Execution
 - **Project Path:** `C:\Pulse`
@@ -195,7 +195,7 @@ npm run build     # Production build validation
 ## New Chat Starter Template
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
-Phases 1 (v0.1.0), 2 (v0.2.0), and 3 (v0.3.0) are fully completed; Phase 4.01 (Dataset), Phase 4.02 (In-App Notifications), Phase 4.03 (Notification Preferences & Mentions), and Phase 4.04 (Email Service & Welcome/Invite Emails) are complete.
+Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), and 5 MVP (v0.5.4) are fully completed with 4-Wave Full-Stack Refactoring & Hardening.
 528 Vitest tests are passing 100%.
 We are now ready to implement [new phase / feature].
 [Paste specific task or requirements here]
