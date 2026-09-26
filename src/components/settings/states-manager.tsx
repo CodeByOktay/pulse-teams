@@ -12,12 +12,19 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
+  arrayMove,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Loader2, Plus, Trash2 } from "lucide-react";
-import { createState, deleteState, reorderStates, updateState } from "@/actions/state";
+import {
+  createState,
+  deleteState,
+  reorderStates,
+  updateState,
+  type UpdateStateInput,
+} from "@/actions/state";
 import { ColorPicker } from "@/components/settings/color-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { validateStateName } from "@/lib/settings-logic";
@@ -30,6 +37,12 @@ export type StateItem = {
   group: StateGroup;
   sequence: number;
 };
+
+const POINTER_SENSOR_OPTIONS = { activationConstraint: { distance: 5 } };
+
+const REORDER_DEBOUNCE_MS = 500;
+
+const DEFAULT_COLOR = "#60646C";
 
 const GROUP_OPTIONS: { value: StateGroup; label: string }[] = [
   { value: "BACKLOG", label: "Backlog" },
@@ -56,97 +69,97 @@ export function StatesManager({
 }) {
   const router = useRouter();
   const [items, setItems] = useState(states);
+  const [syncedStates, setSyncedStates] = useState(states);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const reorderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestStatesRef = useRef(states);
+
+  if (syncedStates !== states) {
+    setSyncedStates(states);
+    setItems(states);
+  }
 
   useEffect(() => {
-    setItems(states);
+    latestStatesRef.current = states;
   }, [states]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR_OPTIONS));
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  /** Başarısız kayıtlarda iyimser değişiklikleri sunucudaki son duruma geri alır. */
+  function rollback() {
+    setItems(latestStatesRef.current);
+  }
 
-    setItems((prev) => {
-      const oldIndex = prev.findIndex((item) => item.id === active.id);
-      const newIndex = prev.findIndex((item) => item.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return prev;
+  function patchItem(stateId: string, patch: Partial<StateItem>) {
+    setItems((prev) => prev.map((item) => (item.id === stateId ? { ...item, ...patch } : item)));
+  }
 
-      const next = [...prev];
-      const [moved] = next.splice(oldIndex, 1);
-      next.splice(newIndex, 0, moved);
-
-      if (reorderTimeoutRef.current) {
-        clearTimeout(reorderTimeoutRef.current);
+  function saveState(stateId: string, data: UpdateStateInput, fallbackError: string) {
+    startTransition(async () => {
+      try {
+        await updateState(stateId, data);
+        router.refresh();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : fallbackError);
+        rollback();
       }
-      reorderTimeoutRef.current = setTimeout(() => {
-        startTransition(async () => {
-          try {
-            await reorderStates(
-              projectId,
-              next.map((item) => item.id),
-            );
-            router.refresh();
-          } catch (err) {
-            alert(err instanceof Error ? err.message : "Sıralama kaydedilemedi.");
-            setItems(states);
-          }
-        });
-      }, 500);
-
-      return next;
     });
   }
 
-  function handleNameSave(stateId: string, name: string) {
+  // Zamanlayıcı unmount'ta temizlenmez: sekme değişse bile bekleyen sıralama kaydedilir.
+  function scheduleReorderSave(orderedIds: string[]) {
+    if (reorderTimeoutRef.current) {
+      clearTimeout(reorderTimeoutRef.current);
+    }
+    reorderTimeoutRef.current = setTimeout(() => {
+      startTransition(async () => {
+        try {
+          await reorderStates(projectId, orderedIds);
+          router.refresh();
+        } catch (err) {
+          alert(err instanceof Error ? err.message : "Sıralama kaydedilemedi.");
+          rollback();
+        }
+      });
+    }, REORDER_DEBOUNCE_MS);
+  }
+
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex((item) => item.id === active.id);
+    const newIndex = items.findIndex((item) => item.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const next = arrayMove(items, oldIndex, newIndex);
+    setItems(next);
+    scheduleReorderSave(next.map((item) => item.id));
+  }
+
+  function handleNameSave(stateId: string, rawName: string) {
+    const name = rawName.trim();
     const current = items.find((item) => item.id === stateId);
-    if (!current || current.name === name.trim()) return;
+    if (!current || current.name === name) return;
 
     const validation = validateStateName(name);
     if (!validation.valid) {
       alert(validation.error);
-      setItems((prev) => prev.map((item) => (item.id === stateId ? { ...item, name: current.name } : item)));
       return;
     }
 
-    startTransition(async () => {
-      try {
-        await updateState(stateId, { name: name.trim() });
-        router.refresh();
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Durum güncellenemedi.");
-        setItems(states);
-      }
-    });
+    patchItem(stateId, { name });
+    saveState(stateId, { name }, "Durum güncellenemedi.");
   }
 
   function handleColorChange(stateId: string, color: string) {
-    setItems((prev) => prev.map((item) => (item.id === stateId ? { ...item, color } : item)));
-    startTransition(async () => {
-      try {
-        await updateState(stateId, { color });
-        router.refresh();
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Renk güncellenemedi.");
-        setItems(states);
-      }
-    });
+    patchItem(stateId, { color });
+    saveState(stateId, { color }, "Renk güncellenemedi.");
   }
 
   function handleGroupChange(stateId: string, group: StateGroup) {
-    setItems((prev) => prev.map((item) => (item.id === stateId ? { ...item, group } : item)));
-    startTransition(async () => {
-      try {
-        await updateState(stateId, { group });
-        router.refresh();
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Durum grubu güncellenemedi.");
-        setItems(states);
-      }
-    });
+    patchItem(stateId, { group });
+    saveState(stateId, { group }, "Durum grubu güncellenemedi.");
   }
 
   function handleDeleteConfirm() {
@@ -155,10 +168,10 @@ export function StatesManager({
     startTransition(async () => {
       try {
         await deleteState(targetId);
-        setDeleteTargetId(null);
         router.refresh();
       } catch (err) {
         alert(err instanceof Error ? err.message : "Durum silinemedi.");
+      } finally {
         setDeleteTargetId(null);
       }
     });
@@ -211,14 +224,9 @@ function StateRow({
   onGroupChange: (id: string, group: StateGroup) => void;
   onDelete: () => void;
 }) {
-  const [nameValue, setNameValue] = useState(item.name);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
-
-  useEffect(() => {
-    setNameValue(item.name);
-  }, [item.name]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -245,25 +253,13 @@ function StateRow({
 
       <ColorPicker value={item.color} onChange={(color) => onColorChange(item.id, color)} />
 
-      <input
-        type="text"
-        value={nameValue}
-        onChange={(e) => setNameValue(e.target.value)}
-        onBlur={() => onNameSave(item.id, nameValue)}
-        className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm text-zinc-900 outline-none hover:border-zinc-200 focus:border-zinc-400 dark:text-zinc-100 dark:hover:border-zinc-700"
-      />
+      <InlineNameInput value={item.name} onSave={(name) => onNameSave(item.id, name)} />
 
-      <select
+      <GroupSelect
         value={item.group}
-        onChange={(e) => onGroupChange(item.id, e.target.value as StateGroup)}
+        onChange={(group) => onGroupChange(item.id, group)}
         className={`rounded-full border-0 px-2 py-1 text-xs font-medium outline-none ${GROUP_BADGE_CLASS[item.group]}`}
-      >
-        {GROUP_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      />
 
       <button
         type="button"
@@ -277,22 +273,88 @@ function StateRow({
   );
 }
 
+function InlineNameInput({ value, onSave }: { value: string; onSave: (name: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const [syncedValue, setSyncedValue] = useState(value);
+
+  if (syncedValue !== value) {
+    setSyncedValue(value);
+    setDraft(value);
+  }
+
+  // Kayıt reddedilirse (geçersiz ad) taslak, son kaydedilen adla geri döner.
+  function commit() {
+    onSave(draft);
+    setDraft(value);
+  }
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm text-zinc-900 outline-none hover:border-zinc-200 focus:border-zinc-400 dark:text-zinc-100 dark:hover:border-zinc-700"
+    />
+  );
+}
+
+function GroupSelect({
+  value,
+  onChange,
+  className,
+}: {
+  value: StateGroup;
+  onChange: (group: StateGroup) => void;
+  className: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as StateGroup)}
+      className={className}
+    >
+      {GROUP_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function NewStateForm({ projectId }: { projectId: string }) {
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+      >
+        <Plus className="h-4 w-4" />
+        Yeni Durum Ekle
+      </button>
+    );
+  }
+
+  return <NewStateFormFields projectId={projectId} onClose={() => setIsOpen(false)} />;
+}
+
+function NewStateFormFields({
+  projectId,
+  onClose,
+}: {
+  projectId: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#60646C");
+  const [color, setColor] = useState(DEFAULT_COLOR);
   const [group, setGroup] = useState<StateGroup>("BACKLOG");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  function close() {
-    setIsOpen(false);
-    setName("");
-    setColor("#60646C");
-    setGroup("BACKLOG");
-    setError(null);
-  }
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -308,24 +370,11 @@ function NewStateForm({ projectId }: { projectId: string }) {
       try {
         await createState({ projectId, name: name.trim(), color, group });
         router.refresh();
-        close();
+        onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Durum oluşturulamadı.");
       }
     });
-  }
-
-  if (!isOpen) {
-    return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-      >
-        <Plus className="h-4 w-4" />
-        Yeni Durum Ekle
-      </button>
-    );
   }
 
   return (
@@ -346,23 +395,17 @@ function NewStateForm({ projectId }: { projectId: string }) {
           maxLength={50}
           className="min-w-0 flex-1 rounded-md border border-zinc-300 px-2 py-1 text-sm outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
         />
-        <select
+        <GroupSelect
           value={group}
-          onChange={(e) => setGroup(e.target.value as StateGroup)}
+          onChange={setGroup}
           className="rounded-md border border-zinc-300 px-2 py-1 text-xs outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
-        >
-          {GROUP_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       <div className="flex justify-end gap-2">
         <button
           type="button"
-          onClick={close}
+          onClick={onClose}
           className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
         >
           Vazgeç

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { createLabel, deleteLabel, updateLabel } from "@/actions/label";
@@ -15,6 +15,8 @@ export type LabelItem = {
   taskCount: number;
 };
 
+const DEFAULT_COLOR = "#60646C";
+
 export function LabelsManager({
   labels,
   projectId,
@@ -24,59 +26,78 @@ export function LabelsManager({
 }) {
   const router = useRouter();
   const [items, setItems] = useState(labels);
-  const [deleteTarget, setDeleteTarget] = useState<LabelItem | null>(null);
+  const [syncedLabels, setSyncedLabels] = useState(labels);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const latestLabelsRef = useRef(labels);
+
+  if (syncedLabels !== labels) {
+    setSyncedLabels(labels);
+    setItems(labels);
+  }
 
   useEffect(() => {
-    setItems(labels);
+    latestLabelsRef.current = labels;
   }, [labels]);
 
-  function handleNameSave(labelId: string, name: string) {
+  const deleteTarget = items.find((item) => item.id === deleteTargetId) ?? null;
+
+  /** Başarısız kayıtlarda iyimser değişiklikleri sunucudaki son duruma geri alır. */
+  function rollback() {
+    setItems(latestLabelsRef.current);
+  }
+
+  function patchItem(labelId: string, patch: Partial<LabelItem>) {
+    setItems((prev) => prev.map((item) => (item.id === labelId ? { ...item, ...patch } : item)));
+  }
+
+  function saveLabel(
+    labelId: string,
+    data: Partial<Pick<LabelItem, "name" | "color">>,
+    fallbackError: string,
+  ) {
+    startTransition(async () => {
+      try {
+        await updateLabel(labelId, data);
+        router.refresh();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : fallbackError);
+        rollback();
+      }
+    });
+  }
+
+  function handleNameSave(labelId: string, rawName: string) {
+    const name = rawName.trim();
     const current = items.find((item) => item.id === labelId);
-    if (!current || current.name === name.trim()) return;
+    if (!current || current.name === name) return;
 
     const validation = validateLabelName(name);
     if (!validation.valid) {
       alert(validation.error);
-      setItems((prev) => prev.map((item) => (item.id === labelId ? { ...item, name: current.name } : item)));
       return;
     }
 
-    startTransition(async () => {
-      try {
-        await updateLabel(labelId, { name: name.trim() });
-        router.refresh();
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Etiket güncellenemedi.");
-        setItems(labels);
-      }
-    });
+    patchItem(labelId, { name });
+    saveLabel(labelId, { name }, "Etiket güncellenemedi.");
   }
 
   function handleColorChange(labelId: string, color: string) {
-    setItems((prev) => prev.map((item) => (item.id === labelId ? { ...item, color } : item)));
-    startTransition(async () => {
-      try {
-        await updateLabel(labelId, { color });
-        router.refresh();
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "Renk güncellenemedi.");
-        setItems(labels);
-      }
-    });
+    patchItem(labelId, { color });
+    saveLabel(labelId, { color }, "Renk güncellenemedi.");
   }
 
   function handleDeleteConfirm() {
-    if (!deleteTarget) return;
-    const targetId = deleteTarget.id;
+    if (!deleteTargetId) return;
+    const targetId = deleteTargetId;
     startTransition(async () => {
       try {
         await deleteLabel(targetId);
-        setDeleteTarget(null);
         router.refresh();
       } catch (err) {
         alert(err instanceof Error ? err.message : "Etiket silinemedi.");
-        setDeleteTarget(null);
+      } finally {
+        setDeleteTargetId(null);
       }
     });
   }
@@ -90,7 +111,7 @@ export function LabelsManager({
             item={item}
             onNameSave={handleNameSave}
             onColorChange={handleColorChange}
-            onDelete={() => setDeleteTarget(item)}
+            onDelete={() => setDeleteTargetId(item.id)}
           />
         ))}
       </div>
@@ -107,7 +128,7 @@ export function LabelsManager({
         confirmLabel="Evet, Sil"
         confirmVariant="danger"
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteTarget(null)}
+        onCancel={() => setDeleteTargetId(null)}
         isLoading={isPending}
       />
     </div>
@@ -125,23 +146,11 @@ function LabelRow({
   onColorChange: (id: string, color: string) => void;
   onDelete: () => void;
 }) {
-  const [nameValue, setNameValue] = useState(item.name);
-
-  useEffect(() => {
-    setNameValue(item.name);
-  }, [item.name]);
-
   return (
     <div className="group flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-2 py-2 dark:border-zinc-800 dark:bg-zinc-900">
       <ColorPicker value={item.color} onChange={(color) => onColorChange(item.id, color)} />
 
-      <input
-        type="text"
-        value={nameValue}
-        onChange={(e) => setNameValue(e.target.value)}
-        onBlur={() => onNameSave(item.id, nameValue)}
-        className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm text-zinc-900 outline-none hover:border-zinc-200 focus:border-zinc-400 dark:text-zinc-100 dark:hover:border-zinc-700"
-      />
+      <InlineNameInput value={item.name} onSave={(name) => onNameSave(item.id, name)} />
 
       <span className="shrink-0 text-xs text-zinc-400">
         {item.taskCount} görevde kullanılıyor
@@ -159,20 +168,63 @@ function LabelRow({
   );
 }
 
+function InlineNameInput({ value, onSave }: { value: string; onSave: (name: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const [syncedValue, setSyncedValue] = useState(value);
+
+  if (syncedValue !== value) {
+    setSyncedValue(value);
+    setDraft(value);
+  }
+
+  // Kayıt reddedilirse (geçersiz ad) taslak, son kaydedilen adla geri döner.
+  function commit() {
+    onSave(draft);
+    setDraft(value);
+  }
+
+  return (
+    <input
+      type="text"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm text-zinc-900 outline-none hover:border-zinc-200 focus:border-zinc-400 dark:text-zinc-100 dark:hover:border-zinc-700"
+    />
+  );
+}
+
 function NewLabelForm({ projectId }: { projectId: string }) {
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+      >
+        <Plus className="h-4 w-4" />
+        Yeni Etiket Ekle
+      </button>
+    );
+  }
+
+  return <NewLabelFormFields projectId={projectId} onClose={() => setIsOpen(false)} />;
+}
+
+function NewLabelFormFields({
+  projectId,
+  onClose,
+}: {
+  projectId: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#60646C");
+  const [color, setColor] = useState(DEFAULT_COLOR);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  function close() {
-    setIsOpen(false);
-    setName("");
-    setColor("#60646C");
-    setError(null);
-  }
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -188,24 +240,11 @@ function NewLabelForm({ projectId }: { projectId: string }) {
       try {
         await createLabel({ projectId, name: name.trim(), color });
         router.refresh();
-        close();
+        onClose();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Etiket oluşturulamadı.");
       }
     });
-  }
-
-  if (!isOpen) {
-    return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 rounded-md px-2 py-2 text-sm text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-      >
-        <Plus className="h-4 w-4" />
-        Yeni Etiket Ekle
-      </button>
-    );
   }
 
   return (
@@ -231,7 +270,7 @@ function NewLabelForm({ projectId }: { projectId: string }) {
       <div className="flex justify-end gap-2">
         <button
           type="button"
-          onClick={close}
+          onClick={onClose}
           className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
         >
           Vazgeç
