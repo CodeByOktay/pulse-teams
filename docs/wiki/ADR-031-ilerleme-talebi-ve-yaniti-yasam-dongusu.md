@@ -4,7 +4,7 @@
 - **Tarih:** 2026-09-25
 - **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder)
 - **Sürüm:** v0.5.3 (Phase 5 — Step 5.03)
-- **İlgili ADR:** [ADR-013-Aktivite Geçmişi & Denetim Günlüğü](file:///c:/Pulse/docs/wiki/ADR-013-%20Aktivite%20Geçmişi%20&%20Denetim%20Günlüğü%20(Audit%20Log%20System)), [ADR-025-Uygulama İçi Bildirimler](file:///c:/Pulse/docs/wiki/ADR-025-Uygulama%20İçi%20Bildirimler%20ve%20İstemci%20Polling%20Mimarisi), [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](file:///c:/Pulse/docs/wiki/ADR-028-AI%20Destekli%20Proaktif%20Proje%20Koordinasyon%20Mimarisi), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](file:///c:/Pulse/docs/wiki/ADR-029-Domain%20Event%20Temeli%20ve%20Aktivite%20Genişletmesi)
+- **İlgili ADR:** [ADR-013-Aktivite Geçmişi & Denetim Günlüğü](./ADR-013-aktivite-gecmisi-ve-denetim-gunlugu.md), [ADR-025-Uygulama İçi Bildirimler](./ADR-025-uygulama-ici-bildirimler-ve-istemci-polling.md), [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](./ADR-028-ai-destekli-proaktif-proje-koordinasyonu.md), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](./ADR-029-domain-event-temeli-ve-aktivite-genisletmesi.md)
 
 ---
 
@@ -63,7 +63,7 @@ Migration: `20260925192217_add_progress_request_models`
   - Görevin bekleyen talebini, geçmiş yanıtlarını, atananlarını ve yetki durumunu tek çağrıda UI'a sunar.
 
 ### D. Kullanıcı Arayüzü Entegrasyonu (`TaskProgressSection`)
-- [`src/components/task-detail/task-progress-section.tsx`](file:///c:/Pulse/src/components/task-detail/task-progress-section.tsx) bileşeni oluşturuldu.
+- [`src/components/task-detail/task-progress-section.tsx`](../../src/components/task-detail/task-progress-section.tsx) bileşeni oluşturuldu.
 - Görev detayında ilişkiler bloğu ile aktivite sekmesi arasına yerleştirildi:
   - Birden fazla atanan varsa açılır menüden kullanıcı seçilerek **"İlerleme Sor"** butonu tetiklenir.
   - Hedef kullanıcı için kehribar (amber) renkli odak kartı açılır: Karakter sayaçlı metin kutusu ve **[İlerlemeyi Gönder]** butonu.

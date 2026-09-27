@@ -4,7 +4,7 @@
 - **Tarih:** 2026-09-26
 - **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder & Implementer)
 - **Sürüm:** v0.5.4 (Refactoring & Hardening Milestone)
-- **İlgili ADR:** [ADR-007-Kanban Panosu](file:///c:/Pulse/docs/wiki/ADR-007-Kanban%20Panosu%20(Board)%20&%20Sürükle-Bırak%20Mimaris), [ADR-008-Görev Detay Paneli](file:///c:/Pulse/docs/wiki/ADR-008-Görev%20Detay%20Paneli%20(Modal)%20&%20Yorum%20Sistemi%20Mimaris), [ADR-016-Durum & Etiket Yönetim Sayfası](file:///c:/Pulse/docs/wiki/ADR-016-Durum%20&%20Etiket%20Yönetim%20Sayfası%20(Proje%20Ayarları)%20—%20Kanban%20Sütunları,%20Durumlar%20ve%20Etiketlerin%20RBAC%20ile%20Yönetim), [ADR-017-Proje Davet Sistemi](file:///c:/Pulse/docs/wiki/ADR-017-Yönetimi%20ve%20Proje%20Davet%20Sistemi), [ADR-023-Görev İlişkileri](file:///c:/Pulse/docs/wiki/ADR-023-Görev%20İlişkileri%20ve%20Bağımlılık%20Mimarisi), [ADR-032-AI Destekli İlerleme Yorumlama](file:///c:/Pulse/docs/wiki/ADR-032-AI%20Destekli%20İlerleme%20Yorumlama%20ve%20Onaylı%20Güncelleme%20Mimarisi)
+- **İlgili ADR:** [ADR-007-Kanban Panosu](./ADR-007-kanban-panosu-ve-surukle-birak-mimarisi.md), [ADR-008-Görev Detay Paneli](./ADR-008-gorev-detay-paneli-ve-yorum-sistemi-mimarisi.md), [ADR-016-Durum & Etiket Yönetim Sayfası](./ADR-016-durum-ve-etiket-yonetimi-rbac.md), [ADR-017-Proje Davet Sistemi](./ADR-017-uye-yonetimi-ve-proje-davet-sistemi.md), [ADR-023-Görev İlişkileri](./ADR-023-gorev-iliskileri-ve-bagimlilik-mimarisi.md), [ADR-032-AI Destekli İlerleme Yorumlama](./ADR-032-ai-destekli-ilerleme-yorumlama-ve-onayli-guncelleme.md)
 
 ---
 
@@ -45,7 +45,7 @@ Projenin tamamı "Aşamalı ve Kontrollü (Incremental) 4 Dalga Mimarisi" ile re
 * **`board-filters.ts`:**
   - URL filtre çözümleme parçaları `pickValid` ve `pickOne` generic yardımcılarına taşındı; `new Date` kopyalama fazlalıkları temizlendi.
 * **QA & Test Otoritesi Hamlesi (Antigravity):**
-  - Bu modülün test açığı tespit edildi ve [`src/lib/__tests__/project-analytics-logic.test.ts`](file:///c:/Pulse/src/lib/__tests__/project-analytics-logic.test.ts) oluşturularak **14 kapsamlı test** eklendi (514 ➔ 528 test, 27 test suite).
+  - Bu modülün test açığı tespit edildi ve [`src/lib/__tests__/project-analytics-logic.test.ts`](../../src/lib/__tests__/project-analytics-logic.test.ts) oluşturularak **14 kapsamlı test** eklendi (514 ➔ 528 test, 27 test suite).
 
 ### B. Wave 2: Server Actions & Yetkilendirme Katmanı (`src/actions/`)
 * **`cancelInvite` IDOR Güvenlik Yaması:**
