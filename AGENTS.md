@@ -98,8 +98,9 @@ Enums (9):
   - `progress-logic.test.ts` (20), `ai-proposal-logic.test.ts` (26)
   - `project-analytics-logic.test.ts` (14), `agent-infrastructure.test.ts` (15), `deadline-tracker.test.ts` (10)
   - `hygiene-logic.test.ts` (20), `status-requester-logic.test.ts` (19)
-  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5)
-- **Total:** **592 Vitest tests (TypeScript) + 42 Pytest tests (Python) = 634 tests, 100% passing**
+  - `version.test.ts` (2), `clock-app.test.ts` (11)
+  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6)
+- **Total:** **605 Vitest tests (TypeScript) + 48 Pytest tests (Python) = 653 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -129,11 +130,16 @@ Enums (9):
 ## Current Phase — Phase 6: AI Agent Coordination System
 - **ADR:** ADR-034 (AI Agent Koordinasyon Altyapısı ve Proaktif Agent Sistemi)
 - **Architecture:** Python LangGraph container (`pulse-agent`) + DomainEvent outbox + HMAC Internal API
-- **Agent Catalog:** Agent-000 (Supervisor) through Agent-009 (Scope Creep Detection)
-- **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes)
+- **Agent Catalog:** Agent-000 (Supervisor) through Agent-009 (Scope Creep Detection) — All 10 agents belong strictly to Phase 6
+- **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes) ← COMPLETED
 - **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API (574 tests) ← COMPLETED
 - **Step 6.02 (v0.6.1):** Agent-001 (Deadline Tracker) + Agent Activity dashboard widget (587 tests) ← COMPLETED
-- **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) (634 tests) ← COMPLETED
+- **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) (653 tests) ← COMPLETED
+- **Step 6.04 (v0.6.3 — Up Next):** Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians (Tier A)
+- **Step 6.05 (v0.6.4 — Planned):** Agent-005 (Async Daily Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest (Tier B)
+- **Step 6.06 (v0.6.5 — Planned):** Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal (Tier B)
+- **Step 6.07 (v0.6.6 — Planned):** Project Memory & RAG Semantic Search (pgvector integration)
+- **Step 6.08 (v0.6.7 — Planned):** Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification
 
 ## Verification Rule After Every Step
 ```bash

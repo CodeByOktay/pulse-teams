@@ -5,8 +5,8 @@ Phase 6 introduces a proactive AI agent coordination system with a Python LangGr
 
 - **Milestone:** Phase 6, Step 6.03 (`v0.6.2` — Agent-002 & Agent-003 completed)
 - **ADR Reference:** `ADR-034-AI Agent Koordinasyon Altyapisi ve Proaktif Agent Sistemi`
-- **Phase 6 Scope:** Steps 6.00–6.03 (Infrastructure + Agent-001/002/003)
-- **Current Tests:** 634 passing (592 Vitest + 42 Pytest, 100% passing)
+- **Phase 6 Scope:** Steps 6.00–6.08 (Complete 10-Agent Proactive System: Infrastructure + Agents 000–009 + RAG Semantic Search + Hardening)
+- **Current Tests:** 653 passing (605 Vitest + 48 Pytest, 100% passing)
 
 ---
 
@@ -29,19 +29,19 @@ Phase 6 introduces a proactive AI agent coordination system with a Python LangGr
 - Event-based agents (004, 009): Triggered by DomainEvent outbox.
 - Catch-up on startup: Checks `AgentRun` table for missed `scheduledFor` times; runs catch-up once per missed slot.
 
-### 4. Agent Catalog (10 Agents)
+### 4. Agent Catalog (10 Agents — All Phase 6)
 | Agent | Purpose | LLM | Tier | Phase |
 |---|---|---|---|---|
 | Agent-000 | Supervisor: routing, rate-limiting, logging | No | — | 6 |
 | Agent-001 | Deadline Tracker: approaching/overdue reminders + ADMIN escalation | No | A | 6 |
 | Agent-002 | Task Hygiene: missing assignee/deadline/description detection | No | A | 6 |
 | Agent-003 | Status Requester: stale task inquiry with interrupt/resume buttons | No | A | 6 |
-| Agent-004 | Blocker Manager: dependency chain tracking + escalation | No | A | 7 |
-| Agent-005 | Async Standup: morning form + LLM summary | Yes | B | 7 |
-| Agent-006 | Weekly Report: sprint health + team summary | Yes | B | 7 |
-| Agent-007 | Workload Balancer: overloaded/idle detection + reassignment proposals | Yes | B | 8 |
-| Agent-008 | Sprint Assistant: overflow warning + retro draft | Yes | B | 8 |
-| Agent-009 | Scope Creep Detection: mid-sprint scope growth detection | No | A | 7 |
+| Agent-004 | Blocker Manager: dependency chain tracking + escalation | No | A | 6 |
+| Agent-005 | Async Standup: morning form + LLM summary | Yes | B | 6 |
+| Agent-006 | Weekly Report: sprint health + team summary | Yes | B | 6 |
+| Agent-007 | Workload Balancer: overloaded/idle detection + reassignment proposals | Yes | B | 6 |
+| Agent-008 | Sprint Assistant: overflow warning + retro draft | Yes | B | 6 |
+| Agent-009 | Scope Creep Detection: mid-sprint scope growth detection | No | A | 6 |
 
 ### 5. Agent Identity & Escalation
 - Message format: `"[PM name] adına Pulse Asistan"` — acts as the PM's assistant.
@@ -83,10 +83,15 @@ Phase 6 introduces a proactive AI agent coordination system with a Python LangGr
 - `agent/src/internal_client.py` — Next.js Internal API client (HMAC).
 - `agent/src/clock.py` — Python clock abstraction.
 
-## Step Roadmap
-| Step | Version | Content |
-|---|---|---|
-| 6.00 | v0.6.0-pre | ADR-034 (this document) |
-| 6.01 | v0.6.0 | Infrastructure: Schema, DomainEvent, Clock, Python container, Supervisor, Internal API, AgentSettings UI |
-| 6.02 | v0.6.1 | Agent-001 (Deadline Tracker) + "Agent Activity" dashboard widget |
-| 6.03 | v0.6.2 | Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) |
+## Step Roadmap (Phase 6)
+| Step | Version | Content | Status |
+|---|---|---|---|
+| 6.00 | v0.6.0-pre | ADR-034: AI Agent Coordination Architecture | Completed |
+| 6.01 | v0.6.0 | Infrastructure: Schema, DomainEvent, Clock, Python container, Supervisor, Internal API, AgentSettings UI | Completed (574 tests) |
+| 6.02 | v0.6.1 | Agent-001 (Deadline Tracker) + "Agent Activity" dashboard widget | Completed (587 tests) |
+| 6.03 | v0.6.2 | Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) | Completed (653 tests) |
+| 6.04 | v0.6.3 | Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians | Up Next |
+| 6.05 | v0.6.4 | Agent-005 (Async Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest | Planned |
+| 6.06 | v0.6.5 | Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal | Planned |
+| 6.07 | v0.6.6 | Project Memory, RAG & Semantic Search (pgvector integration) | Planned |
+| 6.08 | v0.6.7 | Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification | Planned |

@@ -7,6 +7,7 @@ import { LogOut, Calendar, Inbox, LayoutGrid, List, Settings } from "lucide-reac
 import { CreateProjectModal } from "@/components/projects/create-project-modal";
 import { CommandPalette } from "@/components/search/command-palette";
 import { getAvatarColor } from "@/lib/colors";
+import { APP_VERSION } from "@/lib/version";
 
 export type SidebarProject = {
   id: string;
@@ -24,8 +25,14 @@ export function Sidebar({ projects }: { projects: SidebarProject[] }) {
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-slate-900 text-white">
       <div className="flex items-center justify-between px-4 py-5">
-        <Link href="/" className="text-lg font-semibold">
-          Pulse
+        <Link href="/" className="group inline-flex items-baseline gap-1.5 focus:outline-none">
+          <span className="text-xl font-bold tracking-tight text-white">Pulse</span>
+          <span
+            data-testid="app-version-badge"
+            className="translate-y-0.5 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-emerald-400 border border-emerald-500/20 group-hover:border-emerald-500/40 transition-colors"
+          >
+            v{APP_VERSION}
+          </span>
         </Link>
       </div>
 

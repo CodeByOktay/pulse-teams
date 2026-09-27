@@ -101,7 +101,7 @@ Pulse v0.5.4 itibariyle:
 - Agent mesaj formatı: `"[PM adı] adına Pulse Asistan"` — yöneticinin yardımcısı hissi.
 - PM kullanıcısı: `AgentSettings.pmUserId` — proje ayarlarında ADMIN'ler arasından seçilir. Varsayılan: proje owner'ı.
 
-### G. Agent Kataloğu (10 Agent)
+### G. Agent Kataloğu (10 Agent — Faz 6 Tam Kapsam)
 
 | Agent | Görev | LLM | Tier | Phase |
 |---|---|---|---|---|
@@ -109,14 +109,17 @@ Pulse v0.5.4 itibariyle:
 | Agent-001 | Deadline Takipçisi: yaklaşan/gecikmiş deadline hatırlatma + ADMIN eskalasyon | ❌ | A | 6 |
 | Agent-002 | Görev Hijyeni: eksik sahip/deadline/açıklama tespiti + tamamlama isteği | ❌ | A | 6 |
 | Agent-003 | Durum İsteyici: N gün hareketsiz → buton seçenekli istek, interrupt/resume | ❌ | A | 6 |
-| Agent-004 | Engel Yöneticisi: blok zinciri takibi + eskalasyon | ❌ | A | 7 |
-| Agent-005 | Asenkron Standup: sabah formu + LLM özet | ✅ | B | 7 |
-| Agent-006 | Haftalık Rapor: sprint sağlığı + ekip özeti | ✅ | B | 7 |
-| Agent-007 | İş Yükü Dengeleyici: aşırı/boş tespit + yeniden atama önerisi | ✅ | B | 8 |
-| Agent-008 | Sprint Asistanı: taşma uyarısı + retro taslağı | ✅ | B | 8 |
-| Agent-009 | Kapsam Kayması Tespiti: sprint ortası eklenen iş tespiti | ❌ | A | 7 |
+| Agent-004 | Engel Yöneticisi: blok zinciri takibi + eskalasyon | ❌ | A | 6 |
+| Agent-005 | Asenkron Standup: sabah formu + LLM özet | ✅ | B | 6 |
+| Agent-006 | Haftalık Rapor: sprint sağlığı + ekip özeti | ✅ | B | 6 |
+| Agent-007 | İş Yükü Dengeleyici: aşırı/boş tespit + yeniden atama önerisi | ✅ | B | 6 |
+| Agent-008 | Sprint Asistanı: taşma uyarısı + retro taslağı | ✅ | B | 6 |
+| Agent-009 | Kapsam Kayması Tespiti: sprint ortası eklenen iş tespiti | ❌ | A | 6 |
 
-**Kritik gözlem:** İlk dört agent (000–003) hiç LLM kullanmaz. LLM sağlayıcısı değişse bile bu agent'lar etkilenmez. LangGraph burada durumu tutmak ve insan cevabını beklemek için kullanılır; LLM bir araç, zorunluluk değil.
+**Kritik mimari karar:** 10 agent'lık kataloğun **tamamı Faz 6 (AI Agent Koordinasyon Sistemi)** kapsamındadır.
+- **Deterministik Koruyucular (Tier A — Agent 000, 001, 002, 003, 004, 009):** Sıfır LLM token maliyetiyle kural ve olay bazlı (DomainEvent & APScheduler) koruma ve eskalasyon sağlar.
+- **LLM Destekli Koordinatörler (Tier B — Agent 005, 006, 007, 008):** LangGraph stateful akışları ile LLM sentezini birleştirir; insan onaylı `AgentProposal` ve özet bültenleri üretir.
+- **Proje Hafızası (RAG & Semantik Arama):** Görevler, yorumlar ve dokümanlar üzerinde pgvector destekli semantik arama Faz 6 Step 6.07 adımında entegre edilir.
 
 ### H. Mevcut `checkApproachingDueDates` Geçişi
 
@@ -200,14 +203,19 @@ model AgentSettings {
 
 ---
 
-## 4. Yol Haritası
+## 4. Yol Haritası (Faz 6 Adımları)
 
-| Step | Versiyon | İçerik | Yeni Test (TS + Python) |
+| Step | Versiyon | İçerik | Durum / Test |
 |---|---|---|---|
-| 6.00 | v0.6.0-pre | Bu ADR | — |
-| 6.01 | v0.6.0 | Altyapı: Schema, DomainEvent, Clock, Python container, Supervisor, Internal API, AgentSettings UI | ~35 |
-| 6.02 | v0.6.1 | Agent-001 (Deadline Takipçisi) + "Bu hafta yaptıkları" paneli | ~20 |
-| 6.03 | v0.6.2 | Agent-002 (Görev Hijyeni) + Agent-003 (Durum İsteyici, interrupt/resume) | ~30 |
+| 6.00 | v0.6.0-pre | Mimari kararlar ve ADR-034 tasarımı | Tamamlandı |
+| 6.01 | v0.6.0 | Altyapı: Schema, DomainEvent, Clock, Python container (`pulse-agent`), Supervisor (Agent-000), Internal API, AgentSettings UI | Tamamlandı (574 test) |
+| 6.02 | v0.6.1 | Agent-001 (Deadline Takipçisi) + "Agent Activity" dashboard paneli | Tamamlandı (587 test) |
+| 6.03 | v0.6.2 | Agent-002 (Görev Hijyeni) + Agent-003 (Durum İsteyici, LangGraph interrupt/resume, eskalasyon) | Tamamlandı (653 test) |
+| 6.04 | v0.6.3 | Agent-004 (Engel Yöneticisi) + Agent-009 (Kapsam Kayması Tespiti) — Olay Güdümlü Koruyucular (Tier A) | Sırada |
+| 6.05 | v0.6.4 | Agent-005 (Asenkron Standup) + Agent-006 (Haftalık Sprint Özeti) — LLM Destekli İletişim ve Raporlama (Tier B) | Planlandı |
+| 6.06 | v0.6.5 | Agent-007 (İş Yükü Dengeleyici) + Agent-008 (Sprint Asistanı) — LLM Destekli Proaktif Optimizasyon & Karar Destek (`AgentProposal`) | Planlandı |
+| 6.07 | v0.6.6 | Proje Hafızası, RAG & Semantik Arama: Görevler, Dokümanlar ve Sprintler Üzerinde pgvector Bilgi Sorgulama | Planlandı |
+| 6.08 | v0.6.7 | Faz 6 Konsolidasyon, E2E Multi-Agent Koordinasyon Doğrulaması ve Hardening | Planlandı |
 
 ---
 
@@ -274,14 +282,12 @@ Pulse/
 
 ---
 
-## 7. Kapsam Dışı (Phase 6)
+## 7. Kapsam Dışı (Faz 6 Sınırları)
 
-- LLM kullanan agent'lar (005–008) → Phase 7+
-- RAG / pgvector / LlamaIndex → Phase 8+
-- Email channel entegrasyonu
-- Otomatik assignee/due date değiştirme (Level 3)
-- Serbest sohbet / chatbot arayüzü
-- Multi-agent paralel orchestration
+- **Onaysız Yıkıcı İşlemler (Level 3 Otonomi):** AI hiçbir koşulda veritabanında doğrudan görev/sprint silme veya insan onayı olmaksızın atama değiştirme yapamaz. Değişiklikler mutlaka Level 2 (`AgentProposal`) onay kapısından geçmelidir.
+- **Harici Kimlik Sağlayıcılar (OAuth/SSO):** NextAuth CredentialsProvider tek ve yegane kimlik sağlayıcıdır.
+- **Serbest Sohbet / Chatbot Arayüzü:** Pulse bir chat uygulaması değildir; agent etkileşimleri görev kartları, popover'lar, bültenler ve bildirimler üzerinden yapılandırılmıştır.
+- **Çoklu Organizasyon (Multi-Tenant SaaS) / Dış Sistem Entegrasyonları (Jira/GitHub sync):** Faz 6 sonrası vizyona aittir.
 
 ---
 

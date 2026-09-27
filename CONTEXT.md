@@ -1,14 +1,14 @@
-# CONTEXT - Pulse Project Manager (v0.6.1 -> Phase 6 Step 6.02 Completed: Agent-001 & Widget)
+# CONTEXT - Pulse Project Manager (v0.6.2 -> Phase 6 Step 6.03 Completed: Agent-002 & Agent-003)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), Phase 6 Step 6.01 (AI Agent Infrastructure), and Step 6.02 (Agent-001 Deadline Tracker & Agent Activity Widget) are fully completed.
+Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), Phase 6 Step 6.01 (AI Agent Infrastructure), Step 6.02 (Agent-001 Deadline Tracker & Agent Activity Widget), and Step 6.03 (Agent-002 Task Hygiene & Agent-003 Status Requester with LangGraph interrupt/resume) are fully completed.
 
 ## Location & Execution
 - **Project Path:** `C:\Pulse`
 - **Database:** PostgreSQL 16 in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (553 Vitest tests across 29 suites + 34 Pytest tests across 6 suites = 587 tests, 100% passing)
+- **Tests:** `npm test` (605 Vitest tests across 33 suites + 48 Pytest tests across 9 suites = 653 tests, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, ~60 tasks compact dataset, active/draft sprints)
 
 ## AI Agent Division of Labor & Guides
@@ -141,6 +141,14 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
   - Package 2: Unified `src/lib/use-task-navigation.ts` hook, modal Escape isolation in `EditableTitle`/popovers, single-state delete prevention.
   - Package 3: Atomic `updateMany` concurrency guard in `completeSprint`, resilient try/catch notifications, 200ms `ColorPicker` debounce, shared `InlineNameInput`.
 
+## Phase 6 Completed Features: AI Agent Coordination System (v0.6.0 — v0.6.2)
+- **Architecture (ADR-034):** Python LangGraph container (`pulse-agent`) + PostgreSQL DomainEvent outbox + HMAC-SHA256 Internal API. The entire 10-agent catalog (Agent-000 through Agent-009) belongs strictly to Phase 6.
+- **[Step 6.01] Agent Infrastructure (v0.6.0):** `DomainEvent`, `AgentRun`, `AgentSettings` Prisma models, testable Clock abstraction (`src/lib/clock.ts` and `agent/src/clock.py`), Python container with APScheduler, `Agent-000` Supervisor, HMAC Internal API (`src/app/api/internal/agent/`), AgentSettings project tab UI (574 tests).
+- **[Step 6.02] Agent-001 Deadline Tracker & Activity Widget (v0.6.1):** Session-independent `dispatchDueDateReminders`, approaching/overdue reminders + ADMIN escalation, dashboard "Agent Activity" widget (587 tests).
+- **[Step 6.03] Agent-002 Task Hygiene & Agent-003 Status Requester (v0.6.2):**
+  - `Agent-002` (Task Hygiene): Missing assignee, missing due date, missing description detection; notifies assignee or PM user with hygiene action links (`hygiene-logic.ts`, `hygiene-service.ts`, `test_agent_002.py`).
+  - `Agent-003` (Status Requester): Stale in-progress task inquiry; LangGraph `interrupt()`/`resume()` with interactive action buttons (İlerliyor ▶, Engel var 🚫, Bitti ✅), timeout-based ADMIN escalation, `status-response` endpoint (`status-requester-logic.ts`, `status-requester-service.ts`, `test_agent_003.py`). Total: 653 tests (605 Vitest + 48 Pytest, 100% passing).
+
 ## Critical Technical Invariants
 - Centralized authz: all actions delegate authorization to `src/lib/authz.ts` (`requireMembership`, `requireAdmin`, `requireSession`, `assertNotProjectOwner`).
 - Unified navigation: `useTaskNavigation` hook standardizes `?task=` URL state synchronization across board, list, and backlog views.
@@ -176,7 +184,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `/login`                  -> Login Page
 - `/register`               -> Registration Page
 
-## Test Suite Distribution (553 Tests across 29 Suites)
+## Test Suite Distribution (605 Vitest Tests across 33 Suites + 48 Pytest Tests across 9 Suites = 653 Tests)
 - `sequence.test.ts` (2)
 - `sort-order.test.ts` (4)
 - `colors.test.ts` (3)
@@ -206,8 +214,12 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `project-analytics-logic.test.ts` (14)
 - `agent-infrastructure.test.ts` (15)
 - `deadline-tracker.test.ts` (10)
-- `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3)
-Total: **553 Vitest tests (TypeScript) + 34 Pytest tests (Python) = 587 tests, 100% passing**
+- `hygiene-logic.test.ts` (20)
+- `status-requester-logic.test.ts` (19)
+- `clock-app.test.ts` (11)
+- `version.test.ts` (2)
+- `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6)
+Total: **605 Vitest tests (TypeScript) + 48 Pytest tests (Python) = 653 tests, 100% passing**
 
 ## Database Models (22 Models across Phases 1–6)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
@@ -227,19 +239,34 @@ ProgressRequest, ProgressResponse, AgentProposal, **DomainEvent, AgentRun, Agent
 - `033-codebase-refactoring-and-architecture-hardening.md` (ADR-033) — 4-wave refactoring, 3 targeted hardening packages (authz, modal UX, concurrency), React 19 / ESLint hydration fixes, and project analytics test suite.
 - `034-ai-agent-coordination-infrastructure.md` (ADR-034) — Python LangGraph container, DomainEvent outbox, APScheduler, 10-agent catalog (Agent-000 through Agent-009), HMAC-protected Internal API, Clock abstraction, and catch-up on startup.
 
+## Phase 6 Full 10-Agent Catalog & Roadmap (All Agents in Phase 6)
+- **Agent-000 (Supervisor):** Routing, rate-limiting, dedup, run logging (Step 6.01, Completed)
+- **Agent-001 (Deadline Tracker):** Approaching & overdue reminders + ADMIN escalation (Step 6.02, Completed)
+- **Agent-002 (Task Hygiene):** Missing assignee/due date/description detection (Step 6.03, Completed)
+- **Agent-003 (Status Requester):** Stale task inquiry with interrupt/resume buttons (Step 6.03, Completed)
+- **Agent-004 (Blocker Manager):** Dependency chain tracking (BLOCKS) + escalation (Step 6.04, Up Next)
+- **Agent-009 (Scope Creep Detection):** Mid-sprint scope growth & task addition detection (Step 6.04, Up Next)
+- **Agent-005 (Async Standup):** Morning standup form + LLM summary digest (Step 6.05, Planned)
+- **Agent-006 (Weekly Report):** Sprint health, velocity & risk summary (Step 6.05, Planned)
+- **Agent-007 (Workload Balancer):** Overload/idle detection + reassignment AgentProposal (Step 6.06, Planned)
+- **Agent-008 (Sprint Assistant):** Sprint overflow warning + retro draft (Step 6.06, Planned)
+- **Project Memory & RAG:** Semantic search on tasks, comments & project docs via pgvector (Step 6.07, Planned)
+- **Phase 6 Consolidation & Verification:** E2E multi-agent verification & hardening (Step 6.08, Planned)
+
 ## Mandatory Verification Commands
 ```bash
-npm test          # Must pass 100% (553 Vitest tests)
+npm test          # Must pass 100% (605 Vitest tests)
 npx tsc --noEmit  # Zero TypeScript errors
-cd agent && pytest # Must pass 100% (34 Python tests)
+cd agent && .venv\Scripts\pytest # Must pass 100% (48 Python tests)
 npm run build     # Production build validation
 ```
 
 ## New Chat Starter Template
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
-Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), Phase 6 Step 6.01 (v0.6.0), and Step 6.02 (v0.6.1) are fully completed.
-587 tests (553 Vitest + 34 Pytest) are passing 100%. 22 DB models, 9 enums.
-We are now ready to implement Step 6.03 (Agent-002 Task Hygiene & Agent-003 Status Requester).
+Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), Phase 6 Step 6.01 (v0.6.0), Step 6.02 (v0.6.1), and Step 6.03 (v0.6.2) are fully completed.
+653 tests (605 Vitest + 48 Pytest) are passing 100%. 22 DB models, 9 enums.
+All 10 agents (Agent-000 through Agent-009) belong strictly to Phase 6.
+We are now ready to implement Step 6.04 (Agent-004 Blocker Manager & Agent-009 Scope Creep Detection).
 [Paste specific task or requirements here]
 ```
