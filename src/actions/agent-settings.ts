@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession, requireMembership, requireSession } from "@/lib/authz";
+import { getNow } from "@/lib/clock";
+import { DEADLINE_TRACKER_AGENT_KEY, summarizeAgentRuns } from "@/lib/deadline-tracker-logic";
 
 /** Agent keys that can be configured per project from the settings UI. */
 const CONFIGURABLE_AGENT_KEYS = ["agent-001", "agent-002", "agent-003"] as const;
@@ -101,4 +103,48 @@ export async function getProjectPmCandidates(projectId: string) {
     orderBy: { createdAt: "asc" },
   });
   return admins.map((a) => a.user);
+}
+
+export interface RecentAgentActivity {
+  runCount: number;
+  remindersSent: number;
+  escalationsSent: number;
+  lastRun: { status: string; atIso: string } | null;
+}
+
+const AGENT_ACTIVITY_WINDOW_DAYS = 7;
+
+/**
+ * Agent-001 (Deadline Tracker) activity of the last 7 days, from `AgentRun`
+ * records. Scoped to `projectId` when given, otherwise to every project the
+ * current user is a member of (dashboard widget).
+ */
+export async function getRecentAgentActivity(projectId?: string): Promise<RecentAgentActivity> {
+  const session = await requireSession();
+  if (projectId) {
+    await requireMembership(projectId, session.user.id);
+  }
+
+  const since = new Date(getNow().getTime() - AGENT_ACTIVITY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+
+  const runs = await prisma.agentRun.findMany({
+    where: {
+      agentKey: DEADLINE_TRACKER_AGENT_KEY,
+      startedAt: { gte: since },
+      ...(projectId
+        ? { projectId }
+        : { project: { members: { some: { userId: session.user.id } } } }),
+    },
+    select: { status: true, scheduledFor: true, startedAt: true, completedAt: true, result: true },
+  });
+
+  const summary = summarizeAgentRuns(runs);
+  return {
+    runCount: summary.runCount,
+    remindersSent: summary.remindersSent,
+    escalationsSent: summary.escalationsSent,
+    lastRun: summary.lastRun
+      ? { status: summary.lastRun.status, atIso: summary.lastRun.at.toISOString() }
+      : null,
+  };
 }

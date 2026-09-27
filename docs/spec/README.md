@@ -45,8 +45,8 @@ cd agent && pytest
 |---|---|---|---|---|
 | `v0.6.0-pre` | [ADR-034](../../docs/wiki/ADR-034-AI%20Agent%20Koordinasyon%20Altyapisi%20ve%20Proaktif%20Agent%20Sistemi) | Step 6.00 | **Tamamlandı** | Mimari kararlar, ADR-034, ai-context snapshot, charter onayı. |
 | `v0.6.0` | [`v0.6.0-step-6.01.md`](./v0.6.0-step-6.01.md) | Step 6.01 | **Tamamlandı** | Altyapı: Prisma Schema, DomainEvent Outbox, Clock, Python Container (`pulse-agent`), Docker Compose, Supervisor Agent-000, Internal API (HMAC), AgentSettings UI. (574 test %100 geçiyor). |
-| `v0.6.1` | [`v0.6.1-step-6.02.md`](./v0.6.1-step-6.02.md) | Step 6.02 | **Uygulamaya Hazır** | Agent-001 (Deadline Takipçisi), oturumdan bağımsız `dispatchDueDateReminders`, Dashboard "Agent Activity" bileşeni. |
-| `v0.6.2` | [`v0.6.2-step-6.03.md`](./v0.6.2-step-6.03.md) | Step 6.03 | **Sırada** | Agent-002 (Görev Hijyeni) + Agent-003 (Durum İsteyici, LangGraph interrupt/resume, eskalasyon). |
+| `v0.6.1` | [`v0.6.1-step-6.02.md`](./v0.6.1-step-6.02.md) | Step 6.02 | **Tamamlandı** | Agent-001 (Deadline Takipçisi), oturumdan bağımsız `dispatchDueDateReminders`, Dashboard "Agent Activity" bileşeni. (587 test %100 geçiyor). |
+| `v0.6.2` | [`v0.6.2-step-6.03.md`](./v0.6.2-step-6.03.md) | Step 6.03 | **Uygulamaya Hazır** | Agent-002 (Görev Hijyeni) + Agent-003 (Durum İsteyici, LangGraph interrupt/resume, eskalasyon). |
 
 ---
 

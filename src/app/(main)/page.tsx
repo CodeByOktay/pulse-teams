@@ -7,7 +7,9 @@ import { StatsOverview } from "@/components/dashboard/stats-overview";
 import { MyTasksWidget, type AssignedTaskItem } from "@/components/dashboard/my-tasks-widget";
 import { RecentActivityFeed, type RecentActivityItem } from "@/components/dashboard/recent-activity-feed";
 import { SprintMetricsPanel, type ActiveSprintMetric } from "@/components/dashboard/sprint-metrics-panel";
+import { AgentActivityWidget } from "@/components/dashboard/agent-activity-widget";
 import { calculateProjectVelocity } from "@/lib/analytics-logic";
+import { getRecentAgentActivity } from "@/actions/agent-settings";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -47,6 +49,7 @@ export default async function DashboardPage() {
     recentActivities,
     activeSprints,
     recentCompletedSprints,
+    agentActivity,
   ] = await Promise.all([
     prisma.task.count({
       where: { assignees: { some: { userId } }, state: { group: { not: "DONE" } } },
@@ -98,6 +101,7 @@ export default async function DashboardPage() {
             tasks: { include: { task: { select: { state: { select: { group: true } } } } } },
           },
         }),
+    getRecentAgentActivity(),
   ]);
 
   const stats = {
@@ -155,8 +159,9 @@ export default async function DashboardPage() {
         <RecentActivityFeed activities={activityFeed} />
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SprintMetricsPanel sprints={sprintMetrics} velocity={velocity} />
+        <AgentActivityWidget activity={agentActivity} />
       </div>
 
       <div>
