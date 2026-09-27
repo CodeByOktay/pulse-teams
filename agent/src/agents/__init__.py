@@ -10,7 +10,13 @@ wired into the supervisor inside `register_builtin_agents()` below, e.g.
 The registered callable must match `supervisor.AgentCallable`:
     async (project_id: str, scheduled_for: datetime) -> dict | None
 Registered: agent-001 (Deadline Tracker, Step 6.02), agent-002 (Task Hygiene,
-Step 6.03), agent-003 (Status Requester, Step 6.03).
+Step 6.03), agent-003 (Status Requester, Step 6.03), agent-004 (Blocker
+Manager, Step 6.04), agent-009 (Scope Creep Detection, Step 6.04).
+
+Agent-004 and agent-009 are also wired into the DomainEvent poller (their
+`handle_event` methods run outside the supervisor, fire-and-forget -- see each
+module's docstring): TASK_STATE_CHANGED / TASK_RELATION_CREATED -> agent-004,
+TASK_SPRINT_ADDED / TASK_CREATED -> agent-009.
 
 `register_builtin_agents()` stays synchronous (it runs before the container has
 confirmed DB connectivity in `main.py`) -- agent-003's Postgres checkpointer is
@@ -55,6 +61,8 @@ def register_builtin_agents() -> list[str]:
     from src.agents.agent_001 import AGENT_KEY as AGENT_001_KEY, DeadlineTrackerAgent
     from src.agents.agent_002 import AGENT_KEY as AGENT_002_KEY, TaskHygieneAgent
     from src.agents.agent_003 import AGENT_KEY as AGENT_003_KEY, StatusRequesterAgent
+    from src.agents.agent_004 import AGENT_KEY as AGENT_004_KEY, BlockerManagerAgent
+    from src.agents.agent_009 import AGENT_KEY as AGENT_009_KEY, ScopeCreepAgent
     from src.internal_client import InternalClient
 
     client = InternalClient()
@@ -64,6 +72,16 @@ def register_builtin_agents() -> list[str]:
     _status_requester = StatusRequesterAgent(client)
     supervisor.register_agent(AGENT_003_KEY, _status_requester.run_for_project)
     poller.register_handler(PROGRESS_QUICK_RESPONSE_EVENT, _make_quick_response_handler(_status_requester))
+
+    blocker_manager = BlockerManagerAgent(client)
+    supervisor.register_agent(AGENT_004_KEY, blocker_manager.run_for_project)
+    poller.register_handler("TASK_STATE_CHANGED", blocker_manager.handle_event)
+    poller.register_handler("TASK_RELATION_CREATED", blocker_manager.handle_event)
+
+    scope_creep = ScopeCreepAgent(client)
+    supervisor.register_agent(AGENT_009_KEY, scope_creep.run_for_project)
+    poller.register_handler("TASK_SPRINT_ADDED", scope_creep.handle_event)
+    poller.register_handler("TASK_CREATED", scope_creep.handle_event)
 
     keys = supervisor.get_registered_agent_keys()
     logger.info("Registered agents: %s", keys or "none")

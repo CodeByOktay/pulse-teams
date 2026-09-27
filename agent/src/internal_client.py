@@ -181,6 +181,21 @@ class InternalClient:
             "/api/internal/agent/status-response", {"requestId": request_id, "action": action}
         )
 
+    async def trigger_blocker_check(self, project_id: str) -> dict:
+        """POST /api/internal/agent/blocker-check -> BlockerCheckResult ({} on failure).
+
+        Called both by Agent-004's scheduled 09:00 sweep and by its event-driven
+        handlers (TASK_STATE_CHANGED / TASK_RELATION_CREATED) -- Next.js owns
+        enablement (AgentSettings) and same-day dedup either way."""
+        return await self._post_json("/api/internal/agent/blocker-check", {"projectId": project_id})
+
+    async def trigger_scope_creep_check(self, project_id: str) -> dict:
+        """POST /api/internal/agent/scope-creep-check -> ScopeCreepCheckResult ({} on failure).
+
+        Called both by Agent-009's scheduled 09:00 sweep and by its event-driven
+        handlers (TASK_SPRINT_ADDED / TASK_CREATED)."""
+        return await self._post_json("/api/internal/agent/scope-creep-check", {"projectId": project_id})
+
     # ------------------------------------------------------------------ #
     # Clock synchronization endpoints (Step 6.04 / ADR-034 Clock Abstraction)
     # ------------------------------------------------------------------ #

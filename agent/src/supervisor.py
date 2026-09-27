@@ -36,8 +36,9 @@ RUN_SUCCESS = "SUCCESS"
 RUN_FAILED = "FAILED"
 RUN_SKIPPED = "SKIPPED"
 
-# ADR-034 §D: hygiene first -> deadline -> status (clean data priority).
-AGENT_PRIORITY: tuple[str, ...] = ("agent-002", "agent-001", "agent-003")
+# ADR-034 §D: hygiene -> deadline -> blocker -> scope creep -> status (clean data priority;
+# guardian checks run before Agent-003 opens a human-wait status request).
+AGENT_PRIORITY: tuple[str, ...] = ("agent-002", "agent-001", "agent-004", "agent-009", "agent-003")
 
 MAX_ERROR_LENGTH = 2000
 
