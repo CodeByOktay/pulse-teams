@@ -12,6 +12,8 @@ import {
   formatProgressRequestNotification,
   validateProgressResponseContent,
 } from "@/lib/progress-logic";
+import { emitDomainEvent } from "@/lib/domain-events";
+import { isValidQuickAction, type QuickResponseAction } from "@/lib/status-requester-logic";
 
 function revalidateProjectViews(projectId: string) {
   revalidatePath(`/projects/${projectId}/board`);
@@ -26,6 +28,8 @@ export type CreateProgressRequestParams = {
   reason?: string;
   /** Overrides the templated notification message body when provided (e.g. agent-authored requests). */
   customMessage?: string;
+  /** Overrides the templated notification title when provided (e.g. Agent-003 scheduled requests). */
+  customTitle?: string;
 };
 
 /**
@@ -35,7 +39,7 @@ export type CreateProgressRequestParams = {
  * or the project owner) so both entry points enforce identical business rules.
  */
 export async function createProgressRequestForUser(params: CreateProgressRequestParams) {
-  const { requesterId, taskId, recipientId, reason = "manual", customMessage } = params;
+  const { requesterId, taskId, recipientId, reason = "manual", customMessage, customTitle } = params;
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -108,7 +112,7 @@ export async function createProgressRequestForUser(params: CreateProgressRequest
 
     await createNotification({
       type: "PROGRESS_REQUESTED",
-      title,
+      title: customTitle?.trim() ? customTitle.trim() : title,
       message: customMessage?.trim() ? customMessage.trim() : message,
       link: buildNotificationDeepLink(task.projectId, taskId),
       actorId: requesterId,
@@ -197,6 +201,90 @@ export async function submitProgressResponse(requestId: string, content: string)
   // Transaction dışında: en fazla ~8sn süren LLM çağrısı DB transaction'ını açık tutmaz.
   // createProposalForResponse asla hata fırlatmaz; başarısızlık yanıt gönderimini etkilemez.
   await createProposalForResponse(responseId);
+
+  revalidateProjectViews(progressRequest.projectId);
+}
+
+const QUICK_RESPONSE_CANNED_CONTENT: Record<QuickResponseAction, string> = {
+  PROGRESSING: "İlerliyor",
+  BLOCKED: "Engel Var",
+  COMPLETED: "Bitti",
+};
+
+/**
+ * Agent-003 (Status Requester) hızlı butonlu yanıt akışı (spec §3.3 / §4).
+ *
+ * `submitProgressResponse`'un aksine burada `createProposalForResponse` (LLM tabanlı
+ * serbest metin yorumlama) ÇAĞRILMAZ — bu yol tamamen deterministiktir; AgentProposal /
+ * eskalasyon yan etkileri `POST /api/internal/agent/status-response` üzerinden, Python
+ * LangGraph resume ettikten SONRA tetiklenir.
+ */
+export async function respondToProgressRequestQuick(
+  requestId: string,
+  action: QuickResponseAction,
+  note?: string,
+): Promise<void> {
+  const session = await requireSession();
+
+  const progressRequest = await prisma.progressRequest.findUnique({
+    where: { id: requestId },
+    select: { id: true, taskId: true, projectId: true, recipientId: true, status: true },
+  });
+
+  if (!progressRequest) {
+    throw new Error("İlerleme talebi bulunamadı.");
+  }
+
+  const membership = await requireMembership(progressRequest.projectId, session.user.id);
+
+  if (session.user.id !== progressRequest.recipientId && membership.role !== "ADMIN") {
+    throw new Error("Bu talebi yanıtlama yetkiniz yok.");
+  }
+
+  if (!isValidQuickAction(action)) {
+    throw new Error("Geçersiz yanıt türü.");
+  }
+
+  if (progressRequest.status !== "PENDING") {
+    throw new Error("Bu ilerleme talebi artık yanıt beklemiyor.");
+  }
+
+  const content = note?.trim() ? note.trim() : QUICK_RESPONSE_CANNED_CONTENT[action];
+
+  await prisma.$transaction(async (tx) => {
+    // Eşzamanlı yanıtlara karşı: yalnızca hâlâ PENDING ise güncellenir.
+    const updated = await tx.progressRequest.updateMany({
+      where: { id: requestId, status: "PENDING" },
+      data: { status: "RESPONDED" },
+    });
+
+    if (updated.count === 0) {
+      throw new Error("Bu ilerleme talebi artık yanıt beklemiyor.");
+    }
+
+    await tx.progressResponse.create({
+      data: {
+        progressRequestId: requestId,
+        responderId: session.user.id,
+        content,
+      },
+    });
+
+    await logActivity(tx, {
+      type: "PROGRESS_RESPONDED",
+      taskId: progressRequest.taskId,
+      actorId: session.user.id,
+      metadata: { action },
+    });
+
+    await emitDomainEvent(tx, "PROGRESS_QUICK_RESPONSE_SUBMITTED", {
+      projectId: progressRequest.projectId,
+      taskId: progressRequest.taskId,
+      requestId,
+      recipientId: progressRequest.recipientId,
+      action,
+    });
+  });
 
   revalidateProjectViews(progressRequest.projectId);
 }
