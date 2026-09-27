@@ -4,7 +4,7 @@
 - **Tarih:** 2026-09-25
 - **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder)
 - **Sürüm:** v0.5.4 (Phase 5 MVP Tamamlandı — Step 5.04)
-- **İlgili ADR:** [ADR-013-Aktivite Geçmişi & Denetim Günlüğü](file:///c:/Pulse/docs/wiki/ADR-013-%20Aktivite%20Geçmişi%20&%20Denetim%20Günlüğü%20(Audit%20Log%20System)), [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](file:///c:/Pulse/docs/wiki/ADR-028-AI%20Destekli%20Proaktif%20Proje%20Koordinasyon%20Mimarisi), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](file:///c:/Pulse/docs/wiki/ADR-029-Domain%20Event%20Temeli%20ve%20Aktivite%20Genişletmesi), [ADR-031-İlerleme Talebi ve Yanıtı Yaşam Döngüsü](file:///c:/Pulse/docs/wiki/ADR-031-İlerleme%20Talebi%20ve%20Yanıtı%20Yaşam%20Döngüsü%20(Progress%20Request-Response))
+- **İlgili ADR:** [ADR-013-Aktivite Geçmişi & Denetim Günlüğü](./ADR-013-aktivite-gecmisi-ve-denetim-gunlugu.md), [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](./ADR-028-ai-destekli-proaktif-proje-koordinasyonu.md), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](./ADR-029-domain-event-temeli-ve-aktivite-genisletmesi.md), [ADR-031-İlerleme Talebi ve Yanıtı Yaşam Döngüsü](./ADR-031-ilerleme-talebi-ve-yaniti-yasam-dongusu.md)
 
 ---
 
@@ -61,7 +61,7 @@ Migration: `20260925194439_add_agent_proposal_model`
 - `rejectProposal`: Öneri `REJECTED` yapılır, `AI_SUGGESTION_REJECTED` aktivitesi loglanır.
 
 ### E. Kullanıcı Arayüzü: AI Öneri Kartı (`AgentProposalCard`)
-- [`src/components/task-detail/agent-proposal-card.tsx`](file:///c:/Pulse/src/components/task-detail/agent-proposal-card.tsx) bileşeni:
+- [`src/components/task-detail/agent-proposal-card.tsx`](../../src/components/task-detail/agent-proposal-card.tsx) bileşeni:
   - İndigo/mor ışıltılı kurumsal kart, `Sparkles` ikonu ve güven skoru rozeti (`%92 Güven`).
   - Özet metin ve renkli durum hapları: `[Mevcut Durum] ➔ [Önerilen Durum]`.
   - Engel tespit edildiyse kehribar uyarı rozeti.

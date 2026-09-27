@@ -12,7 +12,10 @@ In this collaborative AI model alongside Claude Code, Antigravity does NOT direc
 [User Request / Feature Need]
        │
        ▼
-1. Architectural Analysis & Trade-offs ──▶ implementation_plan.md & Acceptance Criteria (AC)
+1. Architectural Analysis & Trade-offs ──▶ ADR-NNN (status: proposed), implementation_plan.md & Acceptance Criteria (AC)
+       │
+       ▼
+   Project Owner Decision              ──▶ ADR accepted / rejected (human only)
        │
        ▼
 2. Prompt Engineering for Claude       ──▶ Layered task specification (DB, Backend, UI - No Tests)
@@ -27,7 +30,7 @@ In this collaborative AI model alongside Claude Code, Antigravity does NOT direc
 5. Test Execution & Fix Loop           ──▶ Claude runs tests; fixes production code if failing
        │
        ▼
-6. Sign-off, ADR & AI-Context Update   ──▶ ADR-xxx.md & docs/ai-context/ documentation
+6. Sign-off & AI-Context Update        ──▶ ADR Confirmation verified by tests & docs/ai-context/ documentation
 ```
 
 ---
@@ -39,6 +42,7 @@ In this collaborative AI model alongside Claude Code, Antigravity does NOT direc
 - Discusses technical trade-offs (performance, complexity, maintenance cost) directly with the user.
 - Defines explicit **Acceptance Criteria (AC)** and boundary edge-cases.
 - Produces the `implementation_plan.md` design document and requests user approval.
+- **ADR Before Implementation:** For every architecturally significant decision, drafts an Architecture Decision Record in `docs/wiki/ADR-NNN-kebab-case-ascii-slug.md` with `status: proposed` (MADR 4.0). Only the project owner moves it to `accepted` or `rejected`. No Claude prompt or SPEC implementing the decision is issued before the ADR is `accepted`. Steps with no architecturally significant decision produce no ADR.
 
 ### B. Prompt Engineering & Direction for Claude
 - Formulates layered, modular execution prompts tailored to Claude's specialized subagents (`postgres-pro`, `backend-developer`, `react-specialist`, `nextjs-developer`).
@@ -56,11 +60,11 @@ In this collaborative AI model alongside Claude Code, Antigravity does NOT direc
 - Claude executes the test suite. If tests fail, Claude invokes its `debugger` subagent to correct its own implementation.
 - **Test Inviolability:** Claude is strictly forbidden from editing, weakening, or deleting tests written by Antigravity. If a test fails, the implementation is flawed; tests are never retrofitted to broken code.
 
-### E. Sign-off, ADR & AI-Context Documentation (Post-Implementation)
+### E. Sign-off & AI-Context Documentation (Post-Implementation)
 - Once tests pass at 100% and TypeScript checks succeed (`npm test` and `npx tsc --noEmit`):
-  1. **For Humans:** Authors an Architectural Decision Record in `docs/wiki/ADR-xxx-[title].md` (Context, Decision, Consequences, Alternatives).
+  1. **For Humans (ADR Confirmation):** Verifies that the checks named in each related ADR's *Confirmation* section pass. Accepted ADRs are append-only: their body is never rewritten. If implementation invalidated a decision, a new ADR supersedes it.
   2. **For AI Memory:** Updates English context snapshots in `docs/ai-context/` so future AI sessions instantly recall the system state and domain models.
-     - **ADR-Synced Naming Convention:** Feature-specific documentation files created in `docs/ai-context/` MUST strictly begin with the corresponding 3-digit zero-padded ADR index number (e.g., `024-seed-dataset-architecture.md` corresponding to `ADR-024`), continuing sequentially with each new architectural increment (`context.md` at project root remains the single source of truth; `system-overview.md` serves as the snapshot index).
+     - **Domain-Based Living Files:** `docs/ai-context/` files are named by domain (`<domain-slug>.md`), not by step or ADR number, and are updated in place to reflect the current system. Relations to ADRs and SPECs are expressed through explicit references (`CONTEXT.md` at project root remains the single source of truth; `system-overview.md` serves as the snapshot index).
 
 ---
 
@@ -70,4 +74,5 @@ In this collaborative AI model alongside Claude Code, Antigravity does NOT direc
 2. **Pure Business Logic Isolation:** Complex business algorithms must never be buried in Server Actions. They must reside as pure, exported functions in `src/lib/`.
 3. **Zero Regressions & Zero Lint Errors:** At the end of every feature cycle, 100% of tests must pass (331+ existing tests) and `tsc --noEmit` must report zero errors.
 4. **Single Auth Provider Constraint:** NextAuth CredentialsProvider (email/password + bcrypt) is the sole authentication provider. External OAuth integrations are strictly out of scope.
-5. **Two-Phase Handshake:** A feature is never marked "complete" until Antigravity writes the tests and Claude turns them green. An ADR is never published until tests are verified.
+5. **Two-Phase Handshake:** A feature is never marked "complete" until Antigravity writes the tests and Claude turns them green.
+6. **Decision Before Build:** An architecturally significant change is never implemented until its ADR is `accepted` by the project owner. Tests serve as the ADR's Confirmation, not as a precondition for writing it.

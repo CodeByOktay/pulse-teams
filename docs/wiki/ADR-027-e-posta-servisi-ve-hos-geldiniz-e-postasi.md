@@ -4,7 +4,7 @@
 - **Tarih:** 2026-09-21
 - **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder)
 - **Sürüm:** v0.4.4 (Faz 4 — Adım 4.04)
-- **İlgili ADR:** [ADR-003-Kimlik Doğrulama (Auth) & Oturum Yönetimi](file:///c:/Pulse/docs/wiki/ADR-003-Kimlik%20Doğrulama%20(Auth)%20&%20Oturum%20Yönetimi), [ADR-026-Bildirim Tercihleri, Bahsetme (Mention) ve Yaklaşan Son Tarih Uyarısı Mimarisi](file:///c:/Pulse/docs/wiki/ADR-026-Bildirim%20Tercihleri,%20Bahsetme%20%28Mention%29%20ve%20Yaklaşan%20Son%20Tarih%20Uyarısı%20Mimarisi)
+- **İlgili ADR:** [ADR-003-Kimlik Doğrulama (Auth) & Oturum Yönetimi](./ADR-003-kimlik-dogrulama-ve-oturum-yonetimi.md), [ADR-026-Bildirim Tercihleri, Bahsetme (Mention) ve Yaklaşan Son Tarih Uyarısı Mimarisi](./ADR-026-bildirim-tercihleri-mention-ve-son-tarih-uyarilari.md)
 
 ---
 

@@ -4,7 +4,7 @@
 - **Tarih:** 2026-09-25
 - **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder)
 - **Sürüm:** v0.5.2 (Phase 5 — Step 5.02)
-- **İlgili ADR:** [ADR-023-Görev İlişkileri ve Bağımlılık Mimarisi](file:///c:/Pulse/docs/wiki/ADR-023-Görev%20İlişkileri%20ve%20Bağımlılık%20Mimarisi), [ADR-025-Uygulama İçi Bildirimler](file:///c:/Pulse/docs/wiki/ADR-025-Uygulama%20İçi%20Bildirimler%20ve%20İstemci%20Polling%20Mimarisi), [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](file:///c:/Pulse/docs/wiki/ADR-028-AI%20Destekli%20Proaktif%20Proje%20Koordinasyon%20Mimarisi), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](file:///c:/Pulse/docs/wiki/ADR-029-Domain%20Event%20Temeli%20ve%20Aktivite%20Genişletmesi)
+- **İlgili ADR:** [ADR-023-Görev İlişkileri ve Bağımlılık Mimarisi](./ADR-023-gorev-iliskileri-ve-bagimlilik-mimarisi.md), [ADR-025-Uygulama İçi Bildirimler](./ADR-025-uygulama-ici-bildirimler-ve-istemci-polling.md), [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](./ADR-028-ai-destekli-proaktif-proje-koordinasyonu.md), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](./ADR-029-domain-event-temeli-ve-aktivite-genisletmesi.md)
 
 ---
 
