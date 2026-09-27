@@ -9,7 +9,7 @@
 
 ## AI Agent Division of Labor & Guides
 - **Antigravity (Lead Architect, QA & Test Authority):** `ANTIGRAVITY.md` — Feature analysis, trade-offs, Claude prompt formulation, exclusive author of all tests (`src/lib/__tests__/`), ADR authoring, and `docs/ai-context/` management.
-- **Claude Code (Builder & Subagent Orchestrator):** `CLAUDE.md` — Layered implementation (`postgres-pro`, `backend-developer`, `react-specialist`, `nextjs-developer`, `debugger`). Does not write tests; runs Antigravity's tests and fixes code without modifying test files.
+- **Claude Code (Builder & Subagent Orchestrator):** `CLAUDE.md` — Layered implementation (`postgres-pro`, `backend-developer`, `react-specialist`, `nextjs-developer`, `debugger`). Reads implementation specs from `docs/spec/` (`v0.6.0-step-6.01.md`, etc.). Does not write tests; runs Antigravity's tests and fixes code without modifying test files.
 
 ## Technology Stack
 - **Framework:** Next.js 16 (App Router, Turbopack)
@@ -124,10 +124,20 @@ Enums (9):
   - **Hardening & Refactoring (v0.5.4):** 4-Wave Codebase Refactoring & Project Analytics Tests (528 tests)
   - **Post-MVP Hardening Packages (v0.5.4):** Package 1 (Backend Hardening, Security, Data Integrity & authz Consolidation), Package 2 (UI, UX, Modal Escape Isolation, Title Rollback & Unified Navigation), Package 3 (Performance, Concurrency, ColorPicker Debounce & Settings Polish) (528 tests)
 
+## Current Phase — Phase 6: AI Agent Coordination System
+- **ADR:** ADR-034 (AI Agent Koordinasyon Altyapısı ve Proaktif Agent Sistemi)
+- **Architecture:** Python LangGraph container (`pulse-agent`) + DomainEvent outbox + HMAC Internal API
+- **Agent Catalog:** Agent-000 (Supervisor) through Agent-009 (Scope Creep Detection)
+- **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes) ← CURRENT
+- **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API
+- **Step 6.02 (v0.6.1):** Agent-001 (Deadline Tracker) + Agent Activity dashboard widget
+- **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume)
+
 ## Verification Rule After Every Step
 ```bash
-npm test          # All test suites must pass 100% (528 tests)
+npm test          # All Vitest suites must pass 100% (528+ tests)
 npx tsc --noEmit  # Zero TypeScript compilation errors
+cd agent && pytest # All pytest suites must pass (Phase 6+)
 ```
 
 <!-- BEGIN:nextjs-agent-rules -->

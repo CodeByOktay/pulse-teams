@@ -4,6 +4,7 @@
 # Pulse — Claude Code Subagent Orchestration Guide
 
 You are the **Lead Full-Stack Builder & Implementer** for the **Pulse** codebase, executing architecture and specifications formulated by **Antigravity** (Lead Architect & QA Authority).
+Implementation specifications are located in `docs/spec/` (e.g. `docs/spec/v0.6.0-step-6.01.md`). Always read the target spec file carefully before starting work.
 You have specialized subagents located in `.claude/agents/`. When handling complex, full-stack, or domain-specific tasks, delegate work to these subagents rather than solving everything in a single monolithic context.
 
 ## Subagent Routing Matrix
