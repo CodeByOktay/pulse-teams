@@ -8,6 +8,8 @@ import {
   MessageCircleQuestionMark,
   Rocket,
   Scale,
+  TrendingUp,
+  Unlink,
   Users,
 } from "lucide-react";
 import { updateProjectAgentSetting, updateProjectPmUser } from "@/actions/agent-settings";
@@ -18,10 +20,12 @@ export type AgentKey =
   | "agent-001"
   | "agent-002"
   | "agent-003"
+  | "agent-004"
   | "agent-005"
   | "agent-006"
   | "agent-007"
-  | "agent-008";
+  | "agent-008"
+  | "agent-009";
 
 export type AgentSettingItem = {
   agentKey: AgentKey;
@@ -64,6 +68,13 @@ const AGENT_DEFINITIONS: {
     hasInactivityConfig: true,
   },
   {
+    key: "agent-004",
+    title: "Engel Yöneticisi",
+    description: "İlerlemeyen engel zincirlerini uyarır, engel kalkınca bekleyen kişiye haber verir.",
+    icon: Unlink,
+    hasInactivityConfig: false,
+  },
+  {
     key: "agent-005",
     title: "Asenkron Standup",
     description: "Ekipten günlük ilerleme toplar, LLM ile özetleyip panoda yayınlar.",
@@ -91,6 +102,13 @@ const AGENT_DEFINITIONS: {
     icon: Rocket,
     hasInactivityConfig: false,
   },
+  {
+    key: "agent-009",
+    title: "Kapsam Bekçisi",
+    description: "Sprint başladıktan sonra eklenen işlerle büyüyen kapsamı tespit edip yöneticileri uyarır.",
+    icon: TrendingUp,
+    hasInactivityConfig: false,
+  },
 ];
 
 function clampInactivityDays(value: number): number {
@@ -104,7 +122,9 @@ function buildAgentState(agents: AgentSettingItem[]): Record<AgentKey, AgentRunt
   for (const def of AGENT_DEFINITIONS) {
     const item = byKey.get(def.key);
     result[def.key] = {
-      enabled: item?.enabled ?? true,
+      // No AgentSettings row = disabled: the pulse-agent scheduler only runs agents that
+      // have an enabled row for the project (opt-in, agent/src/supervisor.py `is_agent_enabled`).
+      enabled: item?.enabled ?? false,
       inactivityDays: clampInactivityDays(item?.config?.inactivityDays ?? DEFAULT_INACTIVITY_DAYS),
     };
   }

@@ -144,6 +144,26 @@ async function main(): Promise<void> {
   });
   await prisma.projectMember.createMany({ data: memberData });
 
+  // Agents are opt-in per project (pulse-agent only runs agents with an enabled
+  // AgentSettings row), so enable the full Phase 6 catalog for the demo dataset.
+  console.log("Seeding agent settings...");
+  const SEED_AGENT_KEYS = [
+    "agent-001",
+    "agent-002",
+    "agent-003",
+    "agent-004",
+    "agent-005",
+    "agent-006",
+    "agent-007",
+    "agent-008",
+    "agent-009",
+  ];
+  await prisma.agentSettings.createMany({
+    data: [...projectIdByIdentifier.values()].flatMap((projectId) =>
+      SEED_AGENT_KEYS.map((agentKey) => ({ projectId, agentKey, enabled: true, pmUserId: ownerId })),
+    ),
+  });
+
   console.log("Seeding states...");
   const contexts = new Map<string, ProjectContext>();
   for (const seedProject of SEED_PROJECTS) {
