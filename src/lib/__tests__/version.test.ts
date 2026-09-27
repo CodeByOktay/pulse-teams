@@ -5,7 +5,7 @@ import packageInfo from "../../../package.json";
 describe("App Version Synchronization", () => {
   it("exports the version matching package.json", () => {
     expect(APP_VERSION).toBe(packageInfo.version);
-    expect(APP_VERSION).toBe("0.6.2");
+    expect(APP_VERSION).toBe("0.6.7");
   });
 
   it("follows standard semver format", () => {

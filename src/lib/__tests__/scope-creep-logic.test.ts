@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   calculateScopeCreep,
   buildScopeCreepNotification,
-  DEFAULT_SCOPE_CREEP_THRESHOLD_PERCENT,
-  DEFAULT_SCOPE_CREEP_MIN_INJECTED_TASKS,
   type ScopeCreepSprintInput,
   type ScopeCreepSprintTaskInput,
 } from "@/lib/scope-creep-logic";

@@ -3,6 +3,7 @@ import { triggerUnblockedDependencies } from "../dependency-automation";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/actions/notification";
 import { logActivity } from "@/lib/activity-logger";
+import { claimUnblockAnnouncement } from "@/lib/unblock-dedup";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -20,9 +21,14 @@ vi.mock("@/lib/activity-logger", () => ({
   logActivity: vi.fn(),
 }));
 
+vi.mock("@/lib/unblock-dedup", () => ({
+  claimUnblockAnnouncement: vi.fn().mockResolvedValue(true),
+}));
+
 describe("triggerUnblockedDependencies — Bağımlılık Çözülme Otomasyonu", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(claimUnblockAnnouncement).mockResolvedValue(true);
   });
 
   it("tamamlanan görevin bloke ettiği hiçbir görev yoksa hiçbir işlem yapmaz", async () => {
@@ -31,7 +37,7 @@ describe("triggerUnblockedDependencies — Bağımlılık Çözülme Otomasyonu"
     await triggerUnblockedDependencies("task-ozlem", "Debug Görevi", "prj-1", "user-ozlem");
 
     expect(prisma.taskRelation.findMany).toHaveBeenCalledTimes(1);
-    expect(logActivity).not.toHaveBeenCalled();
+    expect(claimUnblockAnnouncement).not.toHaveBeenCalled();
     expect(createNotification).not.toHaveBeenCalled();
   });
 
@@ -71,12 +77,8 @@ describe("triggerUnblockedDependencies — Bağımlılık Çözülme Otomasyonu"
 
     await triggerUnblockedDependencies("task-ozlem", "Debug Görevi", "prj-1", "user-ozlem");
 
-    expect(logActivity).toHaveBeenCalledTimes(1);
-    expect(logActivity).toHaveBeenCalledWith(prisma, {
-      type: "TASK_UNBLOCKED",
-      taskId: "task-uygar",
-      actorId: "user-ozlem",
-    });
+    expect(claimUnblockAnnouncement).toHaveBeenCalledTimes(1);
+    expect(claimUnblockAnnouncement).toHaveBeenCalledWith("task-uygar", "user-ozlem");
 
     expect(createNotification).toHaveBeenCalledTimes(1);
     expect(createNotification).toHaveBeenCalledWith({
@@ -126,7 +128,8 @@ describe("triggerUnblockedDependencies — Bağımlılık Çözülme Otomasyonu"
 
     await triggerUnblockedDependencies("task-ozlem", "Debug Görevi", "prj-1", "user-ozlem");
 
-    expect(logActivity).toHaveBeenCalledTimes(1);
+    expect(claimUnblockAnnouncement).toHaveBeenCalledTimes(1);
+    expect(claimUnblockAnnouncement).toHaveBeenCalledWith("task-uygar", "user-ozlem");
     expect(createNotification).toHaveBeenCalledTimes(1);
   });
 
@@ -284,12 +287,8 @@ describe("triggerUnblockedDependencies — Bağımlılık Çözülme Otomasyonu"
 
     await triggerUnblockedDependencies("task-ozlem-1", "Özlem Birinci", "prj-1", "user-ozlem");
 
-    // Aktivite yine de kaydedilir (audit trail için)
-    expect(logActivity).toHaveBeenCalledWith(prisma, {
-      type: "TASK_UNBLOCKED",
-      taskId: "task-ozlem-2",
-      actorId: "user-ozlem",
-    });
+    // Dedup üzerinden unblock talep edilir
+    expect(claimUnblockAnnouncement).toHaveBeenCalledWith("task-ozlem-2", "user-ozlem");
 
     // Ancak kendine bildirim gönderilmez
     expect(createNotification).not.toHaveBeenCalled();
@@ -362,7 +361,8 @@ describe("triggerUnblockedDependencies — Bağımlılık Çözülme Otomasyonu"
 
     await triggerUnblockedDependencies("task-ozlem", "Debug Görevi", "prj-1", "user-ozlem");
 
-    expect(logActivity).toHaveBeenCalledTimes(1);
+    expect(claimUnblockAnnouncement).toHaveBeenCalledTimes(1);
+    expect(claimUnblockAnnouncement).toHaveBeenCalledWith("task-unassigned", "user-ozlem");
     expect(createNotification).not.toHaveBeenCalled();
   });
 
@@ -407,7 +407,8 @@ describe("triggerUnblockedDependencies — Bağımlılık Çözülme Otomasyonu"
 
     await triggerUnblockedDependencies("task-ozlem", "Debug Görevi", "prj-1", "user-ozlem");
 
-    expect(logActivity).toHaveBeenCalledTimes(1);
+    expect(claimUnblockAnnouncement).toHaveBeenCalledTimes(1);
+    expect(claimUnblockAnnouncement).toHaveBeenCalledWith("task-uygar", "user-ozlem");
     expect(createNotification).toHaveBeenCalledTimes(1);
   });
 

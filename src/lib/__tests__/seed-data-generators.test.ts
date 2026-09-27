@@ -12,9 +12,7 @@ import {
   generateCommentContent,
   buildSprintWindows,
   randomDateBetween,
-  addDays,
   SEED_RANGE_START,
-  SEED_RANGE_END,
 } from "../../../prisma/seed-data-generators";
 
 describe("seed-data-generators", () => {

@@ -21,6 +21,11 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock("@/lib/authz", () => ({
+  requireSession: vi.fn().mockResolvedValue({ user: { id: "user-test-1" } }),
+  requireMembership: vi.fn().mockResolvedValue(true),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     systemClock: {
@@ -29,6 +34,9 @@ vi.mock("@/lib/prisma", () => ({
     },
     project: {
       findMany: vi.fn(),
+    },
+    domainEvent: {
+      create: vi.fn(),
     },
   },
 }));

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { getNow, setMockClock, resetMockClock } from "@/lib/clock";
 import { verifyInternalSignature } from "@/lib/internal-auth";
 import { emitDomainEvent } from "@/lib/domain-events";
