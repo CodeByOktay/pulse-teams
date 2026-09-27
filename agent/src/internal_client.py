@@ -156,6 +156,9 @@ class InternalClient:
             payload["customMessage"] = custom_message
         return await self._post_bool("/api/internal/agent/progress-requests", payload)
 
-    # Extension point: agent-specific endpoints (e.g. Step 6.02
-    # `trigger_deadline_check` -> POST /api/internal/agent/deadline-check)
-    # should be thin wrappers over `_post_json` / `_post_bool`.
+    # ------------------------------------------------------------------ #
+    # Agent-specific endpoints (Step 6.02+): thin wrappers over `_post_json` / `_post_bool`.
+    # ------------------------------------------------------------------ #
+    async def trigger_deadline_check(self, project_id: str) -> dict:
+        """POST /api/internal/agent/deadline-check -> DeadlineCheckResult ({} on failure)."""
+        return await self._post_json("/api/internal/agent/deadline-check", {"projectId": project_id})
