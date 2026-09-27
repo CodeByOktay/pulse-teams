@@ -2,13 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireSession, requireMembership } from "@/lib/authz";
-import {
-  buildNotificationDeepLink,
-  formatDueDateNotificationSnippet,
-  getApproachingDueTasks,
-  shouldDeliverWithPreferences,
-} from "@/lib/notification-logic";
+import { requireSession } from "@/lib/authz";
 import type { NotificationType, Prisma } from "@prisma/client";
 
 /**
@@ -135,92 +129,4 @@ export async function updateUserNotificationPreferences(
   revalidatePath("/");
 
   return updated;
-}
-
-export async function checkApproachingDueDates(projectId?: string): Promise<number> {
-  const session = await requireSession();
-
-  if (projectId) {
-    await requireMembership(projectId, session.user.id);
-  }
-
-  const tasks = await prisma.task.findMany({
-    where: {
-      dueDate: { not: null },
-      state: { group: { notIn: ["DONE", "CANCELLED"] } },
-      ...(projectId
-        ? { projectId }
-        : { assignees: { some: { userId: session.user.id } } }),
-    },
-    select: {
-      id: true,
-      title: true,
-      dueDate: true,
-      projectId: true,
-      state: { select: { group: true } },
-    },
-  });
-
-  const mappedTasks = tasks.map((task) => ({
-    id: task.id,
-    dueDate: task.dueDate,
-    stateGroup: task.state.group,
-  }));
-
-  const approaching = getApproachingDueTasks(mappedTasks);
-  if (approaching.length === 0) {
-    return 0;
-  }
-
-  const preferences = await prisma.userNotificationPreference.findUnique({
-    where: { userId: session.user.id },
-  });
-
-  const allowed = shouldDeliverWithPreferences({
-    actorId: null,
-    recipientId: session.user.id,
-    type: "DUE_DATE_APPROACHING",
-    preferences,
-  });
-
-  if (!allowed) {
-    return 0;
-  }
-
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  const tasksById = new Map(tasks.map((task) => [task.id, task]));
-  const entries: Prisma.NotificationCreateManyInput[] = [];
-
-  for (const { id: taskId, daysRemaining } of approaching) {
-    const task = tasksById.get(taskId);
-    if (!task) continue;
-
-    const link = buildNotificationDeepLink(task.projectId, taskId);
-
-    const alreadySent = await prisma.notification.findFirst({
-      where: {
-        userId: session.user.id,
-        type: "DUE_DATE_APPROACHING",
-        link: { contains: taskId },
-        createdAt: { gte: startOfToday },
-      },
-    });
-
-    if (alreadySent) continue;
-
-    entries.push({
-      type: "DUE_DATE_APPROACHING",
-      title: "Son teslim tarihi yaklaşıyor",
-      message: formatDueDateNotificationSnippet(task.title, daysRemaining),
-      link,
-      actorId: null,
-      userId: session.user.id,
-    });
-  }
-
-  await createNotifications(entries);
-
-  return entries.length;
 }
