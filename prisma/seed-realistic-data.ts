@@ -35,7 +35,10 @@ const KANBAN_STATE_ORDER = [
 ] as const;
 type KanbanStateName = (typeof KANBAN_STATE_ORDER)[number];
 
-const STATE_COUNTS: Record<KanbanStateName, number> = {
+// SEED_MODE=full kullanılmadıkça daha sade, ferah ve temiz bir pano için kompakt veri seti oluşturulur.
+const IS_COMPACT = process.env.SEED_MODE !== "full";
+
+const FULL_STATE_COUNTS: Record<KanbanStateName, number> = {
   Backlog: 120,
   Ready: 60,
   "In Progress": 70,
@@ -45,6 +48,29 @@ const STATE_COUNTS: Record<KanbanStateName, number> = {
   Done: 130,
   Cancelled: 10,
 };
+
+const COMPACT_STATE_COUNTS: Record<KanbanStateName, number> = {
+  Backlog: 12,
+  Ready: 8,
+  "In Progress": 10,
+  "Code Review": 6,
+  Testing: 6,
+  Blocked: 2,
+  Done: 14,
+  Cancelled: 2,
+}; // Toplam 60 görev (proje başına ortalama 10-12 görev)
+
+const COMPACT_PROJECT_COUNTS: Record<string, number> = {
+  CORE: 14,
+  ANL: 12,
+  AI: 12,
+  ADM: 12,
+  MOB: 10,
+}; // Toplam: 60 görev
+
+const STATE_COUNTS: Record<KanbanStateName, number> = IS_COMPACT
+  ? COMPACT_STATE_COUNTS
+  : FULL_STATE_COUNTS;
 
 const DOMAINS: SeedLabelTemplate["domain"][] = ["Frontend", "Backend", "DevOps", "Process", "AI"];
 
@@ -197,8 +223,11 @@ async function main(): Promise<void> {
   let planCursor = 0;
   for (const seedProject of SEED_PROJECTS) {
     const context = contexts.get(seedProject.identifier) as ProjectContext;
-    const projectStatePlan = shuffledStatePlan.slice(planCursor, planCursor + seedProject.taskCount);
-    planCursor += seedProject.taskCount;
+    const projectTaskCount = IS_COMPACT
+      ? (COMPACT_PROJECT_COUNTS[seedProject.identifier] ?? 10)
+      : seedProject.taskCount;
+    const projectStatePlan = shuffledStatePlan.slice(planCursor, planCursor + projectTaskCount);
+    planCursor += projectTaskCount;
 
     const taskCreateData: Array<{
       title: string;
@@ -409,10 +438,11 @@ async function main(): Promise<void> {
     // if truly stuck after bounded retries, skip (should essentially never happen with 500 tasks)
   }
 
-  // 80 RELATES_TO / DUPLICATES relations scattered across projects
+  // RELATES_TO / DUPLICATES relations scattered across projects
+  const targetScatterCount = IS_COMPACT ? 15 : 80;
   let scatteredCreated = 0;
   let scatteredAttempts = 0;
-  while (scatteredCreated < 80 && scatteredAttempts < 4000) {
+  while (scatteredCreated < targetScatterCount && scatteredAttempts < 4000) {
     scatteredAttempts++;
     const seedProject = rng.pick(SEED_PROJECTS);
     const context = contexts.get(seedProject.identifier) as ProjectContext;
@@ -441,7 +471,8 @@ async function main(): Promise<void> {
   const taskById = new Map(allTaskRecords.map((t) => [t.id, t]));
   const nonCancelledTasks = allTaskRecords.filter((t) => t.stateName !== "Cancelled");
   const commentData: Array<{ content: string; taskId: string; authorId: string; createdAt: Date }> = [];
-  for (let i = 0; i < 1000; i++) {
+  const targetCommentCount = IS_COMPACT ? 50 : 1000;
+  for (let i = 0; i < targetCommentCount; i++) {
     const task = rng.bool(0.9) ? rng.pick(nonCancelledTasks) : rng.pick(allTaskRecords);
     const identifier = identifierOf(task.projectId);
     const context = contexts.get(identifier) as ProjectContext;
@@ -495,7 +526,8 @@ async function main(): Promise<void> {
   };
   const progressWeight = (stateName: KanbanStateName): number => PROGRESS_WEIGHTS[stateName];
   const stateChangeWeighted = allTaskRecords.map((t) => ({ value: t, weight: progressWeight(t.stateName) }));
-  for (let i = 0; i < 900; i++) {
+  const stateChangeCount = IS_COMPACT ? 60 : 900;
+  for (let i = 0; i < stateChangeCount; i++) {
     const task = rng.pickWeighted(stateChangeWeighted);
     const currentIdx = KANBAN_STATE_ORDER.indexOf(task.stateName);
     const oldIdx = currentIdx > 0 ? rng.int(0, currentIdx - 1 >= 0 ? currentIdx - 1 : 0) : 0;
@@ -514,9 +546,10 @@ async function main(): Promise<void> {
     });
   }
 
-  // 250 TASK_ASSIGNEE_ADDED/REMOVED (~200 added / ~50 removed)
-  for (let i = 0; i < 250; i++) {
-    const isAdded = i < 200;
+  // TASK_ASSIGNEE_ADDED/REMOVED
+  const assigneeActivityCount = IS_COMPACT ? 25 : 250;
+  for (let i = 0; i < assigneeActivityCount; i++) {
+    const isAdded = i < Math.floor(assigneeActivityCount * 0.8);
     const task = rng.pick(allTaskRecords);
     const members = memberIdsOf(task.projectId);
     const targetUser = rng.pick(SEED_USERS);
@@ -533,9 +566,10 @@ async function main(): Promise<void> {
     });
   }
 
-  // 150 TASK_PRIORITY_CHANGED
+  // TASK_PRIORITY_CHANGED
   const priorityValues: Priority[] = ["NONE", "LOW", "MEDIUM", "HIGH", "URGENT"];
-  for (let i = 0; i < 150; i++) {
+  const priorityActivityCount = IS_COMPACT ? 15 : 150;
+  for (let i = 0; i < priorityActivityCount; i++) {
     const task = rng.pick(allTaskRecords);
     const oldValue = rng.pick(priorityValues);
     let newValue = rng.pick(priorityValues);
@@ -555,8 +589,9 @@ async function main(): Promise<void> {
     });
   }
 
-  // 700 COMMENT_ADDED
-  for (let i = 0; i < 700; i++) {
+  // COMMENT_ADDED
+  const commentActivityCount = IS_COMPACT ? 40 : 700;
+  for (let i = 0; i < commentActivityCount; i++) {
     const task = rng.pick(allTaskRecords);
     const actorId = rng.pick(memberIdsOf(task.projectId));
     const timestamp = randomDateBetween(rng, task.createdAt, SEED_RANGE_END);
@@ -571,8 +606,9 @@ async function main(): Promise<void> {
     });
   }
 
-  // 200 TASK_LABEL_ADDED
-  for (let i = 0; i < 200; i++) {
+  // TASK_LABEL_ADDED
+  const labelActivityCount = IS_COMPACT ? 20 : 200;
+  for (let i = 0; i < labelActivityCount; i++) {
     const task = rng.pick(allTaskRecords);
     const identifier = identifierOf(task.projectId);
     const context = contexts.get(identifier) as ProjectContext;
@@ -590,8 +626,9 @@ async function main(): Promise<void> {
     });
   }
 
-  // 200 TASK_SPRINT_ADDED
-  for (let i = 0; i < 200; i++) {
+  // TASK_SPRINT_ADDED
+  const sprintActivityCount = IS_COMPACT ? 20 : 200;
+  for (let i = 0; i < sprintActivityCount; i++) {
     const task = rng.pick(allTaskRecords);
     const identifier = identifierOf(task.projectId);
     const context = contexts.get(identifier) as ProjectContext;
