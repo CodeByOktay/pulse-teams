@@ -46,6 +46,8 @@ enum NotificationType {
   DUE_DATE_APPROACHING
   TASK_UNBLOCKED
   PROGRESS_REQUESTED
+  STANDUP_SUMMARY_PUBLISHED
+  WEEKLY_DIGEST_PUBLISHED
 }
 
 enum ActivityType {
@@ -101,6 +103,8 @@ model User {
   reviewedProposals AgentProposal[] @relation("ReviewedProposals")
 
   pmAgentSettings AgentSettings[]
+
+  standupEntries StandupEntry[]
 }
 
 model Project {
@@ -125,6 +129,8 @@ model Project {
 
   agentRuns     AgentRun[]
   agentSettings AgentSettings[]
+
+  standups DailyStandup[]
 }
 
 model ProjectMember {
@@ -495,8 +501,91 @@ model AgentSettings {
   @@index([projectId])
 }
 
+model DailyStandup {
+  id        String   @id @default(cuid())
+  projectId String
+  date      DateTime @default(now())
+  summary   String?  @db.Text
+  blockers  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  entries StandupEntry[]
+
+  @@unique([projectId, date])
+  @@index([projectId])
+}
+
+model StandupEntry {
+  id          String   @id @default(cuid())
+  standupId   String
+  userId      String
+  yesterday   String   @db.Text
+  today       String   @db.Text
+  blockers    String?  @db.Text
+  submittedAt DateTime @default(now())
+
+  standup DailyStandup @relation(fields: [standupId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([standupId, userId])
+  @@index([userId])
+}
+
 model SystemClock {
   id        String    @id @default("current")
   mockTime  DateTime?
   updatedAt DateTime  @updatedAt
 }
+
+// LangGraph PostgreSQL checkpointer tables (managed by agent/src/agents/agent_003.py)
+model checkpoint_migrations {
+  v Int @id
+
+  @@ignore
+}
+
+model checkpoints {
+  thread_id            String
+  checkpoint_ns        String  @default("")
+  checkpoint_id        String
+  parent_checkpoint_id String?
+  type                 String?
+  checkpoint           Json
+  metadata             Json    @default("{}")
+
+  @@id([thread_id, checkpoint_ns, checkpoint_id])
+  @@index([thread_id])
+  @@ignore
+}
+
+model checkpoint_blobs {
+  thread_id     String
+  checkpoint_ns String @default("")
+  channel       String
+  version       String
+  type          String
+  blob          Bytes?
+
+  @@id([thread_id, checkpoint_ns, channel, version])
+  @@index([thread_id])
+  @@ignore
+}
+
+model checkpoint_writes {
+  thread_id     String
+  checkpoint_ns String  @default("")
+  checkpoint_id String
+  task_id       String
+  idx           Int
+  channel       String
+  type          String?
+  blob          Bytes
+  task_path     String  @default("")
+
+  @@id([thread_id, checkpoint_ns, checkpoint_id, task_id, idx])
+  @@index([thread_id])
+  @@ignore
+}
+
