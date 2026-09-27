@@ -33,6 +33,23 @@ services:
       db:
         condition: service_healthy
 
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: pulse-agent
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/pulse?sslmode=disable
+      - INTERNAL_API_URL=http://app:3000
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-pulse-internal-secret-key-change-in-prod}
+      - TZ=Europe/Istanbul
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+
 volumes:
   pgdata:
     name: pulse_pgdata

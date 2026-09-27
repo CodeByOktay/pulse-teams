@@ -47,7 +47,7 @@ export default async function ProjectSettingsPage({
     );
   }
 
-  const [states, labels, members, pendingInvites] = await Promise.all([
+  const [states, labels, members, pendingInvites, agentSettingsRows, agentAdmins] = await Promise.all([
     prisma.state.findMany({
       where: { projectId },
       orderBy: { sequence: "asc" },
@@ -67,7 +67,19 @@ export default async function ProjectSettingsPage({
       include: { inviter: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.agentSettings.findMany({
+      where: { projectId },
+      include: { pmUser: { select: { id: true, name: true, email: true } } },
+    }),
+    prisma.projectMember.findMany({
+      where: { projectId, role: "ADMIN" },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
+
+  const agentPmUserId =
+    agentSettingsRows.find((row) => row.pmUserId)?.pmUserId ?? null;
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 dark:bg-zinc-950">
@@ -105,6 +117,13 @@ export default async function ProjectSettingsPage({
               expiresAt: inv.expiresAt.toISOString(),
               createdAt: inv.createdAt.toISOString(),
               inviter: inv.inviter,
+            }))}
+            agentPmCandidates={agentAdmins.map((m) => m.user)}
+            agentPmUserId={agentPmUserId}
+            agentSettings={agentSettingsRows.map((row) => ({
+              agentKey: row.agentKey as "agent-001" | "agent-002" | "agent-003",
+              enabled: row.enabled,
+              config: (row.config ?? {}) as { inactivityDays?: number },
             }))}
           />
         </div>

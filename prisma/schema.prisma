@@ -98,6 +98,8 @@ model User {
   progressResponses         ProgressResponse[]
 
   reviewedProposals AgentProposal[] @relation("ReviewedProposals")
+
+  pmAgentSettings AgentSettings[]
 }
 
 model Project {
@@ -119,6 +121,9 @@ model Project {
 
   progressRequests ProgressRequest[]
   agentProposals   AgentProposal[]
+
+  agentRuns     AgentRun[]
+  agentSettings AgentSettings[]
 }
 
 model ProjectMember {
@@ -430,5 +435,61 @@ model AgentProposal {
   reviewedBy       User?             @relation("ReviewedProposals", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([taskId, status])
+  @@index([projectId])
+}
+
+// ==========================================
+// PHASE 6: AI AGENT COORDINATION MODELS
+// ==========================================
+
+model DomainEvent {
+  id          String    @id @default(cuid())
+  type        String // "TASK_CREATED", "TASK_STATE_CHANGED", "TASK_SPRINT_ADDED", "TASK_COMPLETED", vb.
+  payload     Json // { taskId, projectId, oldValue, newValue, actorId, ... }
+  status      String    @default("PENDING") // PENDING | PROCESSING | DONE | FAILED
+  lockedAt    DateTime? // lease start set on claim; also the fencing token for finalize
+  attempts    Int       @default(0) // incremented on every claim
+  error       String? // last handler / lease-expiry error
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([status, lockedAt])
+}
+
+model AgentRun {
+  id           String    @id @default(cuid())
+  agentKey     String // "agent-000", "agent-001", "agent-002", "agent-003", vb.
+  projectId    String
+  status       String    @default("RUNNING") // RUNNING | SUCCESS | FAILED | SKIPPED
+  scheduledFor DateTime
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  result       Json? // { tasksProcessed: 5, notificationsSent: 2, ... }
+  error        String?
+  tokenCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([agentKey, projectId, scheduledFor])
+  @@index([projectId])
+  @@index([agentKey, status])
+}
+
+model AgentSettings {
+  id        String   @id @default(cuid())
+  projectId String
+  agentKey  String // "agent-001", "agent-002", "agent-003", vb.
+  enabled   Boolean  @default(true)
+  config    Json     @default("{}")
+  pmUserId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pmUser  User?   @relation(fields: [pmUserId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, agentKey])
   @@index([projectId])
 }

@@ -8,6 +8,7 @@ import { canMoveTaskToSprint, getRemovableSprintIds } from "@/lib/backlog-logic"
 import { logActivity, type PrismaTransactionClient } from "@/lib/activity-logger";
 import { createNotifications } from "@/actions/notification";
 import { buildSprintNotificationDeepLink, shouldDeliverWithPreferences } from "@/lib/notification-logic";
+import { emitDomainEvent } from "@/lib/domain-events";
 import type { Prisma, SprintStatus } from "@prisma/client";
 
 async function requireSprintAccess(sprintId: string, userId: string) {
@@ -53,6 +54,7 @@ function pickRemovableLinks<T extends { sprintId: string; sprint: { status: Spri
 
 async function unlinkTaskFromSprints(
   tx: PrismaTransactionClient,
+  projectId: string,
   taskId: string,
   actorId: string,
   links: { sprintId: string; sprint: { name: string } }[],
@@ -68,6 +70,13 @@ async function unlinkTaskFromSprints(
       taskId,
       actorId,
       metadata: { sprintName: link.sprint.name },
+    });
+
+    await emitDomainEvent(tx, "TASK_SPRINT_REMOVED", {
+      projectId,
+      taskId,
+      sprintId: link.sprintId,
+      actorId,
     });
   }
 }
@@ -212,6 +221,13 @@ export async function addTaskToSprint(sprintId: string, taskId: string) {
         actorId: userId,
         metadata: { sprintName: sprint.name },
       });
+
+      await emitDomainEvent(tx, "TASK_SPRINT_ADDED", {
+        projectId: sprint.projectId,
+        taskId,
+        sprintId,
+        actorId: userId,
+      });
     });
   }
 
@@ -233,6 +249,13 @@ export async function removeTaskFromSprint(sprintId: string, taskId: string) {
       actorId: userId,
       metadata: { sprintName: sprint.name },
     });
+
+    await emitDomainEvent(tx, "TASK_SPRINT_REMOVED", {
+      projectId: sprint.projectId,
+      taskId,
+      sprintId,
+      actorId: userId,
+    });
   });
 
   revalidatePath(`/projects/${sprint.projectId}/sprints`);
@@ -249,12 +272,22 @@ export async function startSprint(sprintId: string) {
 
   await assertNoActiveSprint(sprint.projectId);
 
-  const updated = await prisma.sprint.update({
-    where: { id: sprintId },
-    data: {
-      status: "ACTIVE",
-      startDate: sprint.startDate ?? new Date(),
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.sprint.update({
+      where: { id: sprintId },
+      data: {
+        status: "ACTIVE",
+        startDate: sprint.startDate ?? new Date(),
+      },
+    });
+
+    await emitDomainEvent(tx, "SPRINT_STARTED", {
+      projectId: sprint.projectId,
+      sprintId,
+      actorId: userId,
+    });
+
+    return result;
   });
 
   revalidatePath(`/projects/${sprint.projectId}/sprints`);
@@ -273,9 +306,21 @@ export async function completeSprint(sprintId: string) {
 
   // Atomik geçiş: yalnızca hâlâ ACTIVE ise günceller; eşzamanlı yinelenen
   // istekler count === 0 ile elenir ve bildirim tekrar gönderilmez.
-  const updated = await prisma.sprint.updateMany({
-    where: { id: sprintId, status: "ACTIVE" },
-    data: { status: "COMPLETED" },
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.sprint.updateMany({
+      where: { id: sprintId, status: "ACTIVE" },
+      data: { status: "COMPLETED" },
+    });
+
+    if (result.count > 0) {
+      await emitDomainEvent(tx, "SPRINT_COMPLETED", {
+        projectId: sprint.projectId,
+        sprintId,
+        actorId: userId,
+      });
+    }
+
+    return result;
   });
   if (updated.count === 0) {
     throw new Error("Sadece aktif sprintler tamamlanabilir.");
@@ -360,7 +405,7 @@ export async function moveTaskToSprint(taskId: string, targetSprintId: string) {
 
   if (removableLinks.length > 0 || !alreadyLinked) {
     await prisma.$transaction(async (tx) => {
-      await unlinkTaskFromSprints(tx, taskId, userId, removableLinks);
+      await unlinkTaskFromSprints(tx, targetSprint.projectId, taskId, userId, removableLinks);
 
       if (!alreadyLinked) {
         await tx.sprintTask.create({ data: { sprintId: targetSprintId, taskId } });
@@ -369,6 +414,13 @@ export async function moveTaskToSprint(taskId: string, targetSprintId: string) {
           taskId,
           actorId: userId,
           metadata: { sprintName: targetSprint.name },
+        });
+
+        await emitDomainEvent(tx, "TASK_SPRINT_ADDED", {
+          projectId: targetSprint.projectId,
+          taskId,
+          sprintId: targetSprintId,
+          actorId: userId,
         });
       }
     });
@@ -395,7 +447,9 @@ export async function moveTaskToBacklog(taskId: string) {
     return;
   }
 
-  await prisma.$transaction((tx) => unlinkTaskFromSprints(tx, taskId, userId, removableLinks));
+  await prisma.$transaction((tx) =>
+    unlinkTaskFromSprints(tx, task.projectId, taskId, userId, removableLinks),
+  );
 
   revalidateSprintPlanningViews(task.projectId);
 }

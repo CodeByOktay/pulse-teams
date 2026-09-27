@@ -1,14 +1,14 @@
-# CONTEXT - Pulse Project Manager (v0.5.4 -> Phase 5 MVP & Codebase Hardening Completed)
+# CONTEXT - Pulse Project Manager (v0.6.0 -> Phase 6 Infrastructure Step 6.01 Completed)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, and Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal) are fully completed; 4-Wave Codebase Refactoring & Hardening is complete.
+Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), and Phase 6 Step 6.01 (AI Agent Infrastructure, DomainEvent Outbox, Python container, Supervisor) are fully completed.
 
 ## Location & Execution
 - **Project Path:** `C:\Pulse`
 - **Database:** PostgreSQL 16 in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (528 tests across 27 suites, 100% passing)
+- **Tests:** `npm test` (543 Vitest tests across 28 suites + 31 Pytest tests across 5 suites = 574 tests, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, 500 tasks, 1000 comments, 3000 activities)
 
 ## AI Agent Division of Labor & Guides
@@ -204,7 +204,14 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `progress-logic.test.ts` (20)
 - `ai-proposal-logic.test.ts` (26)
 - `project-analytics-logic.test.ts` (14)
-Total: **528 tests, 100% passing**
+- `agent-infrastructure.test.ts` (15)
+- `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7)
+Total: **543 Vitest tests (TypeScript) + 31 Pytest tests (Python) = 574 tests, 100% passing**
+
+## Database Models (22 Models across Phases 1–6)
+User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
+Sprint, SprintTask, Activity, ProjectInvite, TaskRelation, Notification, UserNotificationPreference,
+ProgressRequest, ProgressResponse, AgentProposal, **DomainEvent, AgentRun, AgentSettings**
 
 ## Detailed AI Context Snapshots (`docs/ai-context/`)
 - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
@@ -217,19 +224,21 @@ Total: **528 tests, 100% passing**
 - `031-progress-request-response-lifecycle.md` (ADR-031) — Interactive progress collection lifecycle and response validation.
 - `032-ai-progress-interpretation-and-proposals.md` (ADR-032) — AI progress interpretation, AgentProposal, and human approval flow.
 - `033-codebase-refactoring-and-architecture-hardening.md` (ADR-033) — 4-wave refactoring, 3 targeted hardening packages (authz, modal UX, concurrency), React 19 / ESLint hydration fixes, and project analytics test suite.
+- `034-ai-agent-coordination-infrastructure.md` (ADR-034) — Python LangGraph container, DomainEvent outbox, APScheduler, 10-agent catalog (Agent-000 through Agent-009), HMAC-protected Internal API, Clock abstraction, and catch-up on startup.
 
 ## Mandatory Verification Commands
 ```bash
-npm test          # Must pass 100% (528 tests)
+npm test          # Must pass 100% (543 Vitest tests)
 npx tsc --noEmit  # Zero TypeScript errors
+cd agent && pytest # Must pass 100% (31 Python tests)
 npm run build     # Production build validation
 ```
 
 ## New Chat Starter Template
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
-Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), and 5 MVP (v0.5.4) are fully completed with 4-Wave Full-Stack Refactoring & Hardening.
-528 Vitest tests are passing 100%.
-We are now ready to implement [new phase / feature].
+Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), and Phase 6 Step 6.01 (v0.6.0) are fully completed.
+574 tests (543 Vitest + 31 Pytest) are passing 100%. 22 DB models, 9 enums.
+We are now ready to implement Step 6.02 (Agent-001 Deadline Tracker & Agent Activity Widget).
 [Paste specific task or requirements here]
 ```

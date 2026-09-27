@@ -7,6 +7,7 @@ import { getNextSequenceId } from "@/lib/sequence";
 import { logActivity, type PrismaTransactionClient } from "@/lib/activity-logger";
 import { isCompletionTransition } from "@/lib/automation-logic";
 import { triggerUnblockedDependencies } from "@/lib/dependency-automation";
+import { emitDomainEvent } from "@/lib/domain-events";
 import type { Prisma, Priority } from "@prisma/client";
 
 const PRIORITY_LABEL_TR: Record<Priority, string> = {
@@ -137,6 +138,12 @@ export async function createTask(input: CreateTaskInput) {
       actorId: userId,
     });
 
+    await emitDomainEvent(tx, "TASK_CREATED", {
+      projectId: input.projectId,
+      taskId: created.id,
+      actorId: userId,
+    });
+
     return created;
   });
 
@@ -221,11 +228,25 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
         oldValue: existingTask.state.name,
         newValue: newState.name,
       });
+
+      await emitDomainEvent(tx, "TASK_STATE_CHANGED", {
+        projectId: existingTask.projectId,
+        taskId,
+        oldValue: existingTask.stateId,
+        newValue: newStateId,
+        actorId,
+      });
     }
 
     if (isCompleted) {
       await logActivity(tx, {
         type: "TASK_COMPLETED",
+        taskId,
+        actorId,
+      });
+
+      await emitDomainEvent(tx, "TASK_COMPLETED", {
+        projectId: existingTask.projectId,
         taskId,
         actorId,
       });
@@ -377,8 +398,18 @@ export async function bulkUpdateTasks(taskIds: string[], data: BulkUpdateTasksIn
   const { stateId, priority, assigneeId } = data;
 
   // Cross-project bütünlük doğrulamaları transaction açılmadan önce yapılır.
+  let newState: { name: string; group: string } | null = null;
+  let previousTaskStates: Map<string, { stateId: string; group: string }> = new Map();
   if (stateId !== undefined) {
-    await requireStateInProject(stateId, projectId);
+    newState = await requireStateInProject(stateId, projectId);
+
+    const currentTasks = await prisma.task.findMany({
+      where: { id: { in: taskIds } },
+      select: { id: true, stateId: true, state: { select: { group: true } } },
+    });
+    previousTaskStates = new Map(
+      currentTasks.map((t) => [t.id, { stateId: t.stateId, group: t.state.group }]),
+    );
   }
   if (assigneeId !== undefined) {
     await requireUsersInProject([assigneeId], projectId);
@@ -390,6 +421,29 @@ export async function bulkUpdateTasks(taskIds: string[], data: BulkUpdateTasksIn
         where: { id: { in: taskIds } },
         data: { stateId, priority },
       });
+    }
+
+    if (stateId !== undefined && newState) {
+      for (const taskId of taskIds) {
+        const previous = previousTaskStates.get(taskId);
+        if (!previous || previous.stateId === stateId) continue;
+
+        await emitDomainEvent(tx, "TASK_STATE_CHANGED", {
+          projectId,
+          taskId,
+          oldValue: previous.stateId,
+          newValue: stateId,
+          actorId: userId,
+        });
+
+        if (isCompletionTransition(previous.group, newState.group)) {
+          await emitDomainEvent(tx, "TASK_COMPLETED", {
+            projectId,
+            taskId,
+            actorId: userId,
+          });
+        }
+      }
     }
 
     if (assigneeId !== undefined) {
@@ -426,7 +480,7 @@ export async function reorderTask(taskId: string, newStateId: string, newSortOrd
 
   const existingTask = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { projectId: true, state: { select: { group: true } } },
+    select: { projectId: true, stateId: true, state: { select: { group: true } } },
   });
   if (!existingTask) {
     throw new Error("Görev bulunamadı.");
@@ -441,10 +495,27 @@ export async function reorderTask(taskId: string, newStateId: string, newSortOrd
     include: { state: true },
   });
 
+  // Sütun içi yeniden sıralama da reorderTask üzerinden geçer; state gerçekten
+  // değişmediyse DomainEvent yayınlanmaz.
+  if (existingTask.stateId !== newStateId) {
+    await emitDomainEvent(prisma, "TASK_STATE_CHANGED", {
+      projectId: existingTask.projectId,
+      taskId,
+      oldValue: existingTask.stateId,
+      newValue: newStateId,
+      actorId: userId,
+    });
+  }
+
   // Kanban'da kartı DONE sütununa sürüklemek de bir tamamlanma geçişidir.
   if (isCompletionTransition(existingTask.state.group, task.state.group)) {
     await logActivity(prisma, {
       type: "TASK_COMPLETED",
+      taskId,
+      actorId: userId,
+    });
+    await emitDomainEvent(prisma, "TASK_COMPLETED", {
+      projectId: existingTask.projectId,
       taskId,
       actorId: userId,
     });

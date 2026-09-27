@@ -4,6 +4,11 @@ import { useState } from "react";
 import { StatesManager, type StateItem } from "@/components/settings/states-manager";
 import { LabelsManager, type LabelItem } from "@/components/settings/labels-manager";
 import { MembersManager, type MemberItem, type PendingInviteItem } from "@/components/settings/members-manager";
+import {
+  AgentSettingsManager,
+  type AgentPmCandidate,
+  type AgentSettingItem,
+} from "@/components/settings/agent-settings-manager";
 
 export function SettingsTabs({
   projectId,
@@ -13,6 +18,9 @@ export function SettingsTabs({
   labels,
   members,
   pendingInvites,
+  agentPmCandidates,
+  agentPmUserId,
+  agentSettings,
 }: {
   projectId: string;
   ownerId: string;
@@ -21,8 +29,11 @@ export function SettingsTabs({
   labels: LabelItem[];
   members: MemberItem[];
   pendingInvites: PendingInviteItem[];
+  agentPmCandidates: AgentPmCandidate[];
+  agentPmUserId: string | null;
+  agentSettings: AgentSettingItem[];
 }) {
-  const [tab, setTab] = useState<"states" | "labels" | "members">("states");
+  const [tab, setTab] = useState<"states" | "labels" | "members" | "agents">("states");
 
   return (
     <div className="flex flex-col gap-4">
@@ -48,19 +59,33 @@ export function SettingsTabs({
         >
           Üyeler
         </button>
+        <button
+          type="button"
+          onClick={() => setTab("agents")}
+          className={tabClass(tab === "agents")}
+        >
+          AI Ajanlar
+        </button>
       </div>
 
       {tab === "states" ? (
         <StatesManager states={states} projectId={projectId} />
       ) : tab === "labels" ? (
         <LabelsManager labels={labels} projectId={projectId} />
-      ) : (
+      ) : tab === "members" ? (
         <MembersManager
           projectId={projectId}
           ownerId={ownerId}
           currentUserId={currentUserId}
           members={members}
           pendingInvites={pendingInvites}
+        />
+      ) : (
+        <AgentSettingsManager
+          projectId={projectId}
+          pmCandidates={agentPmCandidates}
+          pmUserId={agentPmUserId}
+          agents={agentSettings}
         />
       )}
     </div>

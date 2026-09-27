@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.5.4 (Phase 5 MVP Completed — Step 5.04 completed)
+- **Version:** v0.6.0 (Phase 6 Infrastructure Completed — Step 6.01 completed)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -96,8 +96,9 @@ Enums (9):
   - `notification-preferences.test.ts` (29), `email-templates.test.ts` (23)
   - `automation-logic.test.ts` (33), `dependency-automation.test.ts` (13)
   - `progress-logic.test.ts` (20), `ai-proposal-logic.test.ts` (26)
-  - `project-analytics-logic.test.ts` (14)
-- **Total:** **528 tests, 100% passing**
+  - `project-analytics-logic.test.ts` (14), `agent-infrastructure.test.ts` (15)
+  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7)
+- **Total:** **543 Vitest tests (TypeScript) + 31 Pytest tests (Python) = 574 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -128,9 +129,9 @@ Enums (9):
 - **ADR:** ADR-034 (AI Agent Koordinasyon Altyapısı ve Proaktif Agent Sistemi)
 - **Architecture:** Python LangGraph container (`pulse-agent`) + DomainEvent outbox + HMAC Internal API
 - **Agent Catalog:** Agent-000 (Supervisor) through Agent-009 (Scope Creep Detection)
-- **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes) ← CURRENT
-- **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API
-- **Step 6.02 (v0.6.1):** Agent-001 (Deadline Tracker) + Agent Activity dashboard widget
+- **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes)
+- **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API (574 tests) ← COMPLETED
+- **Step 6.02 (v0.6.1):** Agent-001 (Deadline Tracker) + Agent Activity dashboard widget ← NEXT
 - **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume)
 
 ## Verification Rule After Every Step

@@ -19,12 +19,23 @@ function revalidateProjectViews(projectId: string) {
   revalidatePath(`/projects/${projectId}/backlog`);
 }
 
-export async function createProgressRequest(
-  taskId: string,
-  recipientId: string,
-  reason: string = "manual",
-) {
-  const session = await requireSession();
+export type CreateProgressRequestParams = {
+  requesterId: string;
+  taskId: string;
+  recipientId: string;
+  reason?: string;
+  /** Overrides the templated notification message body when provided (e.g. agent-authored requests). */
+  customMessage?: string;
+};
+
+/**
+ * Session-agnostic core of the progress request creation flow. Shared by the
+ * `createProgressRequest` server action (session-based caller) and the
+ * internal agent API route (`requesterId` resolved from `AgentSettings.pmUser`
+ * or the project owner) so both entry points enforce identical business rules.
+ */
+export async function createProgressRequestForUser(params: CreateProgressRequestParams) {
+  const { requesterId, taskId, recipientId, reason = "manual", customMessage } = params;
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -41,7 +52,7 @@ export async function createProgressRequest(
     throw new Error("Görev bulunamadı.");
   }
 
-  await requireMembership(task.projectId, session.user.id);
+  await requireMembership(task.projectId, requesterId);
 
   if (!task.assignees.some((assignee) => assignee.userId === recipientId)) {
     throw new Error("Talep yalnızca göreve atanmış bir üyeye gönderilebilir.");
@@ -57,13 +68,18 @@ export async function createProgressRequest(
     throw new Error(check.reason);
   }
 
+  const requester = await prisma.user.findUnique({
+    where: { id: requesterId },
+    select: { name: true },
+  });
+
   const request = await prisma.$transaction(async (tx) => {
     const created = await tx.progressRequest.create({
       data: {
         projectId: task.projectId,
         taskId,
         recipientId,
-        requestedById: session.user.id,
+        requestedById: requesterId,
         reason,
       },
     });
@@ -71,7 +87,7 @@ export async function createProgressRequest(
     await logActivity(tx, {
       type: "PROGRESS_REQUESTED",
       taskId,
-      actorId: session.user.id,
+      actorId: requesterId,
       metadata: { recipientId, reason },
     });
 
@@ -80,22 +96,22 @@ export async function createProgressRequest(
 
   if (
     shouldDeliverWithPreferences({
-      actorId: session.user.id,
+      actorId: requesterId,
       recipientId,
       type: "PROGRESS_REQUESTED",
     })
   ) {
     const { title, message } = formatProgressRequestNotification(
       task.title,
-      session.user.name ?? undefined,
+      requester?.name ?? undefined,
     );
 
     await createNotification({
       type: "PROGRESS_REQUESTED",
       title,
-      message,
+      message: customMessage?.trim() ? customMessage.trim() : message,
       link: buildNotificationDeepLink(task.projectId, taskId),
-      actorId: session.user.id,
+      actorId: requesterId,
       userId: recipientId,
     });
   }
@@ -103,6 +119,21 @@ export async function createProgressRequest(
   revalidateProjectViews(task.projectId);
 
   return request;
+}
+
+export async function createProgressRequest(
+  taskId: string,
+  recipientId: string,
+  reason: string = "manual",
+) {
+  const session = await requireSession();
+
+  return createProgressRequestForUser({
+    requesterId: session.user.id,
+    taskId,
+    recipientId,
+    reason,
+  });
 }
 
 export async function submitProgressResponse(requestId: string, content: string) {
