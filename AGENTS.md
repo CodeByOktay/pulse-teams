@@ -3,9 +3,9 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.6.5 (Phase 6 Step 6.06 completed — Agent-007 Workload Balancer & Agent-008 Sprint Assistant)
+- **Version:** v0.6.6 (Phase 6 Step 6.07 completed — Project Memory & RAG Semantic Search with pgvector)
 - **URL:** http://localhost:3000
-- **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
+- **DB:** PostgreSQL 16 with pgvector (Docker container: `pulse-postgres`, port 5432)
 
 ## AI Agent Division of Labor & Guides
 - **Antigravity (Lead Architect, QA & Test Authority):** `ANTIGRAVITY.md` — Feature analysis, trade-offs, Claude prompt formulation, exclusive author of all tests (`src/lib/__tests__/`), ADR authoring, and `docs/ai-context/` management.
@@ -14,7 +14,7 @@
 ## Technology Stack
 - **Framework:** Next.js 16 (App Router, Turbopack)
 - **Language:** TypeScript (strict mode)
-- **Database ORM:** Prisma v6.19.3 + PostgreSQL 16
+- **Database ORM:** Prisma v6.19.3 + PostgreSQL 16 (pgvector extension)
 - **Authentication:** NextAuth.js v4 — CredentialsProvider + JWT + bcryptjs (salt:12)
   (sole authentication method; external identity provider integration is strictly out of scope)
 - **Styling:** Tailwind CSS v4
@@ -33,11 +33,11 @@
 - `npx prisma generate` — Regenerate Prisma client
 - `npx tsc --noEmit` — Run TypeScript type checking
 
-## Database Models (25 Pulse Models + 4 LangGraph Checkpoint Models = 29 Total in DB)
+## Database Models (26 Pulse Models + 4 LangGraph Checkpoint Models = 30 Total in DB)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
 Sprint, SprintTask, Activity, ProjectInvite, TaskRelation, Notification, UserNotificationPreference,
 ProgressRequest, ProgressResponse, AgentProposal, DomainEvent, AgentRun, AgentSettings, SystemClock,
-**DailyStandup, StandupEntry**
+DailyStandup, StandupEntry, **TaskEmbedding**
 
 Enums (9):
 - StateGroup (BACKLOG, TODO, IN_PROGRESS, DONE, CANCELLED)
@@ -80,6 +80,7 @@ Enums (9):
 - **Unified Task Navigation (`useTaskNavigation`):** `src/lib/use-task-navigation.ts` synchronizes the `?task=` URL query parameter and task slide-over modal across board, list, and backlog views.
 - **Atomic Concurrency Guards:** `completeSprint` uses atomic conditional update (`updateMany` with `status: "ACTIVE"` guard) to prevent double-completion races and duplicate notifications. Notification dispatch is safely wrapped in `try/catch`.
 - **Render-Phase State Sync & Debounce:** `ColorPicker` uses React 19 render-phase prop sync with a 200ms debounce (flushing on blur and unmount). Shared `InlineNameInput` consolidates inline editing across settings managers.
+- **Project Memory & RAG Semantic Search (ADR-035):** `TaskEmbedding` model with PostgreSQL `pgvector/pgvector:pg16` and `ivfflat` cosine distance index. SHA-256 content hashing prevents redundant embedding API calls. Hybrid search (`mergeHybridResults`) seamlessly blends vector similarity and text match with zero-failure fallback.
 
 ## Testing Conventions
 - **Location:** `src/lib/__tests__/*.test.ts`
@@ -102,8 +103,9 @@ Enums (9):
   - `version.test.ts` (2), `clock-app.test.ts` (11)
   - `blocker-logic.test.ts` (11), `scope-creep-logic.test.ts` (5)
   - `standup-logic.test.ts` (26), `weekly-digest-logic.test.ts` (22)
+  - `semantic-search.test.ts` (55)
   - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7), `test_agent_007.py` (5), `test_agent_008.py` (7)
-- **Total:** **669 Vitest tests (TypeScript) + 83 Pytest tests (Python) = 752 tests, 100% passing**
+- **Total:** **724 Vitest tests (TypeScript) + 83 Pytest tests (Python) = 807 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -131,8 +133,8 @@ Enums (9):
   - **Post-MVP Hardening Packages (v0.5.4):** Package 1 (Backend Hardening, Security, Data Integrity & authz Consolidation), Package 2 (UI, UX, Modal Escape Isolation, Title Rollback & Unified Navigation), Package 3 (Performance, Concurrency, ColorPicker Debounce & Settings Polish) (528 tests)
 
 ## Current Phase — Phase 6: AI Agent Coordination System
-- **ADR:** ADR-034 (AI Agent Koordinasyon Altyapısı ve Proaktif Agent Sistemi)
-- **Architecture:** Python LangGraph container (`pulse-agent`) + DomainEvent outbox + HMAC Internal API
+- **ADR:** ADR-034 (AI Agent Koordinasyon Altyapısı ve Proaktif Agent Sistemi) & ADR-035 (Proje Hafızası ve pgvector Tabanlı Semantik Arama Mimarisi)
+- **Architecture:** Python LangGraph container (`pulse-agent`) + DomainEvent outbox + HMAC Internal API + pgvector
 - **Agent Catalog:** Agent-000 (Supervisor) through Agent-009 (Scope Creep Detection) — All 10 agents belong strictly to Phase 6
 - **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes) ← COMPLETED
 - **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API (574 tests) ← COMPLETED
@@ -141,7 +143,7 @@ Enums (9):
 - **Step 6.04 (v0.6.3):** Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians (Tier A) (677 tests) ← COMPLETED
 - **Step 6.05 (v0.6.4):** Agent-005 (Async Daily Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest (Tier B) (740 tests) ← COMPLETED
 - **Step 6.06 (v0.6.5):** Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal (Tier B) (752 tests) ← COMPLETED
-- **Step 6.07 (v0.6.6 — Planned):** Project Memory & RAG Semantic Search (pgvector integration)
+- **Step 6.07 (v0.6.6):** Project Memory & RAG Semantic Search (pgvector integration) (807 tests) ← COMPLETED
 - **Step 6.08 (v0.6.7 — Planned):** Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification
 
 ## Verification Rule After Every Step

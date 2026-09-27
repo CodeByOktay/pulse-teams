@@ -1,14 +1,14 @@
-# CONTEXT - Pulse Project Manager (v0.6.5 -> Phase 6 Step 6.06 Completed: Agent-007 & Agent-008)
+# CONTEXT - Pulse Project Manager (v0.6.6 -> Phase 6 Step 6.07 Completed: Project Memory & RAG Semantic Search)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), Phase 6 Step 6.01 (AI Agent Infrastructure), Step 6.02 (Agent-001 Deadline Tracker & Agent Activity Widget), Step 6.03 (Agent-002 Task Hygiene & Agent-003 Status Requester with LangGraph interrupt/resume), Step 6.04 (Agent-004 Blocker Manager & Agent-009 Scope Creep Detection), Step 6.05 (Agent-005 Async Daily Standup & Agent-006 Weekly Sprint Digest), and Step 6.06 (Agent-007 Workload Balancer & Agent-008 Sprint Assistant) are fully completed.
+Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), Phase 6 Step 6.01 (AI Agent Infrastructure), Step 6.02 (Agent-001 Deadline Tracker & Agent Activity Widget), Step 6.03 (Agent-002 Task Hygiene & Agent-003 Status Requester with LangGraph interrupt/resume), Step 6.04 (Agent-004 Blocker Manager & Agent-009 Scope Creep Detection), Step 6.05 (Agent-005 Async Daily Standup & Agent-006 Weekly Sprint Digest), Step 6.06 (Agent-007 Workload Balancer & Agent-008 Sprint Assistant), and Step 6.07 (Project Memory & RAG Semantic Search via pgvector) are fully completed.
 
 ## Location & Execution
 - **Project Path:** `C:\Pulse`
-- **Database:** PostgreSQL 16 in Docker (`docker start pulse-postgres`, port 5432)
+- **Database:** PostgreSQL 16 with pgvector in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (669 Vitest tests across 37 suites + 83 Pytest tests across 15 suites = 752 tests, 100% passing)
+- **Tests:** `npm test` (724 Vitest tests across 38 suites + 83 Pytest tests across 15 suites = 807 tests, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, ~60 tasks compact dataset, active/draft sprints)
 
 ## AI Agent Division of Labor & Guides
@@ -241,8 +241,9 @@ ProgressRequest, ProgressResponse, AgentProposal, DomainEvent, AgentRun, AgentSe
 - `030-dependency-automation.md` (ADR-030) — Task dependency unblocking automation and in-app notifications.
 - `031-progress-request-response-lifecycle.md` (ADR-031) — Interactive progress collection lifecycle and response validation.
 - `032-ai-progress-interpretation-and-proposals.md` (ADR-032) — AI progress interpretation, AgentProposal, and human approval flow.
-- `033-codebase-refactoring-and-architecture-hardening.md` (ADR-033) — 4-wave refactoring, 3 targeted hardening packages (authz, modal UX, concurrency), React 19 / ESLint hydration fixes, and project analytics test suite.
-- `034-ai-agent-coordination-infrastructure.md` (ADR-034) — Python LangGraph container, DomainEvent outbox, APScheduler, 10-agent catalog (Agent-000 through Agent-009), HMAC-protected Internal API, Clock abstraction, and catch-up on startup.
+- [`033-codebase-refactoring-and-architecture-hardening.md`](./033-codebase-refactoring-and-architecture-hardening.md) (ADR-033) — 4-wave refactoring, 3 targeted hardening packages (authz, modal UX, concurrency), React 19 / ESLint hydration fixes, and project analytics test suite.
+- [`034-ai-agent-coordination-infrastructure.md`](./034-ai-agent-coordination-infrastructure.md) (ADR-034) — Python LangGraph container, DomainEvent outbox, APScheduler, 10-agent catalog (Agent-000 through Agent-009), HMAC-protected Internal API, Clock abstraction, and catch-up on startup.
+- [`035-project-memory-and-rag-semantic-search.md`](./035-project-memory-and-rag-semantic-search.md) (ADR-035) — Project Memory, PostgreSQL pgvector integration, TaskEmbedding model, ivfflat indexing, SHA-256 content hashing, hybrid search ranking, and Similar Tasks UI.
 
 ## Phase 6 Full 10-Agent Catalog & Roadmap (All Agents in Phase 6)
 - **Agent-000 (Supervisor):** Routing, rate-limiting, dedup, run logging (Step 6.01, Completed)
@@ -255,12 +256,12 @@ ProgressRequest, ProgressResponse, AgentProposal, DomainEvent, AgentRun, AgentSe
 - **Agent-006 (Weekly Report):** Sprint health, velocity & risk summary (Step 6.05, Completed)
 - **Agent-007 (Workload Balancer):** Overload/idle detection + reassignment AgentProposal (Step 6.06, Completed)
 - **Agent-008 (Sprint Assistant):** Sprint overflow warning + retro draft (Step 6.06, Completed)
-- **Project Memory & RAG:** Semantic search on tasks, comments & project docs via pgvector (Step 6.07, Planned)
+- **Project Memory & RAG:** Semantic search on tasks, comments & project docs via pgvector (Step 6.07, Completed)
 - **Phase 6 Consolidation & Verification:** E2E multi-agent verification & hardening (Step 6.08, Planned)
 
 ## Mandatory Verification Commands
 ```bash
-npm test          # Must pass 100% (669 Vitest tests)
+npm test          # Must pass 100% (724 Vitest tests)
 npx tsc --noEmit  # Zero TypeScript errors
 cd agent && .venv\Scripts\pytest # Must pass 100% (83 Python tests)
 npm run build     # Production build validation
@@ -269,9 +270,9 @@ npm run build     # Production build validation
 ## New Chat Starter Template
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
-Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), Phase 6 Step 6.01 (v0.6.0), Step 6.02 (v0.6.1), Step 6.03 (v0.6.2), Step 6.04 (v0.6.3), Step 6.05 (v0.6.4), and Step 6.06 (v0.6.5) are fully completed.
-752 tests (669 Vitest + 83 Pytest) are passing 100%. 25 Pulse DB models (+ 4 checkpoint models), 9 enums.
+Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), Phase 6 Step 6.01 (v0.6.0), Step 6.02 (v0.6.1), Step 6.03 (v0.6.2), Step 6.04 (v0.6.3), Step 6.05 (v0.6.4), Step 6.06 (v0.6.5), and Step 6.07 (v0.6.6) are fully completed.
+807 tests (724 Vitest + 83 Pytest) are passing 100%. 26 Pulse DB models (+ 4 checkpoint models), 9 enums.
 All 10 agents (Agent-000 through Agent-009) belong strictly to Phase 6.
-We are now ready to implement Step 6.07 (Project Memory & RAG Semantic Search via pgvector).
+We are now ready to implement Step 6.08 (Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification).
 [Paste specific task or requirements here]
 ```

@@ -18,3 +18,5 @@ The files in this directory contain deep, ADR-linked architectural memory snapsh
 - [`032-ai-progress-interpretation-and-proposals.md`](./032-ai-progress-interpretation-and-proposals.md) (ADR-032) — AI progress interpretation, AgentProposal, and human approval flow.
 - [`033-codebase-refactoring-and-architecture-hardening.md`](./033-codebase-refactoring-and-architecture-hardening.md) (ADR-033) — 4-wave refactoring, 3 targeted hardening packages (authz, modal UX, concurrency), React 19 / ESLint hydration fixes, and project analytics test suite.
 - [`034-ai-agent-coordination-infrastructure.md`](./034-ai-agent-coordination-infrastructure.md) (ADR-034) — Python LangGraph container, DomainEvent outbox, APScheduler, 10-agent catalog (Agent-000 through Agent-009), HMAC-protected Internal API, Clock abstraction, and catch-up on startup.
+- [`035-project-memory-and-rag-semantic-search.md`](./035-project-memory-and-rag-semantic-search.md) (ADR-035) — Project Memory, PostgreSQL pgvector integration, TaskEmbedding model, ivfflat indexing, SHA-256 content hashing, hybrid search ranking, and Similar Tasks UI.
+
