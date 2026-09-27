@@ -11,6 +11,7 @@ import { TaskComments, type CommentItem } from "@/components/task-detail/task-co
 import { TaskActivity } from "@/components/task-detail/task-activity";
 import { TaskProperties, type StateOption } from "@/components/task-detail/task-properties";
 import { TaskRelations } from "@/components/task-detail/task-relations";
+import { SimilarTasks } from "@/components/task-detail/similar-tasks";
 import { TaskProgressSection } from "@/components/task-detail/task-progress-section";
 import { CopyLinkButton } from "@/components/task-detail/copy-link-button";
 import { buildTaskBreadcrumb, type TaskSprintInfo } from "@/lib/task-detail-ux";
@@ -237,6 +238,12 @@ export function TaskDetailModal({
                 targetRelations={detail.targetRelations}
                 onNavigateToTask={onNavigateToTask}
                 onChanged={handleRelatedChange}
+              />
+
+              <SimilarTasks
+                taskId={taskId}
+                projectIdentifier={projectIdentifier}
+                onNavigateToTask={onNavigateToTask}
               />
 
               <TaskProgressSection

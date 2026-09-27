@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, FileText, FolderKanban, Zap, Loader2 } from "lucide-react";
+import { Search, FileText, FolderKanban, Zap, Loader2, Sparkles } from "lucide-react";
 import { globalSearch, type ProjectSearchResult, type TaskSearchResult } from "@/actions/search";
 import {
   filterQuickNavCommands,
@@ -229,6 +229,12 @@ export function CommandPalette() {
                               {task.projectIdentifier}-{task.sequenceId}
                             </span>
                             <span className="min-w-0 flex-1 truncate">{task.title}</span>
+                            {task.similarity !== undefined ? (
+                              <span className="flex shrink-0 items-center gap-1 text-xs text-zinc-400">
+                                <Sparkles className="h-3 w-3" />
+                                {Math.round(task.similarity * 100)}%
+                              </span>
+                            ) : null}
                           </ResultRow>
                         );
                       })}
