@@ -181,6 +181,40 @@ class InternalClient:
             "/api/internal/agent/status-response", {"requestId": request_id, "action": action}
         )
 
+    async def trigger_blocker_check(self, project_id: str) -> dict:
+        """POST /api/internal/agent/blocker-check -> BlockerCheckResult ({} on failure).
+
+        Called both by Agent-004's scheduled 09:00 sweep and by its event-driven
+        handlers (TASK_STATE_CHANGED / TASK_RELATION_CREATED) -- Next.js owns
+        enablement (AgentSettings) and same-day dedup either way."""
+        return await self._post_json("/api/internal/agent/blocker-check", {"projectId": project_id})
+
+    async def trigger_scope_creep_check(self, project_id: str) -> dict:
+        """POST /api/internal/agent/scope-creep-check -> ScopeCreepCheckResult ({} on failure).
+
+        Called both by Agent-009's scheduled 09:00 sweep and by its event-driven
+        handlers (TASK_SPRINT_ADDED / TASK_CREATED)."""
+        return await self._post_json("/api/internal/agent/scope-creep-check", {"projectId": project_id})
+
+    async def trigger_standup_open(self, project_id: str) -> dict:
+        """POST /api/internal/agent/standup-open -> { opened, standupId } ({} on failure).
+
+        Called by Agent-005's 09:30 cron phase (idempotent -- upserts today's
+        DailyStandup row on @@unique([projectId, date]))."""
+        return await self._post_json("/api/internal/agent/standup-open", {"projectId": project_id})
+
+    async def trigger_standup_synthesize(self, project_id: str) -> dict:
+        """POST /api/internal/agent/standup-synthesize -> { entryCount, published } ({} on failure).
+
+        Called by Agent-005's 11:30 cutoff cron phase."""
+        return await self._post_json("/api/internal/agent/standup-synthesize", {"projectId": project_id})
+
+    async def trigger_weekly_digest(self, project_id: str) -> dict:
+        """POST /api/internal/agent/weekly-digest -> { sent, healthStatus } ({} on failure).
+
+        Called by Agent-006's Friday 17:00 cron job."""
+        return await self._post_json("/api/internal/agent/weekly-digest", {"projectId": project_id})
+
     # ------------------------------------------------------------------ #
     # Clock synchronization endpoints (Step 6.04 / ADR-034 Clock Abstraction)
     # ------------------------------------------------------------------ #

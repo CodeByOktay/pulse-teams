@@ -199,7 +199,17 @@ model AgentSettings {
 }
 ```
 
-**Model sayısı:** 19 → 22 (DomainEvent, AgentRun, AgentSettings)
+### 3.4 SystemClock (Test Edilebilir Sanal Saat Tablosu)
+
+```prisma
+model SystemClock {
+  id        String    @id @default("current")
+  mockTime  DateTime?
+  updatedAt DateTime  @updatedAt
+}
+```
+
+**Model sayısı:** 19 → 23 (DomainEvent, AgentRun, AgentSettings, SystemClock)
 
 ---
 

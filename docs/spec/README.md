@@ -47,11 +47,11 @@ cd agent && pytest
 | `v0.6.0` | [`v0.6.0-step-6.01.md`](./v0.6.0-step-6.01.md) | Step 6.01 | **Tamamlandı** | Altyapı: Prisma Schema, DomainEvent Outbox, Clock, Python Container (`pulse-agent`), Docker Compose, Supervisor Agent-000, Internal API (HMAC), AgentSettings UI. (574 test %100 geçiyor). |
 | `v0.6.1` | [`v0.6.1-step-6.02.md`](./v0.6.1-step-6.02.md) | Step 6.02 | **Tamamlandı** | Agent-001 (Deadline Takipçisi), oturumdan bağımsız `dispatchDueDateReminders`, Dashboard "Agent Activity" bileşeni. (587 test %100 geçiyor). |
 | `v0.6.2` | [`v0.6.2-step-6.03.md`](./v0.6.2-step-6.03.md) | Step 6.03 | **Tamamlandı** | Agent-002 (Görev Hijyeni) + Agent-003 (Durum İsteyici, LangGraph interrupt/resume, eskalasyon). (653 test %100 geçiyor). |
-| `v0.6.3` | `v0.6.3-step-6.04.md` *(Hazırlanacak)* | Step 6.04 | **Sırada** | Agent-004 (Engel Yöneticisi / Blocker Manager) & Agent-009 (Kapsam Kayması Tespiti / Scope Creep Detection) — Olay güdümlü koruyucular (Tier A). |
-| `v0.6.4` | `v0.6.4-step-6.05.md` *(Hazırlanacak)* | Step 6.05 | **Planlandı** | Agent-005 (Asenkron Standup / Async Daily Standup) & Agent-006 (Haftalık Rapor / Weekly Sprint Digest) — LLM destekli ekip iletişimi ve özetleme (Tier B). |
-| `v0.6.5` | `v0.6.5-step-6.06.md` *(Hazırlanacak)* | Step 6.06 | **Planlandı** | Agent-007 (İş Yükü Dengeleyici / Workload Balancer) & Agent-008 (Sprint Asistanı / Sprint Assistant) — LLM destekli yeniden atama ve retro önerileri (`AgentProposal`, Tier B). |
-| `v0.6.6` | `v0.6.6-step-6.07.md` *(Hazırlanacak)* | Step 6.07 | **Planlandı** | RAG & Semantik Arama: Proje dokümanları, geçmiş görevler ve sprintler üzerinde pgvector destekli bilgi sorgulama. |
-| `v0.6.7` | `v0.6.7-step-6.08.md` *(Hazırlanacak)* | Step 6.08 | **Planlandı** | Faz 6 Konsolidasyon, E2E Multi-Agent Koordinasyon Doğrulaması ve Hardening. |
+| `v0.6.3` | [`v0.6.3-step-6.04.md`](./v0.6.3-step-6.04.md) | Step 6.04 | **Hazır (Up Next)** | Agent-004 (Engel Yöneticisi / Blocker Manager) & Agent-009 (Kapsam Kayması Tespiti / Scope Creep Detection) — Olay güdümlü koruyucular (Tier A). |
+| `v0.6.4` | [`v0.6.4-step-6.05.md`](./v0.6.4-step-6.05.md) | Step 6.05 | **Hazır** | Agent-005 (Asenkron Standup / Async Daily Standup) & Agent-006 (Haftalık Rapor / Weekly Sprint Digest) — LLM destekli ekip iletişimi ve özetleme (Tier B). |
+| `v0.6.5` | [`v0.6.5-step-6.06.md`](./v0.6.5-step-6.06.md) | Step 6.06 | **Hazır** | Agent-007 (İş Yükü Dengeleyici / Workload Balancer) & Agent-008 (Sprint Asistanı / Sprint Assistant) — LLM destekli yeniden atama ve retro önerileri (`AgentProposal`, Tier B). |
+| `v0.6.6` | [`v0.6.6-step-6.07.md`](./v0.6.6-step-6.07.md) | Step 6.07 | **Hazır** | RAG & Semantik Arama: Proje dokümanları, geçmiş görevler ve sprintler üzerinde pgvector destekli bilgi sorgulama. |
+| `v0.6.7` | [`v0.6.7-step-6.08.md`](./v0.6.7-step-6.08.md) | Step 6.08 | **Hazır** | Faz 6 Konsolidasyon, E2E Multi-Agent Koordinasyon Doğrulaması ve Hardening. |
 
 ---
 

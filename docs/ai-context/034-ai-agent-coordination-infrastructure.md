@@ -57,31 +57,37 @@ Phase 6 introduces a proactive AI agent coordination system with a Python LangGr
 
 ## New Database Models (Phase 6)
 
-| Model | Purpose | Relations |
-|---|---|---|
-| `DomainEvent` | Outbox table: event type, JSON payload, processing status | — |
-| `AgentRun` | Agent execution history: agent key, project, status, result, token count | → Project |
-| `AgentSettings` | Per-project per-agent toggle + config + PM user selection | → Project, → User |
+| Model | Purpose | Relations | Status |
+|---|---|---|---|
+| `DomainEvent` | Outbox table: event type, JSON payload, processing status | — | Implemented (v0.6.0) |
+| `AgentRun` | Agent execution history: agent key, project, status, result, token count | → Project | Implemented (v0.6.0) |
+| `AgentSettings` | Per-project per-agent toggle + config + PM user selection | → Project, → User | Implemented (v0.6.0) |
+| `SystemClock` | Global virtual clock for testable time simulation and agent sync | — | Implemented (v0.6.2) |
+| `DailyStandup` | Team daily standup container (date, LLM summary, blockers) | → Project, → StandupEntry | Planned (v0.6.4) |
+| `StandupEntry` | Individual member daily response (yesterday, today, blockers) | → DailyStandup, → User | Planned (v0.6.4) |
+| `TaskEmbedding` | Vector embedding storage for RAG semantic similarity search | → Task | Planned (v0.6.6) |
 
-**Model count:** 19 → 22. **Enum count:** 9 (unchanged in Step 6.00).
+**Model count:** 19 → 23 (current, with `SystemClock`). **Enum count:** 9 (unchanged).
 
-## New Files (Planned)
+## Key Implementation Files (Phase 6)
 
 ### TypeScript (Next.js)
-- `src/lib/clock.ts` — Testable clock abstraction.
-- `src/lib/domain-events.ts` — `emitDomainEvent(tx, type, payload)` writer.
-- `src/app/api/internal/agent/` — HMAC-protected internal endpoints.
+- `src/lib/clock.ts` — Testable clock abstraction with DB sync.
+- `src/components/layout/clock-control.tsx` — Interactive virtual time travel UI popover.
+- `src/lib/domain-events.ts` — `emitDomainEvent(tx, type, payload)` outbox writer.
+- `src/lib/internal-auth.ts` — HMAC-SHA256 request verification for Internal API.
+- `src/app/api/internal/agent/` — HMAC-protected internal endpoints (runs, settings, notifications, progress, clock).
 
 ### Python (Agent Container)
-- `agent/src/supervisor.py` — Agent-000: DomainEvent poller + APScheduler + catch-up.
+- `agent/src/supervisor.py` — Agent-000: DomainEvent poller + APScheduler + catch-up + registry.
 - `agent/src/agents/agent_001.py` — Deadline Tracker graph.
 - `agent/src/agents/agent_002.py` — Task Hygiene graph.
-- `agent/src/agents/agent_003.py` — Status Requester graph (interrupt/resume).
-- `agent/src/poller.py` — DomainEvent SKIP LOCKED poller.
-- `agent/src/scheduler.py` — APScheduler configuration.
-- `agent/src/catchup.py` — Startup catch-up logic.
-- `agent/src/internal_client.py` — Next.js Internal API client (HMAC).
-- `agent/src/clock.py` — Python clock abstraction.
+- `agent/src/agents/agent_003.py` — Status Requester graph (LangGraph interrupt/resume).
+- `agent/src/poller.py` — DomainEvent SKIP LOCKED poller with lease fencing.
+- `agent/src/scheduler.py` — APScheduler configuration (daily 09:00 Europe/Istanbul).
+- `agent/src/catchup.py` — Startup catch-up logic for missed slots.
+- `agent/src/internal_client.py` — Next.js Internal API client (HMAC signed).
+- `agent/src/clock.py` — Python testable clock with DB synchronization.
 
 ## Step Roadmap (Phase 6)
 | Step | Version | Content | Status |
