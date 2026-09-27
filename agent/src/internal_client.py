@@ -196,6 +196,25 @@ class InternalClient:
         handlers (TASK_SPRINT_ADDED / TASK_CREATED)."""
         return await self._post_json("/api/internal/agent/scope-creep-check", {"projectId": project_id})
 
+    async def trigger_standup_open(self, project_id: str) -> dict:
+        """POST /api/internal/agent/standup-open -> { opened, standupId } ({} on failure).
+
+        Called by Agent-005's 09:30 cron phase (idempotent -- upserts today's
+        DailyStandup row on @@unique([projectId, date]))."""
+        return await self._post_json("/api/internal/agent/standup-open", {"projectId": project_id})
+
+    async def trigger_standup_synthesize(self, project_id: str) -> dict:
+        """POST /api/internal/agent/standup-synthesize -> { entryCount, published } ({} on failure).
+
+        Called by Agent-005's 11:30 cutoff cron phase."""
+        return await self._post_json("/api/internal/agent/standup-synthesize", {"projectId": project_id})
+
+    async def trigger_weekly_digest(self, project_id: str) -> dict:
+        """POST /api/internal/agent/weekly-digest -> { sent, healthStatus } ({} on failure).
+
+        Called by Agent-006's Friday 17:00 cron job."""
+        return await self._post_json("/api/internal/agent/weekly-digest", {"projectId": project_id})
+
     # ------------------------------------------------------------------ #
     # Clock synchronization endpoints (Step 6.04 / ADR-034 Clock Abstraction)
     # ------------------------------------------------------------------ #

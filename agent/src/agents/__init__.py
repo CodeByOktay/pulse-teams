@@ -18,6 +18,15 @@ Agent-004 and agent-009 are also wired into the DomainEvent poller (their
 module's docstring): TASK_STATE_CHANGED / TASK_RELATION_CREATED -> agent-004,
 TASK_SPRINT_ADDED / TASK_CREATED -> agent-009.
 
+agent-005 (Async Daily Standup, Step 6.05) and agent-006 (Weekly Sprint
+Digest, Step 6.05) are NOT registered here and NOT part of `_AGENTS` --
+both run on fixed schedules that don't fit the single daily
+`SCHEDULE_HOUR:00` supervisor sweep (agent-005 fires twice a day at 09:30
+and 11:30; agent-006 fires once a week on Fridays at 17:00). They are wired
+directly as dedicated APScheduler cron jobs in `scheduler.py`, and each
+reimplements the claim/execute/complete AgentRun bookkeeping itself (see
+`agent_005.py` / `agent_006.py` module docstrings).
+
 `register_builtin_agents()` stays synchronous (it runs before the container has
 confirmed DB connectivity in `main.py`) -- agent-003's Postgres checkpointer is
 created lazily on its first real `ainvoke`, not at registration time. This
