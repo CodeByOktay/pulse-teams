@@ -18,6 +18,7 @@ import sys
 
 from src.agents import close_builtin_agents, register_builtin_agents
 from src.catchup import run_startup_catchup
+from src.clock import sync_clock_from_db
 from src.config import settings
 from src.db import check_connection
 from src.poller import run_poller_loop
@@ -83,6 +84,11 @@ async def main() -> None:
     if not await wait_for_database(stop_event):
         logger.info("Shutdown requested before database became available")
         return
+
+    try:
+        await sync_clock_from_db()
+    except Exception:
+        logger.exception("Initial clock sync failed")
 
     try:
         await run_startup_catchup()

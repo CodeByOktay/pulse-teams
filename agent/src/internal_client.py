@@ -180,3 +180,16 @@ class InternalClient:
         return await self._post_json(
             "/api/internal/agent/status-response", {"requestId": request_id, "action": action}
         )
+
+    # ------------------------------------------------------------------ #
+    # Clock synchronization endpoints (Step 6.04 / ADR-034 Clock Abstraction)
+    # ------------------------------------------------------------------ #
+    async def get_clock(self) -> dict:
+        """GET /api/internal/agent/clock -> { isMocked, now, mockTime }"""
+        resp = await self._request("GET", "/api/internal/agent/clock", "")
+        return self._json_or_empty(resp, "GET", "/api/internal/agent/clock")
+
+    async def set_clock(self, mock_time: Optional[datetime]) -> dict:
+        """POST /api/internal/agent/clock -> { isMocked, now, mockTime }"""
+        payload = {"mockTime": mock_time.isoformat() if mock_time is not None else None}
+        return await self._post_json("/api/internal/agent/clock", payload)

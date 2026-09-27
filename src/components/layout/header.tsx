@@ -5,6 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { Avatar } from "@/components/assignees/avatar";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/layout/breadcrumb";
+import { ClockControl } from "@/components/layout/clock-control";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useClickOutside } from "@/lib/use-click-outside";
 
@@ -20,7 +21,8 @@ export function Header({ items }: { items: BreadcrumbItem[] }) {
     <header className="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900">
       <Breadcrumb items={items} />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <ClockControl />
         <NotificationBell />
 
         <div ref={containerRef} className="relative">

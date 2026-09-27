@@ -31,7 +31,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Any, Awaitable, Callable, Optional
 
-from src.clock import get_now
+from src.clock import get_now, sync_clock_from_db
 from src.config import settings
 from src.db import get_db_connection, to_utc_naive
 
@@ -295,6 +295,11 @@ async def run_poller_loop(
     logger.info("DomainEvent poller started (interval=%ss, batch=%s, lease sweep=%ss)", interval, size, sweep)
     last_sweep: Optional[float] = None
     while not stop_event.is_set():
+        try:
+            await sync_clock_from_db()
+        except Exception:
+            pass
+
         if last_sweep is None or time.monotonic() - last_sweep >= sweep:
             try:
                 await recover_expired_leases()

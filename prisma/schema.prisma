@@ -493,3 +493,9 @@ model AgentSettings {
   @@unique([projectId, agentKey])
   @@index([projectId])
 }
+
+model SystemClock {
+  id        String    @id @default("current")
+  mockTime  DateTime?
+  updatedAt DateTime  @updatedAt
+}
