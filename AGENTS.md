@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.6.2 (Phase 6 Step 6.03 completed — Agent-002 Task Hygiene & Agent-003 Status Requester)
+- **Version:** v0.6.3 (Phase 6 Step 6.04 completed — Agent-004 Blocker Manager & Agent-009 Scope Creep Detection)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -33,16 +33,16 @@
 - `npx prisma generate` — Regenerate Prisma client
 - `npx tsc --noEmit` — Run TypeScript type checking
 
-## Database Models (22 Models across Phases 1–5)
+## Database Models (23 Models across Phases 1–6)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
 Sprint, SprintTask, Activity, ProjectInvite, TaskRelation, Notification, UserNotificationPreference,
-ProgressRequest, ProgressResponse, **AgentProposal**
+ProgressRequest, ProgressResponse, AgentProposal, **DomainEvent, AgentRun, AgentSettings, SystemClock**
 
 Enums (9):
 - StateGroup (BACKLOG, TODO, IN_PROGRESS, DONE, CANCELLED)
 - Priority (NONE, LOW, MEDIUM, HIGH, URGENT)
 - SprintStatus (DRAFT, ACTIVE, COMPLETED)
-- ActivityType (23 values)
+- ActivityType (24 values)
 - InviteStatus (PENDING, ACCEPTED, EXPIRED)
 - RelationType (BLOCKS, RELATES_TO, DUPLICATES)
 - **NotificationType** (7 values: TASK_ASSIGNED, COMMENT_ADDED, SPRINT_COMPLETED, TASK_MENTIONED, DUE_DATE_APPROACHING, TASK_UNBLOCKED, PROGRESS_REQUESTED)
@@ -99,8 +99,9 @@ Enums (9):
   - `project-analytics-logic.test.ts` (14), `agent-infrastructure.test.ts` (15), `deadline-tracker.test.ts` (10)
   - `hygiene-logic.test.ts` (20), `status-requester-logic.test.ts` (19)
   - `version.test.ts` (2), `clock-app.test.ts` (11)
-  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6)
-- **Total:** **605 Vitest tests (TypeScript) + 48 Pytest tests (Python) = 653 tests, 100% passing**
+  - `blocker-logic.test.ts` (11), `scope-creep-logic.test.ts` (5)
+  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4)
+- **Total:** **621 Vitest tests (TypeScript) + 56 Pytest tests (Python) = 677 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -135,7 +136,7 @@ Enums (9):
 - **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API (574 tests) ← COMPLETED
 - **Step 6.02 (v0.6.1):** Agent-001 (Deadline Tracker) + Agent Activity dashboard widget (587 tests) ← COMPLETED
 - **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) (653 tests) ← COMPLETED
-- **Step 6.04 (v0.6.3 — Up Next):** Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians (Tier A)
+- **Step 6.04 (v0.6.3):** Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians (Tier A) (677 tests) ← COMPLETED
 - **Step 6.05 (v0.6.4 — Planned):** Agent-005 (Async Daily Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest (Tier B)
 - **Step 6.06 (v0.6.5 — Planned):** Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal (Tier B)
 - **Step 6.07 (v0.6.6 — Planned):** Project Memory & RAG Semantic Search (pgvector integration)
