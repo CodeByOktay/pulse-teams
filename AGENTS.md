@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.6.4 (Phase 6 Step 6.05 completed — Agent-005 Async Daily Standup & Agent-006 Weekly Sprint Digest)
+- **Version:** v0.6.5 (Phase 6 Step 6.06 completed — Agent-007 Workload Balancer & Agent-008 Sprint Assistant)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -46,7 +46,7 @@ Enums (9):
 - ActivityType (24 values)
 - InviteStatus (PENDING, ACCEPTED, EXPIRED)
 - RelationType (BLOCKS, RELATES_TO, DUPLICATES)
-- **NotificationType** (9 values: TASK_ASSIGNED, COMMENT_ADDED, SPRINT_COMPLETED, TASK_MENTIONED, DUE_DATE_APPROACHING, TASK_UNBLOCKED, PROGRESS_REQUESTED, STANDUP_SUMMARY_PUBLISHED, WEEKLY_DIGEST_PUBLISHED)
+- **NotificationType** (12 values: TASK_ASSIGNED, COMMENT_ADDED, SPRINT_COMPLETED, TASK_MENTIONED, DUE_DATE_APPROACHING, TASK_UNBLOCKED, PROGRESS_REQUESTED, STANDUP_SUMMARY_PUBLISHED, WEEKLY_DIGEST_PUBLISHED, WORKLOAD_REBALANCE_PROPOSED, SPRINT_OVERFLOW_WARNING, SPRINT_RETRO_PUBLISHED)
 - **ProgressRequestStatus** (PENDING, RESPONDED, EXPIRED, CANCELLED)
 - **ProposalStatus** (PENDING, APPROVED, REJECTED, STALE)
 
@@ -102,8 +102,8 @@ Enums (9):
   - `version.test.ts` (2), `clock-app.test.ts` (11)
   - `blocker-logic.test.ts` (11), `scope-creep-logic.test.ts` (5)
   - `standup-logic.test.ts` (26), `weekly-digest-logic.test.ts` (22)
-  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7)
-- **Total:** **669 Vitest tests (TypeScript) + 71 Pytest tests (Python) = 740 tests, 100% passing**
+  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7), `test_agent_007.py` (5), `test_agent_008.py` (7)
+- **Total:** **669 Vitest tests (TypeScript) + 83 Pytest tests (Python) = 752 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -140,7 +140,7 @@ Enums (9):
 - **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) (653 tests) ← COMPLETED
 - **Step 6.04 (v0.6.3):** Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians (Tier A) (677 tests) ← COMPLETED
 - **Step 6.05 (v0.6.4):** Agent-005 (Async Daily Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest (Tier B) (740 tests) ← COMPLETED
-- **Step 6.06 (v0.6.5 — Planned):** Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal (Tier B)
+- **Step 6.06 (v0.6.5):** Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal (Tier B) (752 tests) ← COMPLETED
 - **Step 6.07 (v0.6.6 — Planned):** Project Memory & RAG Semantic Search (pgvector integration)
 - **Step 6.08 (v0.6.7 — Planned):** Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification
 
