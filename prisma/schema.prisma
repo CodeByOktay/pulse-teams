@@ -48,6 +48,9 @@ enum NotificationType {
   PROGRESS_REQUESTED
   STANDUP_SUMMARY_PUBLISHED
   WEEKLY_DIGEST_PUBLISHED
+  WORKLOAD_REBALANCE_PROPOSED
+  SPRINT_OVERFLOW_WARNING
+  SPRINT_RETRO_PUBLISHED
 }
 
 enum ActivityType {
@@ -101,6 +104,7 @@ model User {
   progressResponses         ProgressResponse[]
 
   reviewedProposals AgentProposal[] @relation("ReviewedProposals")
+  suggestedAssigneeProposals AgentProposal[] @relation("SuggestedAssigneeProposals")
 
   pmAgentSettings AgentSettings[]
 
@@ -426,6 +430,7 @@ model AgentProposal {
   summary            String
   suggestedStateId   String?
   suggestedGroup     StateGroup?
+  suggestedAssigneeId String?
   blockerDetected    Boolean        @default(false)
   blockerDetails     String?
   followUpNeeded     Boolean        @default(false)
@@ -439,6 +444,7 @@ model AgentProposal {
   task             Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
   progressResponse ProgressResponse? @relation(fields: [progressResponseId], references: [id], onDelete: SetNull)
   suggestedState   State?            @relation(fields: [suggestedStateId], references: [id], onDelete: SetNull)
+  suggestedAssignee User?            @relation("SuggestedAssigneeProposals", fields: [suggestedAssigneeId], references: [id], onDelete: SetNull)
   reviewedBy       User?             @relation("ReviewedProposals", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([taskId, status])
