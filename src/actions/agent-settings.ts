@@ -8,7 +8,13 @@ import { getNow } from "@/lib/clock";
 import { DEADLINE_TRACKER_AGENT_KEY, summarizeAgentRuns } from "@/lib/deadline-tracker-logic";
 
 /** Agent keys that can be configured per project from the settings UI. */
-const CONFIGURABLE_AGENT_KEYS = ["agent-001", "agent-002", "agent-003"] as const;
+const CONFIGURABLE_AGENT_KEYS = [
+  "agent-001",
+  "agent-002",
+  "agent-003",
+  "agent-005",
+  "agent-006",
+] as const;
 
 function assertConfigurableAgentKey(agentKey: string) {
   if (!(CONFIGURABLE_AGENT_KEYS as readonly string[]).includes(agentKey)) {

@@ -120,6 +120,8 @@ export function shouldDeliverWithPreferences(params: {
       return preferences?.notifySprintClosed === true;
     case "TASK_UNBLOCKED":
     case "PROGRESS_REQUESTED":
+    case "STANDUP_SUMMARY_PUBLISHED":
+    case "WEEKLY_DIGEST_PUBLISHED":
       return true;
     default:
       return true;
