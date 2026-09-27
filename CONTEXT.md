@@ -8,7 +8,7 @@ Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project m
 - **Project Path:** `C:\Pulse`
 - **Database:** PostgreSQL 16 with pgvector in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (740 Vitest tests across 39 suites + 92 Pytest tests across 16 suites = 832 tests, 100% passing)
+- **Tests:** `npm test` (740 Vitest tests across 39 suites + 98 Pytest tests across 17 suites = 838 tests, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, ~60 tasks compact dataset, active/draft sprints)
 
 ## AI Agent Division of Labor & Guides
@@ -264,7 +264,7 @@ ProgressRequest, ProgressResponse, AgentProposal, DomainEvent, AgentRun, AgentSe
 ```bash
 npm test          # Must pass 100% (740 Vitest tests)
 npx tsc --noEmit  # Zero TypeScript errors
-cd agent && .venv\Scripts\pytest # Must pass 100% (92 Python tests)
+cd agent && .venv\Scripts\pytest # Must pass 100% (98 Python tests)
 npm run build     # Production build validation
 ```
 
@@ -272,6 +272,6 @@ npm run build     # Production build validation
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
 Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), and Phase 6 (v0.6.7, complete 10-agent proactive multi-agent system) are fully completed.
-832 tests (740 Vitest + 92 Pytest) are passing 100%. 26 Pulse DB models (+ 4 checkpoint models), 9 enums.
+838 tests (740 Vitest + 98 Pytest) are passing 100%. 26 Pulse DB models (+ 4 checkpoint models), 9 enums.
 [Paste specific task or requirements here]
 ```

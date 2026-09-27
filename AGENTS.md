@@ -105,8 +105,8 @@ Enums (9):
   - `blocker-logic.test.ts` (11), `scope-creep-logic.test.ts` (5)
   - `standup-logic.test.ts` (26), `weekly-digest-logic.test.ts` (22)
   - `semantic-search.test.ts` (55), `multi-agent-coordination.test.ts` (16)
-  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7), `test_agent_007.py` (5), `test_agent_008.py` (7), `test_replay.py` (9)
-- **Total:** **740 Vitest tests (TypeScript) + 92 Pytest tests (Python) = 832 tests, 100% passing**
+  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7), `test_agent_007.py` (5), `test_agent_008.py` (7), `test_replay.py` (9), `test_e2e_coordination.py` (6)
+- **Total:** **740 Vitest tests (TypeScript) + 98 Pytest tests (Python) = 838 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -141,7 +141,7 @@ Enums (9):
   - **Step 6.05 (v0.6.4):** Agent-005 (Async Daily Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest (Tier B) (740 tests) ← COMPLETED
   - **Step 6.06 (v0.6.5):** Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal (Tier B) (752 tests) ← COMPLETED
   - **Step 6.07 (v0.6.6):** Project Memory & RAG Semantic Search (pgvector integration) (807 tests) ← COMPLETED
-  - **Step 6.08 (v0.6.7):** Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification (832 tests) ← COMPLETED
+  - **Step 6.08 (v0.6.7):** Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification (838 tests) ← COMPLETED
 
 ## Verification Rule After Every Step
 ```bash
