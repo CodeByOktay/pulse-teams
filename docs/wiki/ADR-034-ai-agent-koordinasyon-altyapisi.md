@@ -4,7 +4,7 @@
 - **Tarih:** 2026-09-27
 - **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder)
 - **Sürüm:** v0.6.0 (Phase 6 — AI Agent Coordination System)
-- **İlgili ADR:** [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](file:///c:/Pulse/docs/wiki/ADR-028-AI%20Destekli%20Proaktif%20Proje%20Koordinasyon%20Mimarisi), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](file:///c:/Pulse/docs/wiki/ADR-029-Domain%20Event%20Temeli%20ve%20Aktivite%20Genişletmesi), [ADR-032-AI Destekli İlerleme Yorumlama ve Onaylı Güncelleme Mimarisi](file:///c:/Pulse/docs/wiki/ADR-032-AI%20Destekli%20İlerleme%20Yorumlama%20ve%20Onaylı%20Güncelleme%20Mimarisi)
+- **İlgili ADR:** [ADR-028-AI Destekli Proaktif Proje Koordinasyon Mimarisi](./ADR-028-ai-destekli-proaktif-proje-koordinasyonu.md), [ADR-029-Domain Event Temeli ve Aktivite Genişletmesi](./ADR-029-domain-event-temeli-ve-aktivite-genisletmesi.md), [ADR-032-AI Destekli İlerleme Yorumlama ve Onaylı Güncelleme Mimarisi](./ADR-032-ai-destekli-ilerleme-yorumlama-ve-onayli-guncelleme.md)
 
 ---
 

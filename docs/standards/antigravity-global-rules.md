@@ -1,9 +1,6 @@
----
-trigger: model_decision
-description: "Use when proposing, writing, reviewing, superseding or deprecating an Architecture Decision Record (ADR-NNN) for Pulse, or when deciding whether a change needs an ADR at all."
----
+# ADR Authoring Standard
 
-# ADR Authoring Standard — Pulse
+**Scope:** Apply this standard whenever you propose, write, review, supersede, or deprecate an Architecture Decision Record (ADR), or decide whether a change needs one. Paths below are Pulse defaults; in another project, keep the rules and use that project's own paths if it defines them.
 
 Baseline: **MADR 4.0** (structure) + **Nygard** (status, value-neutral context, honest consequences) + **ISO/IEC/IEEE 42010** (rationale: drivers, alternatives, trade-offs) + **Y-Statement** (one-sentence summary) + **ecADR** (definition of done).
 
@@ -40,7 +37,7 @@ Do NOT write an ADR for UI polish, bug fixes, refactors that keep the architectu
 
 ## 4. File Conventions
 
-- **Location:** `docs/wiki/`
+- **Location:** `docs/wiki/` (Pulse)
 - **File name:** `ADR-NNN-kebab-case-ascii-slug.md`
   - `NNN` = next free 3-digit, zero-padded number. Numbers are never reused, even for rejected ADRs.
   - Slug: lowercase ASCII, words joined by `-`, no spaces. Transliterate Turkish characters (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u).

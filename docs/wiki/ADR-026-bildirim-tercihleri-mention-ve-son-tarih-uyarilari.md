@@ -4,7 +4,7 @@
 - **Tarih:** 2026-09-21
 - **Karar Vericiler:** Antigravity (Lead Architect & QA Authority), Claude Code (Builder)
 - **Sürüm:** v0.4.3 (Faz 4 — Adım 4.03)
-- **İlgili ADR:** [ADR-025-Uygulama İçi Bildirimler ve İstemci Polling Mimarisi](file:///c:/Pulse/docs/wiki/ADR-025-Uygulama%20İçi%20Bildirimler%20ve%20İstemci%20Polling%20Mimarisi)
+- **İlgili ADR:** [ADR-025-Uygulama İçi Bildirimler ve İstemci Polling Mimarisi](./ADR-025-uygulama-ici-bildirimler-ve-istemci-polling.md)
 
 ---
 
