@@ -107,6 +107,7 @@ export async function loadTaskProposals(taskId: string) {
       orderBy: { createdAt: "desc" },
       include: {
         suggestedState: { select: { id: true, name: true, color: true, group: true } },
+        suggestedAssignee: { select: { id: true, name: true } },
       },
     }),
     prisma.agentProposal.findMany({
@@ -115,6 +116,7 @@ export async function loadTaskProposals(taskId: string) {
       take: 5,
       include: {
         suggestedState: { select: { id: true, name: true, color: true, group: true } },
+        suggestedAssignee: { select: { id: true, name: true } },
         reviewedBy: { select: { id: true, name: true } },
       },
     }),

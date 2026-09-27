@@ -56,6 +56,88 @@ async function hasProposalGoneStale(
   return stateChangedSince !== null;
 }
 
+// Agent-007 reassignment proposals go stale once the task's assignees have already
+// changed since the proposal was made (the human already acted, or another proposal beat it).
+async function haveAssigneesChangedSince(taskId: string, since: Date): Promise<boolean> {
+  const changedSince = await prisma.activity.findFirst({
+    where: {
+      taskId,
+      type: { in: ["TASK_ASSIGNEE_ADDED", "TASK_ASSIGNEE_REMOVED"] },
+      createdAt: { gt: since },
+    },
+    select: { id: true },
+  });
+
+  return changedSince !== null;
+}
+
+// Agent-007 (Workload Balancer) approve path — independent from the state-transition
+// branch above: reassignment proposals never carry a suggestedStateId/suggestedGroup and
+// are approved as-is (no overrideStateId support in scope for this proposal shape).
+async function approveReassignmentProposal(params: {
+  proposalId: string;
+  proposal: { summary: string; createdAt: Date };
+  task: { id: string; projectId: string };
+  suggestedAssigneeId: string;
+  reviewerId: string;
+}) {
+  const { proposalId, proposal, task, suggestedAssigneeId, reviewerId } = params;
+
+  if (await haveAssigneesChangedSince(task.id, proposal.createdAt)) {
+    await prisma.agentProposal.updateMany({
+      where: { id: proposalId, status: "PENDING" },
+      data: { status: "STALE" },
+    });
+    revalidateProjectViews(task.projectId);
+    throw new Error("Görev atananları öneriden sonra değişti; öneri geçersiz sayıldı.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await claimPendingProposal(tx, proposalId, "APPROVED", reviewerId);
+
+    const currentAssignees = await tx.taskAssignee.findMany({
+      where: { taskId: task.id },
+      select: { userId: true, user: { select: { name: true } } },
+    });
+
+    await tx.taskAssignee.deleteMany({ where: { taskId: task.id } });
+
+    for (const assignee of currentAssignees) {
+      await logActivity(tx, {
+        type: "TASK_ASSIGNEE_REMOVED",
+        taskId: task.id,
+        actorId: reviewerId,
+        metadata: { userName: assignee.user.name ?? "Bilinmeyen kullanıcı" },
+      });
+    }
+
+    await tx.taskAssignee.create({ data: { taskId: task.id, userId: suggestedAssigneeId } });
+
+    const newAssignee = await tx.user.findUnique({
+      where: { id: suggestedAssigneeId },
+      select: { name: true },
+    });
+    await logActivity(tx, {
+      type: "TASK_ASSIGNEE_ADDED",
+      taskId: task.id,
+      actorId: reviewerId,
+      metadata: { userName: newAssignee?.name ?? "Bilinmeyen kullanıcı" },
+    });
+
+    await logActivity(tx, {
+      type: "AI_SUGGESTION_APPLIED",
+      taskId: task.id,
+      actorId: reviewerId,
+      isAiGenerated: true,
+      metadata: { proposalId, summary: proposal.summary, suggestedAssigneeId },
+    });
+  });
+
+  revalidateProjectViews(task.projectId);
+
+  return { moved: false, reassigned: true };
+}
+
 export async function generateProposalForResponse(responseId: string) {
   const userId = await requireUserId();
 
@@ -90,6 +172,8 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
       status: true,
       suggestedStateId: true,
       suggestedGroup: true,
+      suggestedAssigneeId: true,
+      suggestedAssignee: { select: { id: true, name: true } },
       summary: true,
       createdAt: true,
       task: {
@@ -113,6 +197,18 @@ export async function approveProposal(proposalId: string, overrideStateId?: stri
 
   if (proposal.status !== "PENDING") {
     throw new Error(PROPOSAL_NOT_PENDING_MESSAGE);
+  }
+
+  // Agent-007 reassignment proposals are an independent approve path with no state
+  // transition; the branch below (override/stale/state-move) is never reached for these.
+  if (proposal.suggestedAssigneeId !== null) {
+    return approveReassignmentProposal({
+      proposalId,
+      proposal: { summary: proposal.summary, createdAt: proposal.createdAt },
+      task: { id: task.id, projectId: task.projectId },
+      suggestedAssigneeId: proposal.suggestedAssigneeId,
+      reviewerId,
+    });
   }
 
   let overrideState: { id: string; name: string; group: string } | null = null;

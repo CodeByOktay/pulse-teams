@@ -14,6 +14,8 @@ const CONFIGURABLE_AGENT_KEYS = [
   "agent-003",
   "agent-005",
   "agent-006",
+  "agent-007",
+  "agent-008",
 ] as const;
 
 function assertConfigurableAgentKey(agentKey: string) {
