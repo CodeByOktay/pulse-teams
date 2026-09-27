@@ -184,7 +184,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `/login`                  -> Login Page
 - `/register`               -> Registration Page
 
-## Test Suite Distribution (605 Vitest Tests across 33 Suites + 48 Pytest Tests across 9 Suites = 653 Tests)
+## Test Suite Distribution (740 Vitest Tests across 39 Suites + 98 Pytest Tests across 17 Suites = 838 Tests)
 - `sequence.test.ts` (2)
 - `sort-order.test.ts` (4)
 - `colors.test.ts` (3)
@@ -222,14 +222,16 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `scope-creep-logic.test.ts` (5)
 - `standup-logic.test.ts` (26)
 - `weekly-digest-logic.test.ts` (22)
-- `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7), `test_agent_007.py` (5), `test_agent_008.py` (7)
-Total: **669 Vitest tests (TypeScript) + 83 Pytest tests (Python) = 752 tests, 100% passing**
+- `semantic-search.test.ts` (55)
+- `multi-agent-coordination.test.ts` (16)
+- `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7), `test_agent_007.py` (5), `test_agent_008.py` (7), `test_replay.py` (9), `test_e2e_coordination.py` (6)
+Total: **740 Vitest tests (TypeScript) + 98 Pytest tests (Python) = 838 tests, 100% passing**
 
-## Database Models (25 Pulse Models + 4 LangGraph Checkpoint Models = 29 Total in DB)
+## Database Models (26 Pulse Models + 4 LangGraph Checkpoint Models = 30 Total in DB)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
 Sprint, SprintTask, Activity, ProjectInvite, TaskRelation, Notification, UserNotificationPreference,
 ProgressRequest, ProgressResponse, AgentProposal, DomainEvent, AgentRun, AgentSettings, SystemClock,
-**DailyStandup, StandupEntry**
+DailyStandup, StandupEntry, **TaskEmbedding**
 
 ## Detailed AI Context Snapshots (`docs/ai-context/`)
 - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
