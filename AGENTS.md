@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.6.1 (Phase 6 Step 6.02 completed — Agent-001 & Activity Widget)
+- **Version:** v0.6.2 (Phase 6 Step 6.03 completed — Agent-002 Task Hygiene & Agent-003 Status Requester)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 (Docker container: `pulse-postgres`, port 5432)
 
@@ -97,8 +97,9 @@ Enums (9):
   - `automation-logic.test.ts` (33), `dependency-automation.test.ts` (13)
   - `progress-logic.test.ts` (20), `ai-proposal-logic.test.ts` (26)
   - `project-analytics-logic.test.ts` (14), `agent-infrastructure.test.ts` (15), `deadline-tracker.test.ts` (10)
-  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3)
-- **Total:** **553 Vitest tests (TypeScript) + 34 Pytest tests (Python) = 587 tests, 100% passing**
+  - `hygiene-logic.test.ts` (20), `status-requester-logic.test.ts` (19)
+  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5)
+- **Total:** **592 Vitest tests (TypeScript) + 42 Pytest tests (Python) = 634 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -132,7 +133,7 @@ Enums (9):
 - **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes)
 - **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API (574 tests) ← COMPLETED
 - **Step 6.02 (v0.6.1):** Agent-001 (Deadline Tracker) + Agent Activity dashboard widget (587 tests) ← COMPLETED
-- **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) ← NEXT
+- **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) (634 tests) ← COMPLETED
 
 ## Verification Rule After Every Step
 ```bash

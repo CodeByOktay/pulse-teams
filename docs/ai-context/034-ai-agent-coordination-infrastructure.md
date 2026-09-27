@@ -3,10 +3,10 @@
 ## Overview
 Phase 6 introduces a proactive AI agent coordination system with a Python LangGraph container alongside the existing Next.js application. Ten specialized agents (Agent-000 through Agent-009) progressively automate project management tasks — from deadline tracking and task hygiene to async standups and sprint assistance. The first four agents (000–003) use zero LLM tokens; all operate through a DomainEvent outbox pattern and HMAC-protected Internal API.
 
-- **Milestone:** Phase 6, Step 6.02 (`v0.6.1` — Agent-001 & Activity Widget completed)
+- **Milestone:** Phase 6, Step 6.03 (`v0.6.2` — Agent-002 & Agent-003 completed)
 - **ADR Reference:** `ADR-034-AI Agent Koordinasyon Altyapisi ve Proaktif Agent Sistemi`
 - **Phase 6 Scope:** Steps 6.00–6.03 (Infrastructure + Agent-001/002/003)
-- **Current Tests:** 587 passing (553 Vitest + 34 Pytest, 100% passing)
+- **Current Tests:** 634 passing (592 Vitest + 42 Pytest, 100% passing)
 
 ---
 
