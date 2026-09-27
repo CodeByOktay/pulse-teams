@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyInternalSignature } from "@/lib/internal-auth";
+import { syncClockFromDb } from "@/lib/clock";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    await syncClockFromDb();
+
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       select: {

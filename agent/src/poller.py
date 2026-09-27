@@ -4,8 +4,10 @@ Lifecycle of a DomainEvent row:
     PENDING --claim--> PROCESSING   (lockedAt = now, attempts += 1, error = NULL)
     PROCESSING --handler ok--> DONE       (processedAt = now)
     PROCESSING --handler raised--> FAILED (processedAt = now, error = handler error)
+    PROCESSING --handler timeout--> FAILED (processedAt = now, error = "TimeoutError: ...")
     PROCESSING --lease expired--> PENDING (attempts < EVENT_MAX_ATTEMPTS)
                                   FAILED  (attempts >= EVENT_MAX_ATTEMPTS, error = lease expiry)
+    PROCESSING --graceful shutdown, not yet started--> PENDING (attempts -= 1, released unattempted)
 
 Claiming happens in a short transaction so row locks are never held while
 handlers run. Instead, each claim takes a time-bounded lease (`lockedAt`).
@@ -18,6 +20,16 @@ whose lease was taken over can never overwrite the newer owner's result.
 Handler failures are NOT retried automatically: handlers may have partial
 side effects (e.g. notifications already sent), so they end in FAILED with
 the error recorded. Only abandoned leases (crashed consumer) are re-queued.
+Handlers are also wall-clock bounded (`EVENT_HANDLER_TIMEOUT_SECONDS`,
+capped below the lease so a timing-out handler always fails before its lease
+could expire); a handler that hangs forever ends in FAILED, not an infinite
+retry loop.
+
+Graceful shutdown never re-runs work: `process_batch` accepts a `stop_event`
+and, if it flips while a claimed batch is still being iterated, releases the
+not-yet-started events straight back to PENDING (fenced on `lockedAt`, so
+only the batch this consumer just claimed is touched) instead of leaving
+them to be discovered later by the lease sweep.
 
 Handlers are registered per event type via `register_handler`; unknown types
 fall back to a logging no-op and are marked DONE.
@@ -32,8 +44,9 @@ from datetime import datetime, timedelta
 from typing import Any, Awaitable, Callable, Optional
 
 from src.clock import get_now, sync_clock_from_db
-from src.config import settings
+from src.config import get_effective_handler_timeout, settings
 from src.db import get_db_connection, to_utc_naive
+from src.health import write_heartbeat
 
 logger = logging.getLogger("agent.poller")
 
@@ -131,6 +144,22 @@ def build_fail_expired_sql() -> str:
     )
 
 
+def build_release_sql() -> str:
+    """Release claimed-but-not-yet-started events back to PENDING (graceful shutdown).
+
+    Fenced on `lockedAt` so only the batch this consumer just claimed is
+    touched; `attempts` is decremented to undo the increment `claim_pending_events`
+    applied, since the handler never actually ran.
+    """
+    return (
+        'UPDATE "DomainEvent" '
+        'SET "status" = %(pending)s, "lockedAt" = NULL, "attempts" = GREATEST("attempts" - 1, 0) '
+        'WHERE "id" = ANY(%(ids)s) '
+        'AND "status" = %(processing)s '
+        'AND "lockedAt" = %(lockedAt)s'
+    )
+
+
 # ---------------------------------------------------------------------- #
 # Pure helpers
 # ---------------------------------------------------------------------- #
@@ -214,6 +243,27 @@ async def finalize_event(
         return (cur.rowcount or 0) > 0
 
 
+async def release_events(ids: list[str], locked_at: datetime) -> int:
+    """Release not-yet-started PROCESSING events back to PENDING (graceful shutdown).
+
+    Fenced on `lockedAt`: only rows this consumer's batch still owns are
+    released, so a lease that was already taken over is left untouched.
+    """
+    if not ids:
+        return 0
+    async with get_db_connection() as conn:
+        cur = await conn.execute(
+            build_release_sql(),
+            {
+                "pending": STATUS_PENDING,
+                "processing": STATUS_PROCESSING,
+                "ids": ids,
+                "lockedAt": locked_at,
+            },
+        )
+        return cur.rowcount or 0
+
+
 async def recover_expired_leases(
     lease_seconds: Optional[int] = None,
     max_attempts: Optional[int] = None,
@@ -240,24 +290,53 @@ async def recover_expired_leases(
     return {"requeued": requeued, "failed": failed}
 
 
-async def dispatch_event(event: dict) -> tuple[str, Optional[str]]:
-    """Run the registered handler for an event; returns (final status, error text)."""
+async def dispatch_event(event: dict, timeout_seconds: Optional[float] = None) -> tuple[str, Optional[str]]:
+    """Run the registered handler for an event; returns (final status, error text).
+
+    The handler is wall-clock bounded: exceeding the timeout fails the event
+    (no retry) instead of letting a hung handler occupy the poller forever.
+    """
     handler = get_handler(event.get("type", ""))
+    effective_timeout = (
+        timeout_seconds
+        if timeout_seconds is not None
+        else get_effective_handler_timeout(settings.EVENT_HANDLER_TIMEOUT_SECONDS, settings.EVENT_LEASE_SECONDS)
+    )
     error: Optional[BaseException] = None
     try:
-        await handler(event)
+        await asyncio.wait_for(handler(event), timeout=effective_timeout)
+    except asyncio.TimeoutError:
+        error = TimeoutError(f"Event handler timed out after {effective_timeout}s")
+        logger.error(
+            "DomainEvent %s (%s) handler timed out after %ss", event.get("id"), event.get("type"), effective_timeout
+        )
     except Exception as exc:  # handler failures must not kill the poller
         error = exc
         logger.exception("DomainEvent %s (%s) handler failed", event.get("id"), event.get("type"))
     return decide_final_status(error), format_error(error)
 
 
-async def process_batch(limit: Optional[int] = None) -> dict:
-    """Claim, dispatch and finalize one batch. Returns counters."""
+async def process_batch(limit: Optional[int] = None, stop_event: Optional[asyncio.Event] = None) -> dict:
+    """Claim, dispatch and finalize one batch. Returns counters.
+
+    If `stop_event` flips while events from this batch are still pending
+    dispatch, the not-yet-started ones are released back to PENDING instead
+    of being started (graceful shutdown never re-runs already-finished work
+    and never abandons unstarted work mid-shutdown either).
+    """
     batch_size = limit if limit is not None else settings.POLL_BATCH_SIZE
     events = await claim_pending_events(batch_size)
-    counts = {"claimed": len(events), STATUS_DONE: 0, STATUS_FAILED: 0, "leaseLost": 0}
-    for event in events:
+    counts = {"claimed": len(events), STATUS_DONE: 0, STATUS_FAILED: 0, "leaseLost": 0, "released": 0}
+    for index, event in enumerate(events):
+        if stop_event is not None and stop_event.is_set():
+            remaining = events[index:]
+            try:
+                released = await release_events([e["id"] for e in remaining], remaining[0]["lockedAt"])
+            except Exception:
+                logger.exception("Failed to release %d unstarted DomainEvent(s) on shutdown", len(remaining))
+                released = 0
+            counts["released"] += released
+            break
         status, error = await dispatch_event(event)
         try:
             owned = await finalize_event(event["id"], status, event["lockedAt"], error)
@@ -307,10 +386,14 @@ async def run_poller_loop(
                 logger.exception("DomainEvent lease recovery failed")
             last_sweep = time.monotonic()
         try:
-            counts = await process_batch(size)
+            counts = await process_batch(size, stop_event=stop_event)
         except Exception:
             logger.exception("DomainEvent poll iteration failed")
             counts = {"claimed": 0}
+
+        if settings.HEARTBEAT_FILE:
+            write_heartbeat(settings.HEARTBEAT_FILE)
+
         if counts["claimed"] < size:
             await _wait_or_stop(stop_event, interval)
     logger.info("DomainEvent poller stopped")

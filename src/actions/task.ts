@@ -406,16 +406,16 @@ export async function bulkUpdateTasks(taskIds: string[], data: BulkUpdateTasksIn
 
   // Cross-project bütünlük doğrulamaları transaction açılmadan önce yapılır.
   let newState: { name: string; group: string } | null = null;
-  let previousTaskStates: Map<string, { stateId: string; group: string }> = new Map();
+  let previousTaskStates: Map<string, { stateId: string; name: string; group: string }> = new Map();
   if (stateId !== undefined) {
     newState = await requireStateInProject(stateId, projectId);
 
     const currentTasks = await prisma.task.findMany({
       where: { id: { in: taskIds } },
-      select: { id: true, stateId: true, state: { select: { group: true } } },
+      select: { id: true, stateId: true, state: { select: { name: true, group: true } } },
     });
     previousTaskStates = new Map(
-      currentTasks.map((t) => [t.id, { stateId: t.stateId, group: t.state.group }]),
+      currentTasks.map((t) => [t.id, { stateId: t.stateId, name: t.state.name, group: t.state.group }]),
     );
   }
   if (assigneeId !== undefined) {
@@ -434,6 +434,14 @@ export async function bulkUpdateTasks(taskIds: string[], data: BulkUpdateTasksIn
       for (const taskId of taskIds) {
         const previous = previousTaskStates.get(taskId);
         if (!previous || previous.stateId === stateId) continue;
+
+        await logActivity(tx, {
+          type: "TASK_STATE_CHANGED",
+          taskId,
+          actorId: userId,
+          oldValue: previous.name,
+          newValue: newState.name,
+        });
 
         await emitDomainEvent(tx, "TASK_STATE_CHANGED", {
           projectId,
@@ -487,7 +495,7 @@ export async function reorderTask(taskId: string, newStateId: string, newSortOrd
 
   const existingTask = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { projectId: true, stateId: true, state: { select: { group: true } } },
+    select: { projectId: true, stateId: true, state: { select: { name: true, group: true } } },
   });
   if (!existingTask) {
     throw new Error("Görev bulunamadı.");
@@ -503,8 +511,16 @@ export async function reorderTask(taskId: string, newStateId: string, newSortOrd
   });
 
   // Sütun içi yeniden sıralama da reorderTask üzerinden geçer; state gerçekten
-  // değişmediyse DomainEvent yayınlanmaz.
+  // değişmediyse ne aktivite ne DomainEvent yayınlanmaz.
   if (existingTask.stateId !== newStateId) {
+    await logActivity(prisma, {
+      type: "TASK_STATE_CHANGED",
+      taskId,
+      actorId: userId,
+      oldValue: existingTask.state.name,
+      newValue: task.state.name,
+    });
+
     await emitDomainEvent(prisma, "TASK_STATE_CHANGED", {
       projectId: existingTask.projectId,
       taskId,

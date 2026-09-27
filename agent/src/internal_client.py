@@ -20,6 +20,7 @@ from typing import Any, Optional
 
 import httpx
 
+from src.clock import get_now_override
 from src.config import settings
 
 logger = logging.getLogger("agent.internal_client")
@@ -95,8 +96,21 @@ class InternalClient:
             logger.error("Internal API %s %s failed: %r", method, path, exc)
             return None
 
+    @staticmethod
+    def _with_as_of(payload: Any) -> Any:
+        """Stamps the active Slot Replay override (if any) onto a dict payload as
+        `asOf` (ISO 8601 with UTC offset), so Next.js evaluates the request as of the
+        replayed slot time rather than wall-clock `now`. Step 6.08 / ADR-036. Non-dict
+        payloads (and requests with no override active) are returned unchanged."""
+        if not isinstance(payload, dict):
+            return payload
+        override = get_now_override()
+        if override is None:
+            return payload
+        return {**payload, "asOf": override.isoformat()}
+
     async def _post_bool(self, path: str, payload: Any) -> bool:
-        resp = await self._request("POST", path, _dumps(payload))
+        resp = await self._request("POST", path, _dumps(self._with_as_of(payload)))
         if resp is None:
             return False
         if not resp.is_success:
@@ -105,7 +119,7 @@ class InternalClient:
         return True
 
     async def _post_json(self, path: str, payload: Any) -> dict:
-        resp = await self._request("POST", path, _dumps(payload))
+        resp = await self._request("POST", path, _dumps(self._with_as_of(payload)))
         return self._json_or_empty(resp, "POST", path)
 
     @staticmethod

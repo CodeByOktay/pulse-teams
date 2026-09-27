@@ -75,13 +75,25 @@ class Settings:
     EVENT_MAX_ATTEMPTS: int = field(default_factory=lambda: _int_env("EVENT_MAX_ATTEMPTS", 3))
     # How often the poller loop sweeps for expired leases.
     EVENT_LEASE_SWEEP_SECONDS: int = field(default_factory=lambda: _int_env("EVENT_LEASE_SWEEP_SECONDS", 60))
+    # Wall-clock ceiling for a single handler invocation (see `get_effective_handler_timeout`).
+    EVENT_HANDLER_TIMEOUT_SECONDS: int = field(
+        default_factory=lambda: _int_env("EVENT_HANDLER_TIMEOUT_SECONDS", 120)
+    )
     DB_CONNECT_TIMEOUT_SECONDS: int = field(default_factory=lambda: _int_env("DB_CONNECT_TIMEOUT_SECONDS", 10))
     LOG_LEVEL: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
+    # Liveness heartbeat file for the Docker healthcheck (`python -m src.health`).
+    # Empty string (default) disables heartbeat writing entirely.
+    HEARTBEAT_FILE: str = field(default_factory=lambda: os.getenv("HEARTBEAT_FILE", ""))
 
     @property
     def conninfo(self) -> str:
         """psycopg-safe connection string derived from DATABASE_URL."""
         return build_conninfo(self.DATABASE_URL)
+
+
+def get_effective_handler_timeout(timeout: int, lease: int) -> int:
+    """Timeout değerini min(timeout, lease - 30) ile sınırlar (en az 10 sn)."""
+    return max(10, min(timeout, lease - 30))
 
 
 settings = Settings()

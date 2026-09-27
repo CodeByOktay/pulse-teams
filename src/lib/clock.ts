@@ -8,6 +8,16 @@
 let mockNow: Date | null = null;
 
 /**
+ * Time travel (mock clock mutations) is always available outside production; in
+ * production it stays disabled unless `ENABLE_TIME_TRAVEL` is explicitly "true"/"1"
+ * (ADR-036).
+ */
+export function isTimeTravelEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  if (env.NODE_ENV !== "production") return true;
+  return env.ENABLE_TIME_TRAVEL === "true" || env.ENABLE_TIME_TRAVEL === "1";
+}
+
+/**
  * Returns the current date. When a mock clock is set, returns a
  * fresh copy of the mocked date instead.
  */
@@ -85,7 +95,7 @@ export async function syncClockFromDb(): Promise<Date | null> {
       mockNow = null;
       return null;
     }
-  } catch (error) {
+  } catch {
     // If DB is unreachable or during unit tests, keep current in-memory state
     return mockNow ? new Date(mockNow.getTime()) : null;
   }

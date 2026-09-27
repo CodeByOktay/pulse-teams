@@ -22,6 +22,7 @@ from src.clock import sync_clock_from_db
 from src.config import settings
 from src.db import check_connection
 from src.poller import run_poller_loop
+from src.replay import close_replay
 from src.scheduler import create_scheduler
 
 logger = logging.getLogger("agent.main")
@@ -110,6 +111,10 @@ async def main() -> None:
             await asyncio.wait_for(poller_task, timeout=30)
         except asyncio.TimeoutError:
             poller_task.cancel()
+        try:
+            await close_replay()
+        except Exception:
+            logger.exception("Failed to close in-flight Slot Replay tasks")
         try:
             await close_builtin_agents()
         except Exception:

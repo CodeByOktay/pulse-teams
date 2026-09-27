@@ -12,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyInternalSignature } from "@/lib/internal-auth";
+import { syncClockFromDb } from "@/lib/clock";
 import { formatTaskIdentifier } from "@/lib/relation-logic";
 import { buildNotificationDeepLink } from "@/lib/notification-logic";
 import { createNotifications } from "@/actions/notification";
@@ -54,6 +55,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await syncClockFromDb();
+
     const progressRequest = await prisma.progressRequest.findUnique({
       where: { id: requestId },
       select: {

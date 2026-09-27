@@ -10,9 +10,9 @@ import { getNow } from "@/lib/clock";
 import { shouldDeliverWithPreferences, buildNotificationDeepLink } from "@/lib/notification-logic";
 import { getStartOfCalendarDay, resolvePmName } from "@/lib/deadline-tracker-logic";
 import { formatTaskIdentifier } from "@/lib/relation-logic";
-import { logActivity } from "@/lib/activity-logger";
 import { formatUnblockedNotificationMessage } from "@/lib/automation-logic";
 import { createNotification } from "@/actions/notification";
+import { claimUnblockAnnouncement } from "@/lib/unblock-dedup";
 import {
   analyzeBlockerChain,
   buildBlockerNotification,
@@ -265,16 +265,10 @@ async function verifyUnblockedSafetyNet(params: {
   for (const taskId of candidateBlockedIds) {
     if (!isFullyUnblocked(taskId, relations, completedTaskIds)) continue;
 
-    const alreadyHandled = await prisma.activity.findFirst({
-      where: { taskId, type: "TASK_UNBLOCKED" },
-    });
-    if (alreadyHandled) continue;
-
-    await logActivity(prisma, {
-      type: "TASK_UNBLOCKED",
-      taskId,
-      actorId,
-    });
+    // Shared dedup (ADR-036 §B5): advisory-locked claim, race-safe against the
+    // immediate `triggerUnblockedDependencies` channel and concurrent sweeps.
+    const claimed = await claimUnblockAnnouncement(taskId, actorId);
+    if (!claimed) continue;
 
     const blockedTask = taskDetailsById.get(taskId);
     const blockingTaskId = relations.find((relation) => relation.blockedTaskId === taskId)?.blockingTaskId;

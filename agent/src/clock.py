@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime
-from typing import Optional
+from typing import Iterator, Optional
 import pytz
 
 logger = logging.getLogger("agent.clock")
@@ -10,12 +12,42 @@ logger = logging.getLogger("agent.clock")
 _mock_now: Optional[datetime] = None
 DEFAULT_TZ = pytz.timezone("Europe/Istanbul")
 
+# Task-local "now" override (Step 6.08 / ADR-036 Slot Replay). Takes precedence over
+# `_mock_now` so a replay slot's simulated time is visible to every `get_now()` call
+# made from within the same asyncio Task -- including nested Internal API calls and
+# supervisor/agent bookkeeping -- without threading an explicit `now` parameter through
+# every call site. Set via `now_override()`; never mutated directly.
+_now_override_var: ContextVar[Optional[datetime]] = ContextVar("_now_override_var", default=None)
+
 
 def get_now() -> datetime:
+    override = _now_override_var.get()
+    if override is not None:
+        return override
     global _mock_now
     if _mock_now is not None:
         return _mock_now
     return datetime.now(DEFAULT_TZ)
+
+
+def get_now_override() -> Optional[datetime]:
+    """The active replay override for the current Task, if any (else None)."""
+    return _now_override_var.get()
+
+
+@contextmanager
+def now_override(dt: datetime) -> Iterator[datetime]:
+    """Pins `get_now()` to `dt` for the duration of the `with` block (current Task only).
+
+    Naive `dt` is interpreted as Istanbul local time, mirroring `set_mock_clock`.
+    Reentrant: nested `now_override` calls restore the outer value on exit.
+    """
+    localized = DEFAULT_TZ.localize(dt) if dt.tzinfo is None else dt
+    token = _now_override_var.set(localized)
+    try:
+        yield localized
+    finally:
+        _now_override_var.reset(token)
 
 
 def is_mocked() -> bool:

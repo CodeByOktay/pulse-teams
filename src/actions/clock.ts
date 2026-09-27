@@ -4,19 +4,24 @@ import { revalidatePath } from "next/cache";
 import {
   getClockStatus,
   getNow,
-  persistMockClock,
+  isTimeTravelEnabled,
   resetPersistedClock,
   syncClockFromDb,
 } from "@/lib/clock";
+import { applyMockClock } from "@/lib/clock-service";
 import { prisma } from "@/lib/prisma";
+import { requireMembership, requireSession } from "@/lib/authz";
 import { dispatchDueDateReminders } from "@/lib/deadline-tracker-service";
 import { dispatchTaskHygieneReport } from "@/lib/hygiene-service";
 import { dispatchStatusRequests } from "@/lib/status-requester-service";
+
+const TIME_TRAVEL_DISABLED_MESSAGE = "Zaman yolculuğu bu ortamda devre dışı.";
 
 export interface SerializedClockStatus {
   isMocked: boolean;
   nowIso: string;
   mockTimeIso: string | null;
+  timeTravelEnabled: boolean;
 }
 
 export async function getAppClockAction(): Promise<SerializedClockStatus> {
@@ -26,16 +31,22 @@ export async function getAppClockAction(): Promise<SerializedClockStatus> {
     isMocked: status.isMocked,
     nowIso: status.now.toISOString(),
     mockTimeIso: status.mockTime ? status.mockTime.toISOString() : null,
+    timeTravelEnabled: isTimeTravelEnabled(),
   };
 }
 
 export async function setAppClockAction(isoDateString: string): Promise<SerializedClockStatus> {
+  const session = await requireSession();
+  if (!isTimeTravelEnabled()) {
+    throw new Error(TIME_TRAVEL_DISABLED_MESSAGE);
+  }
+
   const targetDate = new Date(isoDateString);
   if (isNaN(targetDate.getTime())) {
     throw new Error("Geçersiz tarih formatı.");
   }
 
-  await persistMockClock(targetDate);
+  await applyMockClock(targetDate, session.user.id);
   revalidatePath("/", "layout");
 
   const status = getClockStatus();
@@ -43,10 +54,16 @@ export async function setAppClockAction(isoDateString: string): Promise<Serializ
     isMocked: status.isMocked,
     nowIso: status.now.toISOString(),
     mockTimeIso: status.mockTime ? status.mockTime.toISOString() : null,
+    timeTravelEnabled: true,
   };
 }
 
 export async function resetAppClockAction(): Promise<SerializedClockStatus> {
+  await requireSession();
+  if (!isTimeTravelEnabled()) {
+    throw new Error(TIME_TRAVEL_DISABLED_MESSAGE);
+  }
+
   await resetPersistedClock();
   revalidatePath("/", "layout");
 
@@ -55,6 +72,7 @@ export async function resetAppClockAction(): Promise<SerializedClockStatus> {
     isMocked: status.isMocked,
     nowIso: status.now.toISOString(),
     mockTimeIso: null,
+    timeTravelEnabled: true,
   };
 }
 
@@ -72,11 +90,25 @@ export interface AgentSimulationResult {
 export async function triggerSimulatedAgentsAction(
   targetProjectId?: string,
 ): Promise<AgentSimulationResult> {
-  const effectiveNow = getNow();
+  const session = await requireSession();
+  if (!isTimeTravelEnabled()) {
+    throw new Error(TIME_TRAVEL_DISABLED_MESSAGE);
+  }
+  const userId = session.user.id;
 
-  const projects = targetProjectId
-    ? [{ id: targetProjectId }]
-    : await prisma.project.findMany({ select: { id: true } });
+  let projects: { id: string }[];
+  if (targetProjectId) {
+    await requireMembership(targetProjectId, userId);
+    projects = [{ id: targetProjectId }];
+  } else {
+    const memberships = await prisma.projectMember.findMany({
+      where: { userId },
+      select: { projectId: true },
+    });
+    projects = memberships.map((membership) => ({ id: membership.projectId }));
+  }
+
+  const effectiveNow = getNow();
 
   const totalDeadline = { tasksScanned: 0, remindersSent: 0, escalationsSent: 0 };
   const totalHygiene = { tasksScanned: 0, defectiveTasks: 0, reportSent: false };

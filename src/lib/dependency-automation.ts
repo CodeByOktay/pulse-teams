@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { logActivity } from "@/lib/activity-logger";
 import {
   filterSelfNotifications,
   formatUnblockedNotificationMessage,
@@ -8,6 +7,7 @@ import {
 } from "@/lib/automation-logic";
 import { buildNotificationDeepLink } from "@/lib/notification-logic";
 import { createNotification } from "@/actions/notification";
+import { claimUnblockAnnouncement } from "@/lib/unblock-dedup";
 
 /**
  * Bir görev DONE olduğunda, onun engellediği görevleri değerlendirir; artık hiçbir aktif
@@ -65,11 +65,12 @@ export async function triggerUnblockedDependencies(
       const blockerStates = blockersByTarget.get(targetTaskId) ?? [];
       if (!isTaskFullyUnblocked(blockerStates)) continue;
 
-      await logActivity(prisma, {
-        type: "TASK_UNBLOCKED",
-        taskId: targetTaskId,
-        actorId,
-      });
+      // Shared dedup (ADR-036 §B5): only announce when the blocking condition
+      // actually changed since the last TASK_UNBLOCKED announcement (either
+      // channel). Advisory-locked, so this is race-safe against Agent-004's
+      // asynchronous safety-net sweep.
+      const claimed = await claimUnblockAnnouncement(targetTaskId, actorId);
+      if (!claimed) continue;
 
       const assigneeIds = targetTask.assignees.map((a) => a.userId);
       const recipientIds = filterSelfNotifications(assigneeIds, actorId);

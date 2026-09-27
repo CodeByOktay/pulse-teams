@@ -106,3 +106,40 @@ export function buildBlockerNotification(params: {
     message: `'[${blockingTask.identifier}] ${blockingTask.title}' görevi 2 gündür güncellenmediği için '[${blockedTask.identifier}] ${blockedTask.title}' görevi ilerleyemiyor.`,
   };
 }
+
+// ---------------------------------------------------------------------------
+// TASK_UNBLOCKED dedup (Step 6.08, ADR-036 §B5)
+// ---------------------------------------------------------------------------
+
+export interface UnblockCheckInput {
+  lastUnblockedAt: Date | null | undefined;
+  lastBlockedAt: Date | null | undefined;
+}
+
+/**
+ * Shared dedup for both TASK_UNBLOCKED channels (Phase 5 `triggerUnblockedDependencies`
+ * and Agent-004 `blocker-service`). A task is announced as unblocked again only when its
+ * blocking condition changed after the last announcement.
+ */
+export function shouldEmitUnblock(input: UnblockCheckInput): boolean {
+  if (!input.lastBlockedAt) return false;
+  if (!input.lastUnblockedAt) return true;
+  return input.lastBlockedAt.getTime() > input.lastUnblockedAt.getTime();
+}
+
+/**
+ * Latest moment the blocking condition of a task changed: a new incoming BLOCKS
+ * relation, or a state transition of one of its blockers (e.g. DONE -> reopened ->
+ * DONE again). Returns null when there is nothing to compare.
+ */
+export function computeLastBlockedAt(params: {
+  relationCreatedAts: Date[];
+  blockerStateChangedAts: Date[];
+}): Date | null {
+  let latest: number | null = null;
+  for (const date of [...params.relationCreatedAts, ...params.blockerStateChangedAts]) {
+    const time = date.getTime();
+    if (latest === null || time > latest) latest = time;
+  }
+  return latest === null ? null : new Date(latest);
+}

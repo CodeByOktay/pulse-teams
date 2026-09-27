@@ -37,7 +37,11 @@ daily supervisor sweep (overflow warning) and a single poller handler
 confirmed DB connectivity in `main.py`) -- agent-003's Postgres checkpointer is
 created lazily on its first real `ainvoke`, not at registration time. This
 function also registers the poller handler that resumes a parked Agent-003
-LangGraph thread when a `PROGRESS_QUICK_RESPONSE_SUBMITTED` DomainEvent arrives.
+LangGraph thread when a `PROGRESS_QUICK_RESPONSE_SUBMITTED` DomainEvent arrives,
+and the Slot Replay handler (`src.replay.handle_clock_advanced`) for
+`CLOCK_ADVANCED` (Step 6.08, ADR-036) -- fired whenever `SystemClock.mockTime`
+is advanced, so skipped cron slots (daily sweep, standup phases, weekly digest)
+are replayed chronologically and idempotently. See `src/replay.py`.
 """
 
 from __future__ import annotations
@@ -81,6 +85,7 @@ def register_builtin_agents() -> list[str]:
     from src.agents.agent_007 import AGENT_KEY as AGENT_007_KEY, WorkloadBalancerAgent
     from src.agents.agent_008 import AGENT_KEY as AGENT_008_KEY, SprintAssistantAgent
     from src.internal_client import InternalClient
+    from src.replay import handle_clock_advanced
 
     client = InternalClient()
     supervisor.register_agent(AGENT_001_KEY, DeadlineTrackerAgent(client).run_for_project)
@@ -105,6 +110,8 @@ def register_builtin_agents() -> list[str]:
     sprint_assistant = SprintAssistantAgent(client)
     supervisor.register_agent(AGENT_008_KEY, sprint_assistant.run_for_project)
     poller.register_handler("SPRINT_COMPLETED", sprint_assistant.handle_event)
+
+    poller.register_handler("CLOCK_ADVANCED", handle_clock_advanced)
 
     keys = supervisor.get_registered_agent_keys()
     logger.info("Registered agents: %s", keys or "none")

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyInternalSignature } from "@/lib/internal-auth";
+import { syncClockFromDb } from "@/lib/clock";
 import { shouldDeliverWithPreferences } from "@/lib/notification-logic";
 import { createNotifications } from "@/actions/notification";
 import type { NotificationType, Prisma } from "@prisma/client";
@@ -55,6 +56,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await syncClockFromDb();
+
     const userIds = [...new Set(notifications.map((entry) => entry.userId as string))];
     const preferences = await prisma.userNotificationPreference.findMany({
       where: { userId: { in: userIds } },

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyInternalSignature } from "@/lib/internal-auth";
-import { getNow } from "@/lib/clock";
+import { getNow, syncClockFromDb } from "@/lib/clock";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +66,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await syncClockFromDb();
+
     const completedAt = TERMINAL_STATUSES.has(status) ? getNow() : undefined;
     const resultJson = result as Prisma.InputJsonValue | undefined;
 

@@ -23,7 +23,7 @@ from typing import Any, Awaitable, Callable, Iterable, Optional, Union
 
 import pytz
 
-from src.clock import get_now
+from src.clock import get_now, get_now_override
 from src.config import settings as app_settings
 from src.db import generate_id, get_db_connection, to_json, to_utc_naive
 
@@ -217,12 +217,23 @@ async def claim_run(
     return row["id"] if row else None
 
 
+def _with_replay_marker(result: Optional[dict]) -> Optional[dict]:
+    """Merges `"replayed": True` into the AgentRun result when a Slot Replay override
+    is active (Step 6.08 / ADR-036). This is the approved replay marker -- Notification
+    has no metadata column and the schema is not being changed for it."""
+    if get_now_override() is None:
+        return result
+    base = result if isinstance(result, dict) else {}
+    return {**base, "replayed": True}
+
+
 async def complete_run(
     run_id: str,
     status: str,
     result: Optional[dict] = None,
     error: Optional[str] = None,
 ) -> None:
+    result = _with_replay_marker(result)
     params = {
         "id": run_id,
         "status": status,
