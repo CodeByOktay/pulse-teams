@@ -6,3 +6,7 @@ python-dotenv>=1.0.1
 pytz>=2024.1
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
+
+# Step 6.03: Agent-003 (Status Requester) interrupt()/resume() + PostgreSQL checkpointer.
+langgraph>=1.2.12
+langgraph-checkpoint-postgres>=3.1.2
