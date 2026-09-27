@@ -1,12 +1,27 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { BarChart3, CalendarClock, ClipboardList, MessageCircleQuestionMark, Users } from "lucide-react";
+import {
+  BarChart3,
+  CalendarClock,
+  ClipboardList,
+  MessageCircleQuestionMark,
+  Rocket,
+  Scale,
+  Users,
+} from "lucide-react";
 import { updateProjectAgentSetting, updateProjectPmUser } from "@/actions/agent-settings";
 
 export type AgentPmCandidate = { id: string; name: string; email: string };
 
-export type AgentKey = "agent-001" | "agent-002" | "agent-003" | "agent-005" | "agent-006";
+export type AgentKey =
+  | "agent-001"
+  | "agent-002"
+  | "agent-003"
+  | "agent-005"
+  | "agent-006"
+  | "agent-007"
+  | "agent-008";
 
 export type AgentSettingItem = {
   agentKey: AgentKey;
@@ -60,6 +75,20 @@ const AGENT_DEFINITIONS: {
     title: "Haftalık Sprint Özeti",
     description: "Her Cuma sprint metriklerini derleyip yönetim özeti yayınlar.",
     icon: BarChart3,
+    hasInactivityConfig: false,
+  },
+  {
+    key: "agent-007",
+    title: "İş Yükü Dengeleyici",
+    description: "Aşırı yüklenen ve boşta kalan ekip üyelerini tespit eder, yeniden atama önerir.",
+    icon: Scale,
+    hasInactivityConfig: false,
+  },
+  {
+    key: "agent-008",
+    title: "Sprint Asistanı",
+    description: "Sprint taşma riskini önceden uyarır ve kapanışta retrospektif taslağı hazırlar.",
+    icon: Rocket,
     hasInactivityConfig: false,
   },
 ];

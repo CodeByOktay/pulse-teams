@@ -239,6 +239,7 @@ export function TaskProgressSection({
           proposal={data.proposals.pending}
           currentState={data.proposals.currentState}
           states={data.proposals.states}
+          currentAssignees={assignees}
           onResolved={async (err) => {
             // Hata durumunda öneri bayatlamış olabilir; yeniden yükle ama hatayı göster.
             setError(err ?? null);

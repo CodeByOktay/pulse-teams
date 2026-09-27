@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AlertTriangle, ArrowRight, Check, Loader2, Pencil, Sparkles, X } from "lucide-react";
 import { approveProposal, rejectProposal } from "@/actions/agent-proposal";
+import { Avatar } from "@/components/assignees/avatar";
 import type { getTaskProgressData } from "@/actions/progress";
 
 type ProposalsData = Awaited<ReturnType<typeof getTaskProgressData>>["proposals"];
@@ -28,11 +29,14 @@ export function AgentProposalCard({
   proposal,
   currentState,
   states,
+  currentAssignees,
   onResolved,
 }: {
   proposal: NonNullable<ProposalsData["pending"]>;
   currentState: ProposalState;
   states: ProposalState[];
+  /** Görevin şu anki atanmış kişileri (Agent-007 iş yükü yeniden atama önerisi için). */
+  currentAssignees?: { id: string; name: string }[];
   // Hata varsa mesaj iletilir; üst bileşen yeniden yükler ve hatayı gösterir (öneri bayatlamış olabilir).
   onResolved: (error?: string) => void | Promise<void>;
 }) {
@@ -43,6 +47,8 @@ export function AgentProposalCard({
 
   const suggestedState = proposal.suggestedState;
   const hasStateChange = suggestedState !== null && suggestedState.id !== currentState.id;
+  const isReassignment = proposal.suggestedAssigneeId !== null;
+  const suggestedAssignee = proposal.suggestedAssignee;
   const confidencePercent = Math.round(proposal.confidence * 100);
 
   function run(action: ActiveAction, task: () => Promise<unknown>) {
@@ -95,6 +101,23 @@ export function AgentProposalCard({
         </div>
       )}
 
+      {isReassignment && suggestedAssignee && (
+        <div className="inline-flex w-fit items-center gap-2 rounded-md border border-indigo-200 bg-white/70 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:border-indigo-900 dark:bg-zinc-900/60 dark:text-zinc-200">
+          <span className="inline-flex items-center gap-1.5">
+            {currentAssignees && currentAssignees.length > 0 ? (
+              currentAssignees.map((assignee) => <Avatar key={assignee.id} name={assignee.name} size="sm" />)
+            ) : (
+              <span className="text-zinc-500 dark:text-zinc-400">Atanmamış</span>
+            )}
+          </span>
+          <ArrowRight className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
+          <span className="inline-flex items-center gap-1.5">
+            <Avatar name={suggestedAssignee.name} size="sm" />
+            {suggestedAssignee.name}
+          </span>
+        </div>
+      )}
+
       {proposal.blockerDetected && (
         <div className="inline-flex w-fit items-center gap-1.5 rounded-md bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
           <AlertTriangle className="h-3.5 w-3.5" />
@@ -114,7 +137,7 @@ export function AgentProposalCard({
           className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
         >
           {spinnerOr("approve", <Check className="h-3.5 w-3.5" />)}
-          {hasStateChange ? "Kabul Et ve Uygula" : "Kabul Et"}
+          {isReassignment ? "Kabul Et ve Devret" : hasStateChange ? "Kabul Et ve Uygula" : "Kabul Et"}
         </button>
         <button
           type="button"
@@ -125,19 +148,21 @@ export function AgentProposalCard({
           {spinnerOr("reject", <X className="h-3.5 w-3.5" />)}
           Reddet
         </button>
-        <button
-          type="button"
-          onClick={() => setEditing((value) => !value)}
-          disabled={isPending}
-          aria-expanded={editing}
-          className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-white/70 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Düzenle
-        </button>
+        {!isReassignment && (
+          <button
+            type="button"
+            onClick={() => setEditing((value) => !value)}
+            disabled={isPending}
+            aria-expanded={editing}
+            className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-white/70 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Düzenle
+          </button>
+        )}
       </div>
 
-      {editing && (
+      {!isReassignment && editing && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-indigo-200 bg-white/70 p-2 dark:border-indigo-900 dark:bg-zinc-900/60">
           <select
             value={selectedId}

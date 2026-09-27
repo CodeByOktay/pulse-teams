@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  AlertTriangle,
+  ArrowLeftRight,
   AtSign,
   BarChart3,
   CheckCircle2,
   CircleHelp,
   Clock,
+  FileText,
   LockOpen,
   MessageSquare,
   Users,
@@ -29,6 +32,9 @@ const TYPE_ICON: Record<NotificationType, typeof UserPlus> = {
   PROGRESS_REQUESTED: CircleHelp,
   STANDUP_SUMMARY_PUBLISHED: Users,
   WEEKLY_DIGEST_PUBLISHED: BarChart3,
+  WORKLOAD_REBALANCE_PROPOSED: ArrowLeftRight,
+  SPRINT_OVERFLOW_WARNING: AlertTriangle,
+  SPRINT_RETRO_PUBLISHED: FileText,
 };
 
 const DEFAULT_BADGE_COLOR = "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400";
@@ -43,6 +49,9 @@ const TYPE_BADGE_COLOR: Record<NotificationType, string> = {
   PROGRESS_REQUESTED: "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400",
   STANDUP_SUMMARY_PUBLISHED: "bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
   WEEKLY_DIGEST_PUBLISHED: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+  WORKLOAD_REBALANCE_PROPOSED: "bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
+  SPRINT_OVERFLOW_WARNING: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
+  SPRINT_RETRO_PUBLISHED: "bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400",
 };
 
 export function NotificationItem({
