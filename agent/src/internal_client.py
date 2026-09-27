@@ -215,6 +215,29 @@ class InternalClient:
         Called by Agent-006's Friday 17:00 cron job."""
         return await self._post_json("/api/internal/agent/weekly-digest", {"projectId": project_id})
 
+    async def trigger_workload_check(self, project_id: str) -> dict:
+        """POST /api/internal/agent/workload-check -> WorkloadCheckResult ({} on failure).
+
+        Called by Agent-007's daily supervisor sweep."""
+        return await self._post_json("/api/internal/agent/workload-check", {"projectId": project_id})
+
+    async def trigger_sprint_overflow_check(self, project_id: str) -> dict:
+        """POST /api/internal/agent/sprint-overflow-check -> { warned } ({} on failure).
+
+        Called by Agent-008's daily supervisor sweep."""
+        return await self._post_json(
+            "/api/internal/agent/sprint-overflow-check", {"projectId": project_id}
+        )
+
+    async def trigger_sprint_retro(self, project_id: str, sprint_id: str) -> dict:
+        """POST /api/internal/agent/sprint-retro -> { published } ({} on failure).
+
+        Called by Agent-008's `SPRINT_COMPLETED` event handler."""
+        return await self._post_json(
+            "/api/internal/agent/sprint-retro",
+            {"projectId": project_id, "sprintId": sprint_id},
+        )
+
     # ------------------------------------------------------------------ #
     # Clock synchronization endpoints (Step 6.04 / ADR-034 Clock Abstraction)
     # ------------------------------------------------------------------ #

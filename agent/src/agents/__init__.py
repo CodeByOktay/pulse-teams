@@ -27,6 +27,12 @@ directly as dedicated APScheduler cron jobs in `scheduler.py`, and each
 reimplements the claim/execute/complete AgentRun bookkeeping itself (see
 `agent_005.py` / `agent_006.py` module docstrings).
 
+agent-007 (Workload Balancer, Step 6.06) and agent-008 (Sprint Assistant,
+Step 6.06) ARE registered here like agent-001..004/009: agent-007 is a plain
+daily supervisor sweep (no event trigger in scope), and agent-008 has both a
+daily supervisor sweep (overflow warning) and a single poller handler
+(`SPRINT_COMPLETED` -> retrospective draft), mirroring agent-004's shape.
+
 `register_builtin_agents()` stays synchronous (it runs before the container has
 confirmed DB connectivity in `main.py`) -- agent-003's Postgres checkpointer is
 created lazily on its first real `ainvoke`, not at registration time. This
@@ -72,6 +78,8 @@ def register_builtin_agents() -> list[str]:
     from src.agents.agent_003 import AGENT_KEY as AGENT_003_KEY, StatusRequesterAgent
     from src.agents.agent_004 import AGENT_KEY as AGENT_004_KEY, BlockerManagerAgent
     from src.agents.agent_009 import AGENT_KEY as AGENT_009_KEY, ScopeCreepAgent
+    from src.agents.agent_007 import AGENT_KEY as AGENT_007_KEY, WorkloadBalancerAgent
+    from src.agents.agent_008 import AGENT_KEY as AGENT_008_KEY, SprintAssistantAgent
     from src.internal_client import InternalClient
 
     client = InternalClient()
@@ -91,6 +99,12 @@ def register_builtin_agents() -> list[str]:
     supervisor.register_agent(AGENT_009_KEY, scope_creep.run_for_project)
     poller.register_handler("TASK_SPRINT_ADDED", scope_creep.handle_event)
     poller.register_handler("TASK_CREATED", scope_creep.handle_event)
+
+    supervisor.register_agent(AGENT_007_KEY, WorkloadBalancerAgent(client).run_for_project)
+
+    sprint_assistant = SprintAssistantAgent(client)
+    supervisor.register_agent(AGENT_008_KEY, sprint_assistant.run_for_project)
+    poller.register_handler("SPRINT_COMPLETED", sprint_assistant.handle_event)
 
     keys = supervisor.get_registered_agent_keys()
     logger.info("Registered agents: %s", keys or "none")
