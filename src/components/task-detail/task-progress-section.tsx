@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, ClipboardList, Clock, Loader2 } from "lucide
 import {
   createProgressRequest,
   getTaskProgressData,
+  respondToProgressRequestQuick,
   submitProgressResponse,
 } from "@/actions/progress";
 import { AgentProposalCard } from "@/components/task-detail/agent-proposal-card";
@@ -15,6 +16,7 @@ import {
   canRequestProgress,
   validateProgressResponseContent,
 } from "@/lib/progress-logic";
+import type { QuickResponseAction } from "@/lib/status-requester-logic";
 
 type ProgressData = Awaited<ReturnType<typeof getTaskProgressData>>;
 
@@ -78,6 +80,21 @@ export function TaskProgressSection({
         onChanged?.();
       } catch (err) {
         setError(errorMessage(err));
+      }
+    });
+  }
+
+  function handleQuickResponse(action: QuickResponseAction) {
+    if (!pending) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await respondToProgressRequestQuick(pending.id, action);
+        await load();
+        onChanged?.();
+      } catch (err) {
+        setError(errorMessage(err));
+        await load();
       }
     });
   }
@@ -158,6 +175,32 @@ export function TaskProgressSection({
               <span className="text-xs text-amber-700 dark:text-amber-400">
                 ({pending.requestedBy?.name ?? "Bir kullanıcı"} tarafından istendi)
               </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickResponse("PROGRESSING")}
+                disabled={isPending}
+                className="px-3 py-1 text-xs rounded bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 dark:bg-blue-950 dark:text-blue-300"
+              >
+                İlerliyor ▶
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickResponse("BLOCKED")}
+                disabled={isPending}
+                className="px-3 py-1 text-xs rounded bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50 dark:bg-red-950 dark:text-red-300"
+              >
+                Engel Var 🚫
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickResponse("COMPLETED")}
+                disabled={isPending}
+                className="px-3 py-1 text-xs rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 dark:bg-emerald-950 dark:text-emerald-300"
+              >
+                Bitti ✅
+              </button>
             </div>
             <textarea
               value={content}
