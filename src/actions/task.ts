@@ -7,6 +7,7 @@ import { getNextSequenceId } from "@/lib/sequence";
 import { logActivity, type PrismaTransactionClient } from "@/lib/activity-logger";
 import { isCompletionTransition } from "@/lib/automation-logic";
 import { triggerUnblockedDependencies } from "@/lib/dependency-automation";
+import { upsertTaskEmbedding } from "@/lib/embedding-service";
 import { emitDomainEvent } from "@/lib/domain-events";
 import type { Prisma, Priority } from "@prisma/client";
 
@@ -146,6 +147,8 @@ export async function createTask(input: CreateTaskInput) {
 
     return created;
   });
+
+  await upsertTaskEmbedding(task.id);
 
   revalidatePath(`/projects/${input.projectId}/board`);
 
@@ -288,6 +291,10 @@ export async function updateTask(taskId: string, data: UpdateTaskInput) {
   // Transaction sonrası otomasyon: hata yakalama fonksiyonun içinde, updateTask'ı etkilemez.
   if (isCompleted) {
     await triggerUnblockedDependencies(taskId, task.title, existingTask.projectId, actorId);
+  }
+
+  if (data.title !== undefined || data.description !== undefined) {
+    await upsertTaskEmbedding(taskId);
   }
 
   revalidatePath(`/projects/${existingTask.projectId}/board`);
