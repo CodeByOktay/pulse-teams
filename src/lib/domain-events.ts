@@ -18,7 +18,8 @@ export type DomainEventType =
   | "TASK_ASSIGNEE_REMOVED"
   | "SPRINT_STARTED"
   | "SPRINT_COMPLETED"
-  | "PROGRESS_QUICK_RESPONSE_SUBMITTED";
+  | "PROGRESS_QUICK_RESPONSE_SUBMITTED"
+  | "TASK_RELATION_CREATED";
 
 export interface DomainEventPayload {
   projectId: string;

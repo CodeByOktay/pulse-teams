@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, requireMembership } from "@/lib/authz";
 import { logActivity } from "@/lib/activity-logger";
+import { emitDomainEvent } from "@/lib/domain-events";
 import { parseTaskIdentifier } from "@/lib/search-logic";
 import {
   collectBlockEdges,
@@ -90,6 +91,15 @@ export async function addTaskRelation(
       actorId: userId,
       metadata: { targetIdentifier, type },
     });
+
+    if (type === "BLOCKS") {
+      await emitDomainEvent(tx, "TASK_RELATION_CREATED", {
+        projectId,
+        sourceTaskId,
+        targetTaskId,
+        type,
+      });
+    }
 
     return created;
   });

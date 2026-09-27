@@ -108,6 +108,8 @@ export function formatActivityMessage(activity: ActivityWithActor): string {
       return `${actor} AI önerisini kabul etti.`;
     case "AI_SUGGESTION_REJECTED":
       return `${actor} AI önerisini reddetti.`;
+    case "SPRINT_UPDATED":
+      return `${actor} sprint kapsamını güncelledi.`;
     default:
       return `${actor} bu görevde bir değişiklik yaptı.`;
   }
