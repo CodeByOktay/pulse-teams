@@ -1,12 +1,12 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CalendarClock, ClipboardList, MessageCircleQuestionMark } from "lucide-react";
+import { BarChart3, CalendarClock, ClipboardList, MessageCircleQuestionMark, Users } from "lucide-react";
 import { updateProjectAgentSetting, updateProjectPmUser } from "@/actions/agent-settings";
 
 export type AgentPmCandidate = { id: string; name: string; email: string };
 
-export type AgentKey = "agent-001" | "agent-002" | "agent-003";
+export type AgentKey = "agent-001" | "agent-002" | "agent-003" | "agent-005" | "agent-006";
 
 export type AgentSettingItem = {
   agentKey: AgentKey;
@@ -25,24 +25,42 @@ const AGENT_DEFINITIONS: {
   title: string;
   description: string;
   icon: typeof CalendarClock;
+  hasInactivityConfig: boolean;
 }[] = [
   {
     key: "agent-001",
     title: "Deadline Takipçisi",
     description: "Yaklaşan ve geciken teslim tarihlerini hatırlatır, yöneticilere eskalasyon yapar.",
     icon: CalendarClock,
+    hasInactivityConfig: false,
   },
   {
     key: "agent-002",
     title: "Görev Hijyeni",
     description: "Sahipsiz, tarihsiz veya eksik açıklamalı görevleri tespit eder.",
     icon: ClipboardList,
+    hasInactivityConfig: false,
   },
   {
     key: "agent-003",
     title: "Durum İsteyici",
     description: "Uzun süre hareketsiz kalan görevler için butonlu ilerleme durumu sorar.",
     icon: MessageCircleQuestionMark,
+    hasInactivityConfig: true,
+  },
+  {
+    key: "agent-005",
+    title: "Asenkron Standup",
+    description: "Ekipten günlük ilerleme toplar, LLM ile özetleyip panoda yayınlar.",
+    icon: Users,
+    hasInactivityConfig: false,
+  },
+  {
+    key: "agent-006",
+    title: "Haftalık Sprint Özeti",
+    description: "Her Cuma sprint metriklerini derleyip yönetim özeti yayınlar.",
+    icon: BarChart3,
+    hasInactivityConfig: false,
   },
 ];
 
@@ -254,7 +272,7 @@ function AgentCard({
         />
       </div>
 
-      {definition.key === "agent-003" ? (
+      {definition.hasInactivityConfig ? (
         <div className="mt-3 flex items-center gap-2 pl-11">
           <label
             htmlFor={`${definition.key}-inactivity-days`}

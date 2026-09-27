@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { Header } from "@/components/layout/header";
 import { FilterBar } from "@/components/filters/filter-bar";
 import { KanbanBoard } from "@/components/board/kanban-board";
+import { StandupBanner } from "@/components/standup/standup-banner";
+import { StandupSummaryCard } from "@/components/standup/standup-summary-card";
+import { getTodayStandupBanner } from "@/actions/standup";
 import { buildTaskWhereFromFilters, isBoardFiltered, parseBoardFilters } from "@/lib/board-filters";
 import type { BoardState } from "@/types/board";
 import type { Prisma } from "@prisma/client";
@@ -40,7 +43,7 @@ export default async function ProjectBoardPage({
     ? { [filters.sort]: filters.order }
     : { sortOrder: "asc" };
 
-  const [states, labels, members, totalProjectTasks] = await Promise.all([
+  const [states, labels, members, totalProjectTasks, standupBanner] = await Promise.all([
     prisma.state.findMany({
       where: { projectId },
       orderBy: { sequence: "asc" },
@@ -61,6 +64,7 @@ export default async function ProjectBoardPage({
       include: { user: { select: { id: true, name: true } } },
     }),
     prisma.task.count({ where: { projectId } }),
+    getTodayStandupBanner(projectId),
   ]);
 
   const boardStates: BoardState[] = states.map((state) => ({
@@ -96,6 +100,21 @@ export default async function ProjectBoardPage({
   return (
     <div className="flex h-screen flex-col bg-gray-100 dark:bg-zinc-950">
       <Header items={breadcrumbItems} />
+      {standupBanner.publishedSummary !== null || (standupBanner.isOpen && !standupBanner.hasSubmitted) ? (
+        <div className="flex shrink-0 flex-col gap-2 bg-gray-100 px-6 pt-3 dark:bg-zinc-950">
+          {standupBanner.publishedSummary !== null ? (
+            <StandupSummaryCard
+              summary={standupBanner.publishedSummary.summary}
+              blockers={standupBanner.publishedSummary.blockers}
+            />
+          ) : null}
+          <StandupBanner
+            projectId={projectId}
+            isOpen={standupBanner.isOpen}
+            hasSubmitted={standupBanner.hasSubmitted}
+          />
+        </div>
+      ) : null}
       <FilterBar
         filters={filters}
         labels={labels}
