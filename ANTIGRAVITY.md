@@ -64,7 +64,7 @@ In this collaborative AI model alongside Claude Code, Antigravity does NOT direc
 - Once tests pass at 100% and TypeScript checks succeed (`npm test` and `npx tsc --noEmit`):
   1. **For Humans (ADR Confirmation):** Verifies that the checks named in each related ADR's *Confirmation* section pass. Accepted ADRs are append-only: their body is never rewritten. If implementation invalidated a decision, a new ADR supersedes it.
   2. **For AI Memory:** Updates English context snapshots in `docs/ai-context/` so future AI sessions instantly recall the system state and domain models.
-     - **Independent Numbering:** `docs/ai-context/` files follow their own sequence and are not tied to ADR numbers. Relations to ADRs and SPECs are expressed through explicit references (`CONTEXT.md` at project root remains the single source of truth; `system-overview.md` serves as the snapshot index).
+     - **Domain-Based Living Files:** `docs/ai-context/` files are named by domain (`<domain-slug>.md`), not by step or ADR number, and are updated in place to reflect the current system. Relations to ADRs and SPECs are expressed through explicit references (`CONTEXT.md` at project root remains the single source of truth; `system-overview.md` serves as the snapshot index).
 
 ---
 
