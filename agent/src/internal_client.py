@@ -162,3 +162,21 @@ class InternalClient:
     async def trigger_deadline_check(self, project_id: str) -> dict:
         """POST /api/internal/agent/deadline-check -> DeadlineCheckResult ({} on failure)."""
         return await self._post_json("/api/internal/agent/deadline-check", {"projectId": project_id})
+
+    async def trigger_hygiene_check(self, project_id: str) -> dict:
+        """POST /api/internal/agent/hygiene-check -> HygieneCheckResult ({} on failure)."""
+        return await self._post_json("/api/internal/agent/hygiene-check", {"projectId": project_id})
+
+    async def trigger_status_requests(self, project_id: str) -> dict:
+        """POST /api/internal/agent/status-requests -> StatusRequestDispatchResult
+        (includes `openedRequests`, the newly-created ProgressRequests to start
+        LangGraph threads for). {} on failure."""
+        return await self._post_json("/api/internal/agent/status-requests", {"projectId": project_id})
+
+    async def submit_status_response(self, request_id: str, action: str) -> dict:
+        """POST /api/internal/agent/status-response -- reports a resumed Agent-003
+        thread's human action so Next.js can perform the deterministic Tier B/C
+        side effect (AgentProposal / ADMIN escalation). {} on failure."""
+        return await self._post_json(
+            "/api/internal/agent/status-response", {"requestId": request_id, "action": action}
+        )

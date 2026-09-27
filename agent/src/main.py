@@ -16,7 +16,7 @@ import logging
 import signal
 import sys
 
-from src.agents import register_builtin_agents
+from src.agents import close_builtin_agents, register_builtin_agents
 from src.catchup import run_startup_catchup
 from src.config import settings
 from src.db import check_connection
@@ -104,6 +104,10 @@ async def main() -> None:
             await asyncio.wait_for(poller_task, timeout=30)
         except asyncio.TimeoutError:
             poller_task.cancel()
+        try:
+            await close_builtin_agents()
+        except Exception:
+            logger.exception("Failed to close builtin agents (Agent-003 checkpointer)")
         logger.info("pulse-agent stopped")
 
 
