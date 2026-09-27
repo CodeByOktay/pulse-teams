@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import { assignUserToTask, unassignUserFromTask } from "@/actions/assignee";
@@ -22,13 +22,18 @@ export function AssigneePicker({
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [syncedAssignedUserIds, setSyncedAssignedUserIds] = useState(assignedUserIds);
   const [localAssigned, setLocalAssigned] = useState(assignedUserIds);
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(containerRef, () => setIsOpen(false));
 
-  useEffect(() => setLocalAssigned(assignedUserIds), [assignedUserIds]);
+  // Render-phase prop synchronization (React 19 pattern, no effect needed).
+  if (syncedAssignedUserIds !== assignedUserIds) {
+    setSyncedAssignedUserIds(assignedUserIds);
+    setLocalAssigned(assignedUserIds);
+  }
 
   function toggleAssignee(userId: string, isAssigned: boolean) {
     const nextAssigned = isAssigned

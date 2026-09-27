@@ -6,9 +6,7 @@ import {
   RotateCcw,
   Zap,
   Check,
-  AlertTriangle,
   Loader2,
-  Calendar,
   X,
   Sparkles,
 } from "lucide-react";
@@ -46,11 +44,16 @@ function formatDisplayDateTime(isoStr: string): string {
   }
 }
 
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu.";
+}
+
 export function ClockControl() {
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<SerializedClockStatus | null>(null);
   const [customInput, setCustomInput] = useState("");
   const [agentResult, setAgentResult] = useState<AgentSimulationResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -62,6 +65,7 @@ export function ClockControl() {
       try {
         const current = await getAppClockAction();
         setStatus(current);
+        setErrorMessage(null);
         if (current.mockTimeIso) {
           setCustomInput(formatDateTimeForInput(new Date(current.mockTimeIso)));
         } else {
@@ -69,6 +73,7 @@ export function ClockControl() {
         }
       } catch (err) {
         console.error("Failed to load clock status:", err);
+        setErrorMessage(describeError(err));
       }
     });
   };
@@ -86,8 +91,10 @@ export function ClockControl() {
         const updated = await setAppClockAction(isoToSet);
         setStatus(updated);
         setAgentResult(null);
+        setErrorMessage(null);
       } catch (err) {
         console.error("Failed to set app clock:", err);
+        setErrorMessage(describeError(err));
       }
     });
   };
@@ -99,8 +106,10 @@ export function ClockControl() {
         setStatus(updated);
         setCustomInput(formatDateTimeForInput(new Date(updated.nowIso)));
         setAgentResult(null);
+        setErrorMessage(null);
       } catch (err) {
         console.error("Failed to reset app clock:", err);
+        setErrorMessage(describeError(err));
       }
     });
   };
@@ -122,6 +131,7 @@ export function ClockControl() {
   const handleRunAgents = async () => {
     setIsAgentRunning(true);
     setAgentResult(null);
+    setErrorMessage(null);
     try {
       const res = await triggerSimulatedAgentsAction();
       setAgentResult(res);
@@ -130,12 +140,35 @@ export function ClockControl() {
       setStatus(updated);
     } catch (err) {
       console.error("Agent simulation run failed:", err);
+      setErrorMessage(describeError(err));
     } finally {
       setIsAgentRunning(false);
     }
   };
 
   const isMocked = status?.isMocked ?? false;
+  // "timeTravelEnabled" alanı henüz sunucudan gelmediyse (ör. eski önbellek) varsayılan olarak
+  // etkin kabul edilir; alan açıkça false ise kontroller gizlenir.
+  const timeTravelEnabled = status ? status.timeTravelEnabled !== false : true;
+
+  if (status && !timeTravelEnabled) {
+    if (!isMocked) {
+      return null;
+    }
+    return (
+      <div
+        data-testid="clock-control-readonly"
+        title="Bu ortamda zaman yolculuğu devre dışı; saat yalnızca görüntülenir."
+        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-600 shadow-sm dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400"
+      >
+        <Clock className="h-3.5 w-3.5 shrink-0 animate-pulse text-amber-500" />
+        <span className="font-mono">{formatDisplayDateTime(status.nowIso)}</span>
+        <span className="rounded bg-amber-500/20 px-1 py-0.2 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+          Simüle
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div ref={popoverRef} className="relative inline-block text-left">
@@ -182,7 +215,7 @@ export function ClockControl() {
                   Zaman Makinesi (Test Saati)
                 </h4>
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                  TS servisleri ve Python AI agent'ları bu zamanı temel alır.
+                  TS servisleri ve Python AI agent&apos;ları bu zamanı temel alır.
                 </p>
               </div>
             </div>
@@ -194,6 +227,12 @@ export function ClockControl() {
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          {errorMessage ? (
+            <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+              {errorMessage}
+            </div>
+          ) : null}
 
           {/* Current State Info */}
           <div className="mt-3 rounded-lg border border-zinc-100 bg-zinc-50 p-2.5 dark:border-zinc-800/80 dark:bg-zinc-950/60">
@@ -288,6 +327,10 @@ export function ClockControl() {
                 Uygula
               </button>
             </div>
+            <p className="mt-1.5 text-[10px] leading-snug text-zinc-400 dark:text-zinc-500">
+              İleri sarıldığında atlanan günlerin ajan çalışmaları (en fazla 14 gün) arka planda
+              sırayla yeniden oynatılır.
+            </p>
           </div>
 
           {/* Action Buttons */}
@@ -315,7 +358,7 @@ export function ClockControl() {
               ) : (
                 <Zap className="h-3.5 w-3.5 text-amber-500" />
               )}
-              Simüle Saatte AI Agent'ları Çalıştır (001 / 002 / 003)
+              Simüle Saatte AI Agent&apos;ları Çalıştır (001 / 002 / 003)
             </button>
           </div>
 

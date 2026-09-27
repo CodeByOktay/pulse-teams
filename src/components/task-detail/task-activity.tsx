@@ -16,10 +16,16 @@ export function TaskActivity({ taskId }: { taskId: string; currentUserId?: strin
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [syncedTaskId, setSyncedTaskId] = useState(taskId);
+
+  // Render-phase prop synchronization (React 19 pattern, no effect needed).
+  if (syncedTaskId !== taskId) {
+    setSyncedTaskId(taskId);
+    setIsLoading(true);
+  }
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
 
     getTaskActivities(taskId, PAGE_SIZE, 0).then((items) => {
       if (cancelled) return;

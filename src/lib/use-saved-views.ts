@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { useSession } from "next-auth/react";
 import { useBoardQuery } from "@/lib/use-board-query";
 import { serializeBoardFilters, type BoardFilters } from "@/lib/board-filters";
@@ -15,26 +15,71 @@ import {
   type SavedView,
 } from "@/lib/saved-views-logic";
 
+/** SSR/hydration için sabit, referansı hiç değişmeyen boş dizi. */
+const EMPTY_VIEWS: SavedView[] = [];
+
+/** storageKey -> son ayrıştırılmış anlık görüntü; useSyncExternalStore'un referans kararlılığı gerektirir. */
+const parsedViewsCache = new Map<string, { raw: string | null; views: SavedView[] }>();
+
+/** Aynı sekme içindeki dinleyiciler (native "storage" olayı yalnızca diğer sekmelerde tetiklenir). */
+const localListeners = new Set<() => void>();
+
+function notifyLocalListeners() {
+  for (const listener of localListeners) listener();
+}
+
+function readCustomViews(storageKey: string): SavedView[] {
+  if (typeof window === "undefined") return EMPTY_VIEWS;
+  const raw = localStorage.getItem(storageKey);
+  const cached = parsedViewsCache.get(storageKey);
+  if (cached && cached.raw === raw) {
+    return cached.views;
+  }
+  const views = parseSavedViewsFromStorage(raw);
+  parsedViewsCache.set(storageKey, { raw, views });
+  return views;
+}
+
+function writeCustomViews(storageKey: string, next: SavedView[]) {
+  try {
+    const raw = serializeSavedViewsForStorage(next);
+    localStorage.setItem(storageKey, raw);
+    parsedViewsCache.set(storageKey, { raw, views: next });
+  } catch {
+    // localStorage kullanılamıyorsa (gizli sekme, devre dışı depolama) sessizce yok say
+  }
+  notifyLocalListeners();
+}
+
+function subscribeToStorage(callback: () => void) {
+  localListeners.add(callback);
+  function handleStorageEvent(event: StorageEvent) {
+    if (event.storageArea === localStorage) callback();
+  }
+  window.addEventListener("storage", handleStorageEvent);
+  return () => {
+    localListeners.delete(callback);
+    window.removeEventListener("storage", handleStorageEvent);
+  };
+}
+
 export function useSavedViews(projectId: string, filters: BoardFilters) {
   const { data: session } = useSession();
   const { applyQueryString } = useBoardQuery();
   const currentUserId = session?.user?.id;
-  const [customViews, setCustomViews] = useState<SavedView[]>([]);
+  const storageKey = buildSavedViewsStorageKey(projectId);
 
-  useEffect(() => {
-    setCustomViews(parseSavedViewsFromStorage(localStorage.getItem(buildSavedViewsStorageKey(projectId))));
-  }, [projectId]);
+  const customViews = useSyncExternalStore(
+    subscribeToStorage,
+    () => readCustomViews(storageKey),
+    () => EMPTY_VIEWS,
+  );
 
   const persist = useCallback(
     (next: SavedView[]) => {
-      setCustomViews(next);
-      try {
-        localStorage.setItem(buildSavedViewsStorageKey(projectId), serializeSavedViewsForStorage(next));
-      } catch {
-        // localStorage kullanılamıyorsa (gizli sekme, devre dışı depolama) sessizce yok say
-      }
+      writeCustomViews(storageKey, next);
     },
-    [projectId],
+    [storageKey],
   );
 
   const saveView = useCallback(

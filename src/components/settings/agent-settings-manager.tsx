@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   BarChart3,
   CalendarClock,
@@ -138,14 +138,21 @@ export function AgentSettingsManager({
   if (syncedPmUserId !== pmUserId) {
     setSyncedPmUserId(pmUserId);
     setSelectedPmUserId(pmUserId);
-    latestPmUserIdRef.current = pmUserId;
   }
   if (syncedAgents !== agents) {
     setSyncedAgents(agents);
-    const next = buildAgentState(agents);
-    setAgentState(next);
-    latestAgentStateRef.current = next;
+    setAgentState(buildAgentState(agents));
   }
+
+  // Refs are only readable/writable outside render (effects & handlers); keep the
+  // "latest known good" snapshots in sync with committed props here.
+  useEffect(() => {
+    latestPmUserIdRef.current = pmUserId;
+  }, [pmUserId]);
+
+  useEffect(() => {
+    latestAgentStateRef.current = buildAgentState(agents);
+  }, [agents]);
 
   const selectedPmCandidate = pmCandidates.find((c) => c.id === selectedPmUserId) ?? null;
   const pmDisplayName = selectedPmCandidate ? selectedPmCandidate.name : "proje sahibi";

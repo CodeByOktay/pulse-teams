@@ -26,6 +26,7 @@ export function CommandPalette() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [syncedQuery, setSyncedQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<ProjectSearchResult[]>([]);
   const [tasks, setTasks] = useState<TaskSearchResult[]>([]);
@@ -57,15 +58,23 @@ export function CommandPalette() {
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isQueryValid(query)) {
+  // Render-phase prop synchronization (React 19 pattern, no effect needed).
+  if (syncedQuery !== query) {
+    setSyncedQuery(query);
+    if (isQueryValid(query)) {
+      setIsLoading(true);
+    } else {
       setProjects([]);
       setTasks([]);
       setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!isQueryValid(query)) {
       return;
     }
 
-    setIsLoading(true);
     let cancelled = false;
     const timer = setTimeout(() => {
       globalSearch(query).then((result) => {

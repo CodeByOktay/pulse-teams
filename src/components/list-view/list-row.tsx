@@ -53,6 +53,7 @@ export function ListRow({
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [nowMs] = useState(() => Date.now());
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(menuRef, () => setIsMenuOpen(false));
 
@@ -60,7 +61,7 @@ export function ListRow({
   const extraLabels = task.labels.length - visibleLabels.length;
   const visibleAssignees = task.assignees.slice(0, 2);
   const extraAssignees = task.assignees.length - visibleAssignees.length;
-  const isOverdue = task.dueDate ? new Date(task.dueDate).getTime() < Date.now() : false;
+  const isOverdue = task.dueDate ? new Date(task.dueDate).getTime() < nowMs : false;
 
   function handleDelete() {
     setIsMenuOpen(false);

@@ -6,11 +6,14 @@ import { useBoardQuery } from "@/lib/use-board-query";
 
 export function SearchInput({ value }: { value: string }) {
   const { setParam } = useBoardQuery();
+  const [syncedValue, setSyncedValue] = useState(value);
   const [text, setText] = useState(value);
 
-  useEffect(() => {
+  // Render-phase prop synchronization (React 19 pattern, no effect needed).
+  if (syncedValue !== value) {
+    setSyncedValue(value);
     setText(value);
-  }, [value]);
+  }
 
   useEffect(() => {
     if (text === value) return;

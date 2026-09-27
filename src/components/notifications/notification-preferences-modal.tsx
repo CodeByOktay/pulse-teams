@@ -35,13 +35,21 @@ export function NotificationPreferencesModal({
   const [isLoading, setIsLoading] = useState(true);
   const [pendingFields, setPendingFields] = useState<Set<PreferenceField>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [syncedIsOpen, setSyncedIsOpen] = useState(isOpen);
+
+  // Render-phase prop synchronization (React 19 pattern, no effect needed).
+  if (syncedIsOpen !== isOpen) {
+    setSyncedIsOpen(isOpen);
+    if (isOpen) {
+      setIsLoading(true);
+      setError(null);
+    }
+  }
 
   useEffect(() => {
     if (!isOpen) return;
 
     let isMounted = true;
-    setIsLoading(true);
-    setError(null);
 
     (async () => {
       try {

@@ -57,7 +57,9 @@ export function TaskProgressSection({
   }, [taskId]);
 
   useEffect(() => {
-    load();
+    (async () => {
+      await load();
+    })();
   }, [load, refreshKey]);
 
   if (!data) {

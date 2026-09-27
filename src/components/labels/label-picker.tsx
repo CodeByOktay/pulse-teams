@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Tag, Plus } from "lucide-react";
 import { addLabelToTask, createLabel, removeLabelFromTask } from "@/actions/label";
@@ -28,15 +28,24 @@ export function LabelPicker({
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState<string>(LABEL_COLOR_PALETTE[0]);
   const [error, setError] = useState<string | null>(null);
+  const [syncedAvailableLabels, setSyncedAvailableLabels] = useState(availableLabels);
   const [localLabels, setLocalLabels] = useState(availableLabels);
+  const [syncedSelectedLabelIds, setSyncedSelectedLabelIds] = useState(selectedLabelIds);
   const [localSelected, setLocalSelected] = useState(selectedLabelIds);
   const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(containerRef, () => setIsOpen(false));
 
-  useEffect(() => setLocalLabels(availableLabels), [availableLabels]);
-  useEffect(() => setLocalSelected(selectedLabelIds), [selectedLabelIds]);
+  // Render-phase prop synchronization (React 19 pattern, no effect needed).
+  if (syncedAvailableLabels !== availableLabels) {
+    setSyncedAvailableLabels(availableLabels);
+    setLocalLabels(availableLabels);
+  }
+  if (syncedSelectedLabelIds !== selectedLabelIds) {
+    setSyncedSelectedLabelIds(selectedLabelIds);
+    setLocalSelected(selectedLabelIds);
+  }
 
   function toggleLabel(labelId: string, isSelected: boolean) {
     const nextSelected = isSelected
