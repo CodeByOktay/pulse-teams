@@ -96,8 +96,8 @@ Phase 6 introduces a proactive AI agent coordination system with a Python LangGr
 | 6.01 | v0.6.0 | Infrastructure: Schema, DomainEvent, Clock, Python container, Supervisor, Internal API, AgentSettings UI | Completed (574 tests) |
 | 6.02 | v0.6.1 | Agent-001 (Deadline Tracker) + "Agent Activity" dashboard widget | Completed (587 tests) |
 | 6.03 | v0.6.2 | Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) | Completed (653 tests) |
-| 6.04 | v0.6.3 | Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians | Up Next |
-| 6.05 | v0.6.4 | Agent-005 (Async Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest | Planned |
-| 6.06 | v0.6.5 | Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal | Planned |
-| 6.07 | v0.6.6 | Project Memory, RAG & Semantic Search (pgvector integration) | Planned |
-| 6.08 | v0.6.7 | Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification | Planned |
+| 6.04 | v0.6.3 | Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians | Completed (677 tests) |
+| 6.05 | v0.6.4 | Agent-005 (Async Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest | Completed (740 tests) |
+| 6.06 | v0.6.5 | Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal | Completed (752 tests) |
+| 6.07 | v0.6.6 | Project Memory, RAG & Semantic Search (pgvector integration) | Completed (807 tests) |
+| 6.08 | v0.6.7 | Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification | Completed (832 tests) |

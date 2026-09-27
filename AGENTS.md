@@ -3,7 +3,7 @@
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** `C:\Pulse`
-- **Version:** v0.6.6 (Phase 6 Step 6.07 completed — Project Memory & RAG Semantic Search with pgvector)
+- **Version:** v0.6.7 (Phase 6 Step 6.08 completed — Multi-Agent Coordination Consolidation, Hardening & Final Verification)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 with pgvector (Docker container: `pulse-postgres`, port 5432)
 
@@ -81,6 +81,7 @@ Enums (9):
 - **Atomic Concurrency Guards:** `completeSprint` uses atomic conditional update (`updateMany` with `status: "ACTIVE"` guard) to prevent double-completion races and duplicate notifications. Notification dispatch is safely wrapped in `try/catch`.
 - **Render-Phase State Sync & Debounce:** `ColorPicker` uses React 19 render-phase prop sync with a 200ms debounce (flushing on blur and unmount). Shared `InlineNameInput` consolidates inline editing across settings managers.
 - **Project Memory & RAG Semantic Search (ADR-035):** `TaskEmbedding` model with PostgreSQL `pgvector/pgvector:pg16` and `ivfflat` cosine distance index. SHA-256 content hashing prevents redundant embedding API calls. Hybrid search (`mergeHybridResults`) seamlessly blends vector similarity and text match with zero-failure fallback.
+- **Slot Replay & Time Simulation Security (ADR-036):** Forward time jumps emit `CLOCK_ADVANCED` DomainEvent. Python `replay.py` plans cron slots in half-open interval `(previous, current]` capped at 14 days and runs them pinned to `slot.fire_at` via `now_override` (`asOf` propagation to Next.js Internal API). `AgentRun @@unique` preserves idempotency. Time travel actions enforce `requireSession()` and production lock (`isTimeTravelEnabled`). Unblock deduplication (`unblock-dedup.ts`) uses transactional advisory locks and `computeLastBlockedAt`.
 
 ## Testing Conventions
 - **Location:** `src/lib/__tests__/*.test.ts`
@@ -103,9 +104,9 @@ Enums (9):
   - `version.test.ts` (2), `clock-app.test.ts` (11)
   - `blocker-logic.test.ts` (11), `scope-creep-logic.test.ts` (5)
   - `standup-logic.test.ts` (26), `weekly-digest-logic.test.ts` (22)
-  - `semantic-search.test.ts` (55)
-  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7), `test_agent_007.py` (5), `test_agent_008.py` (7)
-- **Total:** **724 Vitest tests (TypeScript) + 83 Pytest tests (Python) = 807 tests, 100% passing**
+  - `semantic-search.test.ts` (55), `multi-agent-coordination.test.ts` (16)
+  - `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7), `test_agent_007.py` (5), `test_agent_008.py` (7), `test_replay.py` (9)
+- **Total:** **740 Vitest tests (TypeScript) + 92 Pytest tests (Python) = 832 tests, 100% passing**
 
 ## Code Style
 - **Import Alias:** `@/*` maps to `src/*`
@@ -131,20 +132,16 @@ Enums (9):
   - **Step 5.04 (v0.5.4):** AI Progress Interpretation, AgentProposal, Human Approval UI (514 tests)
   - **Hardening & Refactoring (v0.5.4):** 4-Wave Codebase Refactoring & Project Analytics Tests (528 tests)
   - **Post-MVP Hardening Packages (v0.5.4):** Package 1 (Backend Hardening, Security, Data Integrity & authz Consolidation), Package 2 (UI, UX, Modal Escape Isolation, Title Rollback & Unified Navigation), Package 3 (Performance, Concurrency, ColorPicker Debounce & Settings Polish) (528 tests)
-
-## Current Phase — Phase 6: AI Agent Coordination System
-- **ADR:** ADR-034 (AI Agent Koordinasyon Altyapısı ve Proaktif Agent Sistemi) & ADR-035 (Proje Hafızası ve pgvector Tabanlı Semantik Arama Mimarisi)
-- **Architecture:** Python LangGraph container (`pulse-agent`) + DomainEvent outbox + HMAC Internal API + pgvector
-- **Agent Catalog:** Agent-000 (Supervisor) through Agent-009 (Scope Creep Detection) — All 10 agents belong strictly to Phase 6
-- **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes) ← COMPLETED
-- **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API (574 tests) ← COMPLETED
-- **Step 6.02 (v0.6.1):** Agent-001 (Deadline Tracker) + Agent Activity dashboard widget (587 tests) ← COMPLETED
-- **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) (653 tests) ← COMPLETED
-- **Step 6.04 (v0.6.3):** Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians (Tier A) (677 tests) ← COMPLETED
-- **Step 6.05 (v0.6.4):** Agent-005 (Async Daily Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest (Tier B) (740 tests) ← COMPLETED
-- **Step 6.06 (v0.6.5):** Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal (Tier B) (752 tests) ← COMPLETED
-- **Step 6.07 (v0.6.6):** Project Memory & RAG Semantic Search (pgvector integration) (807 tests) ← COMPLETED
-- **Step 6.08 (v0.6.7 — Planned):** Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification
+- **Phase 6 (v0.6.0–v0.6.7 — Completed): AI Agent Coordination System**
+  - **Step 6.00 (v0.6.0-pre):** Architecture Decisions & ADR-034 (528 tests — no code changes) ← COMPLETED
+  - **Step 6.01 (v0.6.0):** Infrastructure: DomainEvent, AgentRun, AgentSettings, Clock, Python container, Supervisor, Internal API (574 tests) ← COMPLETED
+  - **Step 6.02 (v0.6.1):** Agent-001 (Deadline Tracker) + Agent Activity dashboard widget (587 tests) ← COMPLETED
+  - **Step 6.03 (v0.6.2):** Agent-002 (Task Hygiene) + Agent-003 (Status Requester with interrupt/resume) (653 tests) ← COMPLETED
+  - **Step 6.04 (v0.6.3):** Agent-004 (Blocker Manager) + Agent-009 (Scope Creep Detection) — Event-driven guardians (Tier A) (677 tests) ← COMPLETED
+  - **Step 6.05 (v0.6.4):** Agent-005 (Async Daily Standup) + Agent-006 (Weekly Sprint Digest) — LLM-assisted communication & digest (Tier B) (740 tests) ← COMPLETED
+  - **Step 6.06 (v0.6.5):** Agent-007 (Workload Balancer) + Agent-008 (Sprint Assistant) — LLM-assisted optimization & AgentProposal (Tier B) (752 tests) ← COMPLETED
+  - **Step 6.07 (v0.6.6):** Project Memory & RAG Semantic Search (pgvector integration) (807 tests) ← COMPLETED
+  - **Step 6.08 (v0.6.7):** Phase 6 Multi-Agent Coordination Consolidation, Hardening & Final Verification (832 tests) ← COMPLETED
 
 ## Verification Rule After Every Step
 ```bash
