@@ -196,6 +196,7 @@ model Task {
 
   progressRequests ProgressRequest[]
   agentProposals   AgentProposal[]
+  taskEmbedding TaskEmbedding?
 
   @@unique([projectId, sequenceId])
   @@index([projectId])
@@ -537,6 +538,17 @@ model StandupEntry {
 
   @@unique([standupId, userId])
   @@index([userId])
+}
+
+model TaskEmbedding {
+  id          String   @id @default(cuid())
+  taskId      String   @unique
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  embedding   Unsupported("vector(1536)")?
+  contentHash String
+  updatedAt   DateTime @updatedAt
+
+  @@index([taskId])
 }
 
 model SystemClock {
