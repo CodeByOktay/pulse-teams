@@ -49,6 +49,8 @@ services:
         condition: service_healthy
       app:
         condition: service_started
+    volumes:
+      - ./agent/src:/app/src
 
 volumes:
   pgdata:
