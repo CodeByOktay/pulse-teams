@@ -1,14 +1,14 @@
-# CONTEXT - Pulse Project Manager (v0.6.3 -> Phase 6 Step 6.04 Completed: Agent-004 & Agent-009)
+# CONTEXT - Pulse Project Manager (v0.6.4 -> Phase 6 Step 6.05 Completed: Agent-005 & Agent-006)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), Phase 6 Step 6.01 (AI Agent Infrastructure), Step 6.02 (Agent-001 Deadline Tracker & Agent Activity Widget), Step 6.03 (Agent-002 Task Hygiene & Agent-003 Status Requester with LangGraph interrupt/resume), and Step 6.04 (Agent-004 Blocker Manager & Agent-009 Scope Creep Detection) are fully completed.
+Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), Phase 6 Step 6.01 (AI Agent Infrastructure), Step 6.02 (Agent-001 Deadline Tracker & Agent Activity Widget), Step 6.03 (Agent-002 Task Hygiene & Agent-003 Status Requester with LangGraph interrupt/resume), Step 6.04 (Agent-004 Blocker Manager & Agent-009 Scope Creep Detection), and Step 6.05 (Agent-005 Async Daily Standup & Agent-006 Weekly Sprint Digest) are fully completed.
 
 ## Location & Execution
 - **Project Path:** `C:\Pulse`
 - **Database:** PostgreSQL 16 in Docker (`docker start pulse-postgres`, port 5432)
 - **Dev Server:** `cd C:\Pulse && npm run dev` -> `http://localhost:3000`
-- **Tests:** `npm test` (621 Vitest tests across 35 suites + 56 Pytest tests across 11 suites = 677 tests, 100% passing)
+- **Tests:** `npm test` (669 Vitest tests across 37 suites + 71 Pytest tests across 13 suites = 740 tests, 100% passing)
 - **Seed Rich Data:** `npm run db:seed-rich` (10 users, 5 projects, ~60 tasks compact dataset, active/draft sprints)
 
 ## AI Agent Division of Labor & Guides
@@ -220,13 +220,16 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
 - `version.test.ts` (2)
 - `blocker-logic.test.ts` (11)
 - `scope-creep-logic.test.ts` (5)
-- `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4)
-Total: **621 Vitest tests (TypeScript) + 56 Pytest tests (Python) = 677 tests, 100% passing**
+- `standup-logic.test.ts` (26)
+- `weekly-digest-logic.test.ts` (22)
+- `agent/tests/`: `test_clock.py` (3), `test_config.py` (4), `test_internal_client.py` (7), `test_poller.py` (10), `test_supervisor.py` (7), `test_agent_001.py` (3), `test_agent_002.py` (3), `test_agent_003.py` (5), `test_clock_sync.py` (6), `test_agent_004.py` (4), `test_agent_009.py` (4), `test_agent_005.py` (8), `test_agent_006.py` (7)
+Total: **669 Vitest tests (TypeScript) + 71 Pytest tests (Python) = 740 tests, 100% passing**
 
-## Database Models (23 Models across Phases 1–6)
+## Database Models (25 Pulse Models + 4 LangGraph Checkpoint Models = 29 Total in DB)
 User, Project, ProjectMember, State, Task, Label, TaskLabel, TaskAssignee, Comment,
 Sprint, SprintTask, Activity, ProjectInvite, TaskRelation, Notification, UserNotificationPreference,
-ProgressRequest, ProgressResponse, AgentProposal, **DomainEvent, AgentRun, AgentSettings, SystemClock**
+ProgressRequest, ProgressResponse, AgentProposal, DomainEvent, AgentRun, AgentSettings, SystemClock,
+**DailyStandup, StandupEntry**
 
 ## Detailed AI Context Snapshots (`docs/ai-context/`)
 - `024-seed-dataset-architecture.md` (ADR-024) — Seed personas, project scopes, state mappings, and dataset architecture.
@@ -248,8 +251,8 @@ ProgressRequest, ProgressResponse, AgentProposal, **DomainEvent, AgentRun, Agent
 - **Agent-003 (Status Requester):** Stale task inquiry with interrupt/resume buttons (Step 6.03, Completed)
 - **Agent-004 (Blocker Manager):** Dependency chain tracking (BLOCKS) + escalation (Step 6.04, Completed)
 - **Agent-009 (Scope Creep Detection):** Mid-sprint scope growth & task addition detection (Step 6.04, Completed)
-- **Agent-005 (Async Standup):** Morning standup form + LLM summary digest (Step 6.05, Planned)
-- **Agent-006 (Weekly Report):** Sprint health, velocity & risk summary (Step 6.05, Planned)
+- **Agent-005 (Async Standup):** Morning standup form + LLM summary digest (Step 6.05, Completed)
+- **Agent-006 (Weekly Report):** Sprint health, velocity & risk summary (Step 6.05, Completed)
 - **Agent-007 (Workload Balancer):** Overload/idle detection + reassignment AgentProposal (Step 6.06, Planned)
 - **Agent-008 (Sprint Assistant):** Sprint overflow warning + retro draft (Step 6.06, Planned)
 - **Project Memory & RAG:** Semantic search on tasks, comments & project docs via pgvector (Step 6.07, Planned)
@@ -257,18 +260,18 @@ ProgressRequest, ProgressResponse, AgentProposal, **DomainEvent, AgentRun, Agent
 
 ## Mandatory Verification Commands
 ```bash
-npm test          # Must pass 100% (621 Vitest tests)
+npm test          # Must pass 100% (669 Vitest tests)
 npx tsc --noEmit  # Zero TypeScript errors
-cd agent && .venv\Scripts\pytest # Must pass 100% (56 Python tests)
+cd agent && .venv\Scripts\pytest # Must pass 100% (71 Python tests)
 npm run build     # Production build validation
 ```
 
 ## New Chat Starter Template
 ```
 Project: C:\Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
-Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), Phase 6 Step 6.01 (v0.6.0), Step 6.02 (v0.6.1), Step 6.03 (v0.6.2), and Step 6.04 (v0.6.3) are fully completed.
-677 tests (621 Vitest + 56 Pytest) are passing 100%. 23 DB models, 9 enums.
+Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), Phase 6 Step 6.01 (v0.6.0), Step 6.02 (v0.6.1), Step 6.03 (v0.6.2), Step 6.04 (v0.6.3), and Step 6.05 (v0.6.4) are fully completed.
+740 tests (669 Vitest + 71 Pytest) are passing 100%. 25 Pulse DB models (+ 4 checkpoint models), 9 enums.
 All 10 agents (Agent-000 through Agent-009) belong strictly to Phase 6.
-We are now ready to implement Step 6.05 (Agent-005 Async Standup & Agent-006 Weekly Sprint Digest).
+We are now ready to implement Step 6.06 (Agent-007 Workload Balancer & Agent-008 Sprint Assistant).
 [Paste specific task or requirements here]
 ```
