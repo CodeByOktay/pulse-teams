@@ -11,7 +11,8 @@
     "test": "vitest run",
     "db:seed-rich": "ts-node --project prisma/tsconfig.seed.json prisma/seed-realistic-data.ts",
     "mail:test": "ts-node --project prisma/tsconfig.seed.json scripts/test-mail.ts",
-    "verify:coordination": "ts-node --transpile-only -r tsconfig-paths/register --project scripts/tsconfig.verify.json scripts/verify-coordination.ts"
+    "verify:coordination": "ts-node --transpile-only -r tsconfig-paths/register --project scripts/tsconfig.verify.json scripts/verify-coordination.ts",
+    "embeddings:backfill": "ts-node --transpile-only -r tsconfig-paths/register --project scripts/tsconfig.verify.json scripts/backfill-embeddings.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

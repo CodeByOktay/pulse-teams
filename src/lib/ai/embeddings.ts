@@ -1,6 +1,8 @@
 // Sağlayıcıdan bağımsız gömme (embedding) üretimi. LLM config ile aynı auth felsefesini paylaşır
 // (AI_API_KEY, AI_AUTH_HEADER, AI_AUTH_SCHEME, AI_TIMEOUT_MS) — ayrı bir auth namespace icat edilmez.
 // Endpoint/model yalnızca AI_EMBEDDING_ENDPOINT / AI_EMBEDDING_MODEL env değişkenlerinden gelir.
+// AI_EMBEDDING_DIMENSIONS (opsiyonel) tanımlıysa isteğe `dimensions` eklenir: doğal boyutu
+// EMBEDDING_DIMENSIONS'tan farklı olan MRL destekli modeller içindir (ör. 4096 boyutlu qwen3-embedding-8b).
 
 const DEFAULT_AUTH_HEADER = "Authorization";
 const DEFAULT_AUTH_SCHEME = "Bearer";
@@ -17,6 +19,8 @@ export interface EmbeddingConfig {
   authHeader: string;
   authScheme: string;
   timeoutMs: number;
+  /** Sağlayıcıdan istenen vektör boyutu; yalnızca AI_EMBEDDING_DIMENSIONS tanımlıysa bulunur. */
+  dimensions?: number;
 }
 
 function isPlaceholder(value: string): boolean {
@@ -61,7 +65,7 @@ export function resolveEmbeddingConfig(env: Record<string, string | undefined>):
     return null;
   }
 
-  return {
+  const config: EmbeddingConfig = {
     endpoint,
     apiKey: readString(env.AI_API_KEY) ?? "",
     model,
@@ -69,6 +73,11 @@ export function resolveEmbeddingConfig(env: Record<string, string | undefined>):
     authScheme: readEnvScheme(env.AI_AUTH_SCHEME) ?? DEFAULT_AUTH_SCHEME,
     timeoutMs: readTimeout(env.AI_TIMEOUT_MS) ?? DEFAULT_TIMEOUT_MS,
   };
+  const dimensions = Number(readString(env.AI_EMBEDDING_DIMENSIONS));
+  if (Number.isInteger(dimensions) && dimensions > 0) {
+    config.dimensions = dimensions;
+  }
+  return config;
 }
 
 /** process.env'den yapılandırmayı yükler. Saf değildir, doğrudan test edilmez. */
@@ -109,7 +118,11 @@ export async function getEmbedding(text: string, config?: EmbeddingConfig | null
     const response = await fetch(resolved.endpoint, {
       method: "POST",
       headers: buildHeaders(resolved),
-      body: JSON.stringify({ model: resolved.model, input: text }),
+      body: JSON.stringify(
+        resolved.dimensions === undefined
+          ? { model: resolved.model, input: text }
+          : { model: resolved.model, input: text, dimensions: resolved.dimensions },
+      ),
       signal: AbortSignal.timeout(resolved.timeoutMs),
     });
 
