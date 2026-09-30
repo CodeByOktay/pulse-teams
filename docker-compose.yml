@@ -7,7 +7,8 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      # Local development default; override via POSTGRES_PASSWORD for any shared/deployed environment.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: pulse
     ports:
       - "5432:5432"
@@ -49,7 +50,7 @@ services:
     container_name: pulse-agent
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/pulse?sslmode=disable
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@db:5432/pulse?sslmode=disable
       - INTERNAL_API_URL=http://app:3000
       - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-pulse-internal-secret-key-change-in-prod}
       - TZ=Europe/Istanbul
