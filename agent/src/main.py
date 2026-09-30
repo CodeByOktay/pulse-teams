@@ -19,7 +19,7 @@ import sys
 from src.agents import close_builtin_agents, register_builtin_agents
 from src.catchup import run_startup_catchup
 from src.clock import sync_clock_from_db
-from src.config import settings
+from src.config import DEFAULT_INTERNAL_API_SECRET, settings
 from src.db import check_connection
 from src.poller import run_poller_loop
 from src.replay import close_replay
@@ -80,6 +80,11 @@ async def main() -> None:
         settings.SCHEDULE_HOUR,
         settings.INTERNAL_API_URL,
     )
+    if settings.INTERNAL_API_SECRET == DEFAULT_INTERNAL_API_SECRET:
+        logger.warning(
+            "INTERNAL_API_SECRET uses the public default; set a unique value outside local development "
+            "(production Next.js rejects the default)"
+        )
     register_builtin_agents()
 
     if not await wait_for_database(stop_event):

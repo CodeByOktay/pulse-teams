@@ -6,11 +6,27 @@
  */
 import crypto from "crypto";
 
-const INTERNAL_API_SECRET =
-  process.env.INTERNAL_API_SECRET || "pulse-internal-secret-key-change-in-prod";
+const DEV_FALLBACK_SECRET = "pulse-internal-secret-key-change-in-prod";
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || DEV_FALLBACK_SECRET;
 const MAX_DRIFT_MS = 5 * 60 * 1000; // 5 minutes
 
+// The fallback secret is public in the repository: in production it must never
+// authenticate anything, so a missing/default secret fails closed.
+const IS_INSECURE_PRODUCTION_SECRET =
+  process.env.NODE_ENV === "production" && INTERNAL_API_SECRET === DEV_FALLBACK_SECRET;
+let insecureSecretWarned = false;
+
 export function verifyInternalSignature(headers: Headers, bodyString: string): boolean {
+  if (IS_INSECURE_PRODUCTION_SECRET) {
+    if (!insecureSecretWarned) {
+      insecureSecretWarned = true;
+      console.error(
+        "[internal-auth] INTERNAL_API_SECRET is unset or uses the public default; rejecting all internal agent requests.",
+      );
+    }
+    return false;
+  }
+
   const signature = headers.get("x-agent-signature");
   const timestampStr = headers.get("x-agent-timestamp");
 
