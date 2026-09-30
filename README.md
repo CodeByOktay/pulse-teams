@@ -2,14 +2,16 @@
 
 > Modern, high-performance Kanban & Sprint management platform with proactive AI project coordination.
 
-[![Version](https://img.shields.io/badge/version-v0.5.4-blue.svg)](https://github.com/CodeByOktay/Staj-Projesi)
+[![Version](https://img.shields.io/badge/version-v0.6.7-blue.svg)](https://github.com/CodeByOktay/Pulse)
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma)](https://www.prisma.io/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)](https://www.postgresql.org/)
-[![Tests](https://img.shields.io/badge/Vitest-528%20passed-success?logo=vitest)](https://vitest.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20%2B%20pgvector-336791?logo=postgresql)](https://www.postgresql.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%2B%20%C2%B7%20LangGraph-3776AB?logo=python)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-740%20Vitest%20%2B%2098%20Pytest-success?logo=vitest)](https://vitest.dev/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
@@ -17,7 +19,7 @@
 
 Pulse is a developer-centric, full-featured project management platform designed for agile software teams. Built with Next.js 16 and PostgreSQL, it delivers sub-millisecond local interactions, fluid drag-and-drop workflows, and deterministic business logic.
 
-Beyond traditional project tracking, Pulse introduces **Proactive AI Coordination**: an approval-gated, three-tier automation system that detects resolved task dependencies, collects progress reports from team members, interprets natural language status updates, and proposes Kanban/Sprint mutations under human control.
+Beyond traditional project tracking, Pulse introduces **Proactive AI Coordination**: an approval-gated, three-tier automation system that detects resolved task dependencies, collects progress reports from team members, interprets natural language status updates, and proposes Kanban/Sprint mutations under human control. A separate Python **LangGraph** service runs a catalog of ten coordination agents (deadlines, task hygiene, blockers, standups, weekly digests, workload balancing, sprint assistance) driven by a PostgreSQL event outbox.
 
 ---
 
@@ -36,6 +38,12 @@ Beyond traditional project tracking, Pulse introduces **Proactive AI Coordinatio
   - Interactive `ProgressRequest` / `ProgressResponse` lifecycle.
   - Natural language status extraction producing structured `AgentProposal` candidates.
   - Human-in-the-loop approval UI (`AgentProposalCard`) with audit trail logging (`isAiGenerated`).
+- **Multi-Agent Coordination Service (Python + LangGraph):**
+  - `DomainEvent` outbox consumed with `FOR UPDATE SKIP LOCKED` leases; APScheduler cron with startup catch-up.
+  - Agent-000 Supervisor (routing, per-project enablement, idempotent `AgentRun` logging) and Agents 001–009: Deadline Tracker, Task Hygiene, Status Requester (LangGraph `interrupt()`/resume), Blocker Manager, Async Standup, Weekly Digest, Workload Balancer, Sprint Assistant, Scope Creep Detection.
+  - HMAC-SHA256 signed Internal API between the agent service and Next.js.
+  - Testable clock abstraction with Slot Replay for simulated time travel (development only).
+- **Project Memory & Semantic Search:** `pgvector` embeddings with SHA-256 content hashing and hybrid vector/text ranking, falling back to text search when no embedding provider is configured.
 - **Project Settings & RBAC:** Admin-governed state pipelines, custom color-coded labels, and role-based project member access control.
 
 ---
@@ -69,7 +77,11 @@ Pulse enforces a strict separation of concerns across its application layers:
 [ Pure Domain Logic (src/lib/) ]   [ Prisma ORM Transactions ]
 (Cycle checks, analytics, filters)           │
                                              ▼
-                                    [ PostgreSQL 16 DB ]
+                              [ PostgreSQL 16 + pgvector ]
+                                  │ DomainEvent outbox ▲
+                                  ▼                    │ HMAC-signed
+[ pulse-agent: Python + LangGraph + APScheduler ] ─────┘ Internal API
+  (Agent-000 Supervisor → Agents 001–009)           (/api/internal/agent/*)
 ```
 
 ### Architectural Principles
@@ -88,11 +100,12 @@ Pulse enforces a strict separation of concerns across its application layers:
 | **Language** | TypeScript 5 (Strict Mode) | End-to-end type safety |
 | **Styling** | Tailwind CSS v4, Lucide React | Modern dark/light responsive interface |
 | **State & Drag-and-Drop** | @dnd-kit (core, sortable, utilities) | Accessible, 60fps drag-and-drop interactions |
-| **Database & ORM** | PostgreSQL 16, Prisma v6.19 | Relational database, typed migrations and schema |
+| **Database & ORM** | PostgreSQL 16 + pgvector, Prisma v6.19 | Relational database, vector search, typed migrations |
+| **Agent Service** | Python 3.11+, LangGraph, APScheduler, psycopg 3 | Event-driven and scheduled coordination agents |
 | **Authentication** | NextAuth.js v4 + bcryptjs (salt:12) | Credentials-based JWT authentication |
 | **Markdown** | react-markdown + remark-gfm | GitHub-flavored markdown parsing and rendering |
 | **Email Service** | Nodemailer | Universal SMTP, Ethereal test, and console mailer |
-| **Testing** | Vitest v5 | Fast unit and integration test execution |
+| **Testing** | Vitest v5, Pytest | TypeScript and Python unit/integration tests |
 
 ---
 
@@ -100,8 +113,11 @@ Pulse enforces a strict separation of concerns across its application layers:
 
 ```
 Pulse/
+├── agent/                       # Python LangGraph agent service (pulse-agent)
+│   ├── src/                     # Supervisor, poller, scheduler, Agents 001–009
+│   └── tests/                   # 17 Pytest suites (98 tests)
 ├── prisma/
-│   ├── schema.prisma            # 19 Database models & 9 enums
+│   ├── schema.prisma            # 26 Pulse models (+4 LangGraph checkpoint tables) & 9 enums
 │   ├── migrations/              # Incremental SQL migration history
 │   └── seed-realistic-data.ts   # Deterministic PRNG seeding script
 ├── src/
@@ -118,9 +134,10 @@ Pulse/
 │   └── lib/                     # Pure business domain logic
 │       ├── authz.ts             # Centralized server authorization
 │       ├── mail.ts              # Nodemailer email engine
-│       └── __tests__/           # 27 Vitest test suites (528 tests)
+│       └── __tests__/           # 39 Vitest test suites (740 tests)
 └── docs/
-    ├── wiki/                    # 33 Architecture Decision Records (ADRs)
+    ├── wiki/                    # 36 Architecture Decision Records (ADRs)
+    ├── spec/                    # Step-by-step implementation specifications
     └── ai-context/              # Modular AI architectural snapshots
 ```
 
@@ -129,29 +146,33 @@ Pulse/
 ## Setup
 
 ### Prerequisites
-- **Node.js:** v20.0.0 or higher
-- **npm:** v10.0.0 or higher
-- **Docker & Docker Compose:** For running PostgreSQL 16
+- **Node.js:** v20 or higher (npm v10+)
+- **Docker & Docker Compose:** For PostgreSQL 16 with the `pgvector` extension
+- **Python:** v3.11 or higher *(optional — only for the `pulse-agent` coordination service)*
 
 ### Quickstart
 
 1. **Clone the repository and install dependencies:**
    ```bash
-   git clone https://github.com/CodeByOktay/Staj-Projesi.git
-   cd Staj-Projesi
+   git clone https://github.com/CodeByOktay/Pulse.git
+   cd Pulse
    npm install
    ```
+   The committed `.npmrc` sets `legacy-peer-deps=true`: `next-auth@4` declares an optional peer on `nodemailer@^7`, while Pulse uses `nodemailer@^10` for its own mail service (the next-auth email provider is not used).
+   On npm 11+, the Prisma and `unrs-resolver` install scripts are pre-approved through the `allowScripts` field in `package.json`.
 
 2. **Configure environment variables:**
    ```bash
    cp .env.example .env
    ```
+   Replace `NEXTAUTH_SECRET` with a random value (`openssl rand -base64 32`).
 
-3. **Start PostgreSQL database:**
+3. **Start the PostgreSQL database:**
    ```bash
-   docker compose up -d
+   docker compose up -d db
    ```
-   *(Or run standalone: `docker run --name pulse-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=pulse -p 5432:5432 -d postgres:16`)*
+   This starts only the `pgvector/pgvector:pg16` database. A plain `postgres` image will not work: the migrations require the `vector` extension.
+   *(Standalone alternative: `docker run --name pulse-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=pulse -p 5432:5432 -d pgvector/pgvector:pg16`)*
 
 4. **Apply database migrations:**
    ```bash
@@ -162,7 +183,7 @@ Pulse/
    ```bash
    npm run db:seed-rich
    ```
-   *Seeds 10 user personas (password: `password123`), 5 projects, 500 tasks, 1,000 comments, and 3,000 activities.*
+   *Seeds 10 user personas (password: `password123`), 5 projects, sprints, tasks, comments, and activity history.*
 
 6. **Start the development server:**
    ```bash
@@ -170,31 +191,40 @@ Pulse/
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+7. **(Optional) Run the agent service locally:**
+   ```bash
+   cd agent
+   python -m venv .venv
+   .venv/Scripts/activate          # Windows (source .venv/bin/activate on Linux/macOS)
+   pip install -r requirements.txt
+   python -m src.main
+   ```
+   The agent reads `DATABASE_URL` and `INTERNAL_API_SECRET` from the repository root `.env`. See [`agent/README.md`](agent/README.md) for all settings.
+
 ---
 
 ## Environment Variables
 
-Configure the following variables in your `.env` file:
+Configure the following variables in your `.env` file (see [`.env.example`](.env.example) for the complete, commented list):
 
 | Variable | Description | Example / Default |
 |---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:password@localhost:5432/pulse?schema=public` |
 | `NEXTAUTH_SECRET` | Secret key for JWT session encryption | Generate via `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Canonical application URL | `http://localhost:3000` |
-| `EMAIL_FROM` | Outgoing sender address | `"Pulse" <notifications@pulse.local>` |
-| `SMTP_HOST` | SMTP server host (leave empty for test) | `smtp.example.com` |
-| `SMTP_PORT` | SMTP port | `587` |
-| `SMTP_USER` | SMTP username | `user@example.com` |
-| `SMTP_PASS` | SMTP password | `secret_password` |
-| `AI_ENABLED` | Toggle AI features (interpreter & bot) | `true` |
-| `AI_PROVIDER` | AI backend provider (`mock`, `gemini`, `openai`) | `mock` |
-| `GEMINI_API_KEY` | Google Gemini API key (optional) | `AIzaSy...` |
+| `NEXTAUTH_URL` / `APP_URL` | Canonical application URL | `http://localhost:3000` |
+| `INTERNAL_API_SECRET` | Shared HMAC secret between Next.js and `pulse-agent` | Dev-only default; **must be changed in production** |
+| `EMAIL_FROM` | Outgoing sender address | `Pulse <noreply@pulse.local>` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP delivery (leave host empty for Ethereal/console fallback) | `smtp.example.com`, `587` |
+| `AI_ENDPOINT` / `AI_MODEL` / `AI_API_KEY` | Provider-agnostic (OpenAI-compatible) chat endpoint for AI features | Empty = deterministic heuristic fallback |
+| `AI_EMBEDDING_ENDPOINT` / `AI_EMBEDDING_MODEL` | Embeddings endpoint for semantic search (1536-dim vectors) | Empty = text-only search |
+
+Non-secret AI settings can alternatively live in `ai.config.json` (copy from [`ai.config.example.json`](ai.config.example.json)); API keys belong in the environment only.
 
 ---
 
 ## Database
 
-Pulse uses **PostgreSQL 16** managed via **Prisma ORM v6.19**. The schema comprises **19 models** and **9 enums**.
+Pulse uses **PostgreSQL 16** with the **pgvector** extension, managed via **Prisma ORM v6.19**. The schema comprises **26 Pulse models** (plus 4 LangGraph checkpoint tables owned by the agent service) and **9 enums**. The diagram below shows the core domain.
 
 ```mermaid
 erDiagram
@@ -237,9 +267,11 @@ erDiagram
 ### Key Models & Enums
 - **Core Entities:** `User`, `Project`, `ProjectMember`, `State`, `Task`, `Label`, `TaskAssignee`, `TaskLabel`, `Comment`.
 - **Sprint Management:** `Sprint`, `SprintTask` (`SprintStatus`: `DRAFT`, `ACTIVE`, `COMPLETED`).
-- **Audit & Relations:** `Activity` (23 types, `isAiGenerated`), `TaskRelation` (`BLOCKS`, `RELATES_TO`, `DUPLICATES`).
-- **Notifications & Preferences:** `Notification` (7 types), `UserNotificationPreference`, `ProjectInvite`.
+- **Audit & Relations:** `Activity` (24 types, `isAiGenerated`), `TaskRelation` (`BLOCKS`, `RELATES_TO`, `DUPLICATES`).
+- **Notifications & Preferences:** `Notification` (12 types), `UserNotificationPreference`, `ProjectInvite`.
 - **AI Coordination:** `ProgressRequest`, `ProgressResponse`, `AgentProposal` (`PENDING`, `APPROVED`, `REJECTED`, `STALE`).
+- **Agent Infrastructure:** `DomainEvent` (outbox), `AgentRun` (idempotent run log), `AgentSettings`, `SystemClock`, `DailyStandup`, `StandupEntry`.
+- **Project Memory:** `TaskEmbedding` (`vector(1536)` with an ivfflat cosine index).
 
 ---
 
@@ -253,9 +285,10 @@ Pulse employs an **AI-Assisted Pair Programming & Dual-Agent Protocol**:
 ### Commands
 ```bash
 npm run dev        # Start local Next.js Turbopack dev server
-npm test           # Run 528 Vitest unit and integration tests
+npm test           # Run 740 Vitest unit and integration tests
 npx tsc --noEmit   # Validate TypeScript types (zero errors)
 npm run build      # Verify production build compilation
+cd agent && pytest # Run 98 Pytest tests for the agent service
 ```
 
 ---
@@ -264,7 +297,7 @@ npm run build      # Verify production build compilation
 
 Pulse adheres to strict quality assurance invariants:
 - **Pure Domain Testing:** Server Actions are kept thin; complex algorithms reside in isolated pure functions tested deterministically with zero side effects.
-- **Coverage:** **528 tests** across **27 test suites**, maintaining a 100% pass rate.
+- **Coverage:** **838 tests** — 740 Vitest tests across 39 suites and 98 Pytest tests across 17 suites — maintaining a 100% pass rate.
 - **Test Inviolability:** Implementation fixes must never alter test assertions.
 
 ```bash
@@ -313,10 +346,13 @@ Pulse utilizes Next.js **Server Actions** (`"use server"`) as its primary mutati
 - **`src/actions/progress.ts`:** Progress request issuance and team member response submission.
 - **`src/actions/agent-proposal.ts`:** AI proposal generation, human approval, and rejection handlers.
 - **`src/actions/search.ts`:** Scoped global search across tasks and project titles.
+- **`src/actions/semantic-search.ts`:** Hybrid vector/text search over project memory.
+- **`src/actions/agent-settings.ts`, `standup.ts`, `clock.ts`:** Per-project agent configuration, standup submission, and development-only time simulation.
 
 ### HTTP Endpoints
 - `GET/POST /api/auth/[...nextauth]` — NextAuth.js session and authentication endpoints.
 - `POST /api/auth/register` — New user account registration with automated welcome email dispatch.
+- `POST /api/internal/agent/*` — 17 HMAC-SHA256 signed endpoints used exclusively by the `pulse-agent` service (not user-facing).
 
 ---
 
@@ -325,9 +361,16 @@ Pulse utilizes Next.js **Server Actions** (`"use server"`) as its primary mutati
 Pulse is containerized for standard Docker environments and production cloud providers (Vercel, Railway, AWS ECS).
 
 ### Production Docker Build
+The compose stack runs three services: `db` (PostgreSQL + pgvector), `app` (Next.js production build), and `agent` (Python coordination service).
 ```bash
-# Build and run using Docker Compose
-docker compose -f docker-compose.yml up --build -d
+# 1. Environment for the app container
+cp .env.docker.example .env.docker   # then replace every placeholder
+
+# 2. The agent and database read POSTGRES_PASSWORD / INTERNAL_API_SECRET from the root .env;
+#    INTERNAL_API_SECRET must match the value in .env.docker
+
+# 3. Build and run
+docker compose up --build -d
 ```
 
 ### Standalone Production Build
@@ -337,10 +380,13 @@ npm run start
 ```
 
 ### Production Checklist
-- [x] Configure strong, random `NEXTAUTH_SECRET`.
-- [x] Set canonical `NEXTAUTH_URL` matching your production domain.
-- [x] Configure active SMTP credentials for transactional emails.
-- [x] Run `npx prisma migrate deploy` on production database.
+- [ ] Configure strong, random `NEXTAUTH_SECRET`.
+- [ ] Set a unique `INTERNAL_API_SECRET` for both the app and the agent — production builds reject every agent request while the public default is in use.
+- [ ] Change `POSTGRES_PASSWORD` (and the matching `DATABASE_URL`) from the development default `password`.
+- [ ] Set canonical `NEXTAUTH_URL` / `APP_URL` matching your production domain.
+- [ ] Configure active SMTP credentials for transactional emails.
+- [ ] Run `npx prisma migrate deploy` on the production database.
+- [ ] Keep `ENABLE_TIME_TRAVEL` unset (time simulation is disabled in production by default).
 
 ---
 
@@ -355,9 +401,13 @@ npm run start
   - Interactive `ProgressRequest` and `ProgressResponse` lifecycle.
   - AI Progress Interpretation engine and human-in-the-loop `AgentProposal` approval UI.
   - 4-Wave Full-Stack Refactoring & 3 Targeted Hardening Packages (Authz consolidation, Modal UX, Concurrency guards).
-- [ ] **Phase 5.05:** Multi-turn stateful AI coordination and follow-up loops via LangGraph.js.
-- [ ] **Phase 5.06:** Automated proactive follow-up scheduler for stale and approaching tasks.
-- [ ] **Phase 6:** Sprint Risk Agent with velocity forecasting and burndown anomaly detection.
+- [x] **Phase 6 (v0.6.0 – v0.6.7): AI Agent Coordination System**
+  - Python LangGraph service, `DomainEvent` outbox, APScheduler, HMAC Internal API, testable clock (Agent-000 Supervisor).
+  - Agent-001 Deadline Tracker, Agent-002 Task Hygiene, Agent-003 Status Requester (interrupt/resume).
+  - Agent-004 Blocker Manager, Agent-009 Scope Creep Detection.
+  - Agent-005 Async Standup, Agent-006 Weekly Sprint Digest.
+  - Agent-007 Workload Balancer, Agent-008 Sprint Assistant.
+  - Project Memory & RAG semantic search (pgvector), Slot Replay & time-travel security, multi-agent consolidation.
 
 ---
 
