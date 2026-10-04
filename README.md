@@ -1,9 +1,9 @@
-# Pulse
+# Pulse Teams
 
 > Proaktif yapay zekâ koordinasyonuna sahip, modern ve yüksek performanslı Kanban & Sprint yönetim platformu.
 
-[![CI](https://github.com/CodeByOktay/Pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/CodeByOktay/Pulse/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-v0.6.7-blue.svg)](https://github.com/CodeByOktay/Pulse)
+[![CI](https://github.com/CodeByOktay/pulse-teams/actions/workflows/ci.yml/badge.svg)](https://github.com/CodeByOktay/pulse-teams/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-v0.6.7-blue.svg)](https://github.com/CodeByOktay/pulse-teams)
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
@@ -18,7 +18,7 @@
 
 ## Genel Bakış
 
-Pulse, çevik yazılım ekipleri için tasarlanmış, geliştirici odaklı ve tam özellikli bir proje yönetim platformudur. Next.js 16 ve PostgreSQL üzerine kuruludur; akıcı sürükle-bırak iş akışları, iyimser (optimistic) arayüz güncellemeleri ve deterministik iş mantığı sunar.
+**Pulse Teams**, çevik yazılım ekipleri için tasarlanmış, geliştirici odaklı ve tam özellikli bir proje yönetim platformudur. Next.js 16 ve PostgreSQL üzerine kuruludur; akıcı sürükle-bırak iş akışları, iyimser (optimistic) arayüz güncellemeleri ve deterministik iş mantığı sunar.
 
 Klasik proje takibinin ötesinde Pulse, **Proaktif Yapay Zekâ Koordinasyonu** getirir: çözülen görev bağımlılıklarını tespit eden, ekip üyelerinden ilerleme raporu toplayan, doğal dille yazılmış durum güncellemelerini yorumlayan ve Kanban/Sprint değişikliklerini insan onayına sunan, üç katmanlı ve onay kapılı bir otomasyon sistemi. Ayrı bir Python **LangGraph** servisi, PostgreSQL olay kutusu (outbox) ile tetiklenen on koordinasyon ajanından oluşan bir kataloğu çalıştırır (son tarihler, görev hijyeni, engeller, standup'lar, haftalık özetler, iş yükü dengeleme, sprint asistanlığı).
 
@@ -164,8 +164,8 @@ Pulse/
 
 1. **Depoyu klonlayın ve bağımlılıkları kurun:**
    ```bash
-   git clone https://github.com/CodeByOktay/Pulse.git
-   cd Pulse
+   git clone https://github.com/CodeByOktay/pulse-teams.git
+   cd pulse-teams
    npm install
    ```
    Depodaki `.npmrc` dosyası `legacy-peer-deps=true` ayarını yapar: `next-auth@4`, `nodemailer@^7` için isteğe bağlı bir peer bağımlılığı tanımlar; Pulse ise kendi posta servisi için `nodemailer@^10` kullanır (next-auth e-posta sağlayıcısı kullanılmaz).

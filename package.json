@@ -1,5 +1,6 @@
 {
-  "name": "pulse",
+  "name": "pulse-teams",
+  "description": "Kanban & sprint project management for agile teams with proactive AI agent coordination.",
   "version": "0.6.7",
   "private": true,
   "scripts": {

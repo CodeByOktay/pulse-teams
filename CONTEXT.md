@@ -1,8 +1,8 @@
-# CONTEXT - Pulse Project Manager (v0.6.7 -> Phase 6 Step 6.08 Completed: Multi-Agent Coordination Consolidation & Hardening)
+# CONTEXT - Pulse Teams (Pulse Project Manager) (v0.6.7 -> Phase 6 Step 6.08 Completed: Multi-Agent Coordination Consolidation & Hardening)
 Paste this file into a new AI chat. The agent will immediately grasp the full project context.
 
 ## What is the Project?
-Pulse Project Manager. A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), and Phase 6 (AI Agent Coordination System: Steps 6.01 through 6.08 — Agents 000–009, RAG Semantic Search with pgvector, Slot Replay, Time Travel Security, and Multi-Agent Coordination Consolidation) are 100% completed.
+Pulse Teams (Pulse Project Manager, team edition). A modern, full-featured Kanban and Sprint-based project management platform. Phases 1, 2, 3, 4, Phase 5 MVP (AI Coordination, Progress Interpretation, AgentProposal), and Phase 6 (AI Agent Coordination System: Steps 6.01 through 6.08 — Agents 000–009, RAG Semantic Search with pgvector, Slot Replay, Time Travel Security, and Multi-Agent Coordination Consolidation) are 100% completed.
 
 ## Location & Execution
 - **Project Path:** repository root
@@ -141,7 +141,7 @@ External identity providers (OAuth) are explicitly out of scope and will not be 
   - Package 2: Unified `src/lib/use-task-navigation.ts` hook, modal Escape isolation in `EditableTitle`/popovers, single-state delete prevention.
   - Package 3: Atomic `updateMany` concurrency guard in `completeSprint`, resilient try/catch notifications, 200ms `ColorPicker` debounce, shared `InlineNameInput`.
 
-## Phase 6 Completed Features: AI Agent Coordination System (v0.6.0 — v0.6.2)
+## Phase 6 Completed Features: AI Agent Coordination System (v0.6.0 — v0.6.7)
 - **Architecture (ADR-034):** Python LangGraph container (`pulse-agent`) + PostgreSQL DomainEvent outbox + HMAC-SHA256 Internal API. The entire 10-agent catalog (Agent-000 through Agent-009) belongs strictly to Phase 6.
 - **[Step 6.01] Agent Infrastructure (v0.6.0):** `DomainEvent`, `AgentRun`, `AgentSettings` Prisma models, testable Clock abstraction (`src/lib/clock.ts` and `agent/src/clock.py`), Python container with APScheduler, `Agent-000` Supervisor, HMAC Internal API (`src/app/api/internal/agent/`), AgentSettings project tab UI (574 tests).
 - **[Step 6.02] Agent-001 Deadline Tracker & Activity Widget (v0.6.1):** Session-independent `dispatchDueDateReminders`, approaching/overdue reminders + ADMIN escalation, dashboard "Agent Activity" widget (587 tests).
@@ -272,7 +272,7 @@ npm run build     # Production build validation
 
 ## New Chat Starter Template
 ```
-Project: Pulse - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
+Project: Pulse Teams - Pulse Project Manager (Next.js 16 + Prisma + PostgreSQL project management platform)
 Phases 1 (v0.1.0), 2 (v0.2.0), 3 (v0.3.0), 4 (v0.4.0), 5 MVP (v0.5.4), and Phase 6 (v0.6.7, complete 10-agent proactive multi-agent system) are fully completed.
 838 tests (740 Vitest + 98 Pytest) are passing 100%. 26 Pulse DB models (+ 4 checkpoint models), 9 enums.
 [Paste specific task or requirements here]

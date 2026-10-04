@@ -1,6 +1,6 @@
 [project]
 name = "pulse-agent"
-version = "0.6.0"
+version = "0.6.7"
 description = "Pulse AI agent coordination container (Agent-000 supervisor, outbox poller, scheduler)"
 requires-python = ">=3.11"
 

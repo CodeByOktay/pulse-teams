@@ -1,7 +1,7 @@
-# Pulse — Agent Development Guide
+# Pulse Teams — Agent Development Guide
 
 ## Project Identity
-- **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
+- **Name:** Pulse Teams (Pulse Project Manager, team edition) — Modern Kanban & Sprint-based Project Management Application
 - **Location:** repository root
 - **Version:** v0.6.7 (Phase 6 Step 6.08 completed — Multi-Agent Coordination Consolidation, Hardening & Final Verification)
 - **URL:** http://localhost:3000
@@ -145,7 +145,7 @@ Enums (9):
 
 ## Verification Rule After Every Step
 ```bash
-npm test          # All Vitest suites must pass 100% (528+ tests)
+npm test          # All Vitest suites must pass 100% (740 tests)
 npx tsc --noEmit  # Zero TypeScript compilation errors
 cd agent && pytest # All pytest suites must pass (Phase 6+)
 ```
