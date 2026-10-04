@@ -3,6 +3,36 @@
 
 Tüm önemli değişiklikler bu dosyada belgelenir. Format [Keep a Changelog](https://keepachangelog.com/) standardına uygundur.
 
+## [0.6.7] - 2026-10-04 (Faz 6 — AI Ajan Koordinasyon Sistemi & Açık Kaynak Yayın Hazırlığı)
+
+Faz 6'nın tüm adımlarını (v0.6.0 – v0.6.7) kapsar. Proje bu sürümle birlikte **Pulse Teams** adını almıştır.
+
+### Eklendi (Added)
+- **Ajan Altyapısı (Adım 6.01, v0.6.0):** `DomainEvent` (outbox), `AgentRun`, `AgentSettings` modelleri; test edilebilir saat soyutlaması (`src/lib/clock.ts`, `agent/src/clock.py`); APScheduler'lı Python LangGraph konteyneri (`pulse-agent`); Agent-000 Supervisor; HMAC-SHA256 imzalı Internal API (`src/app/api/internal/agent/`); proje ayarlarında ajan sekmesi.
+- **Agent-001 Deadline Tracker (Adım 6.02, v0.6.1):** Oturumdan bağımsız yaklaşan/gecikmiş son tarih hatırlatmaları, ADMIN eskalasyonu ve dashboard "Agent Aktiviteleri" bileşeni.
+- **Agent-002 Task Hygiene & Agent-003 Status Requester (Adım 6.03, v0.6.2):** Eksik atanan/son tarih/açıklama tespiti; duran görevler için LangGraph `interrupt()`/`resume()` ile etkileşimli durum sorgusu ve zaman aşımında eskalasyon.
+- **Agent-004 Blocker Manager & Agent-009 Scope Creep Detection (Adım 6.04, v0.6.3):** `BLOCKS` bağımlılık zinciri takibi ve sprint ortasında kapsam büyümesi tespiti.
+- **Agent-005 Async Standup & Agent-006 Weekly Digest (Adım 6.05, v0.6.4):** `DailyStandup` / `StandupEntry` modelleri, sabah standup formu, LLM destekli özet ve haftalık sprint sağlık raporu.
+- **Agent-007 Workload Balancer & Agent-008 Sprint Assistant (Adım 6.06, v0.6.5):** Aşırı yük/boşta tespiti ve yeniden atama `AgentProposal`'ı; sprint taşma uyarısı ve retro taslağı.
+- **Proje Hafızası & RAG Semantik Arama (Adım 6.07, v0.6.6):** `TaskEmbedding` modeli, `pgvector` ivfflat kosinüs indeksi, SHA-256 içerik özetleme, hibrit vektör/metin sıralaması ve "Benzer Görevler" arayüzü.
+- **Konsolidasyon & Sağlamlaştırma (Adım 6.08, v0.6.7):** Slot Replay motoru, zaman yolculuğu güvenlik kapısı (`isTimeTravelEnabled`), advisory lock ile engel kaldırma tekilleştirmesi, poller dayanıklılığı ve uçtan uca çok ajanlı doğrulama.
+- **Sürekli Entegrasyon:** Lint, tip kontrolü, Vitest ve Pytest çalıştıran GitHub Actions iş akışı (`.github/workflows/ci.yml`).
+- **Ekran Görüntüleri:** README'ye demo veri setinden alınmış altı ekran görüntüsü eklendi (`docs/screenshots/`).
+
+### Güvenlik & Dayanıklılık (Security & Reliability)
+- **Varsayılan HMAC Anahtarında Kapalı Kalma:** Production derlemesi, `INTERNAL_API_SECRET` herkese açık varsayılan değerdeyken tüm ajan isteklerini reddeder.
+- **Next.js 16.3.8:** `next/og ImageResponse` uzaktan kod çalıştırma açığını (GHSA-vcvr-r3jv-pc5j) kapatan sürüme yükseltildi.
+
+### Değişti (Changed)
+- **Proxy Kuralı:** `src/middleware.ts`, Next.js 16 kuralına uygun olarak `src/proxy.ts` olarak yeniden adlandırıldı.
+- **Dokümantasyon:** README ve `agent/README.md` Türkçeye çevrildi; makineye özgü dosya yolları depo köküne göreli hale getirildi.
+- **Temizlik:** Kullanılmayan varsayılan SVG'ler, yinelenen rehber dosyaları ve migration'ın yerini aldığı tek seferlik betik kaldırıldı.
+
+### Test
+- Toplam test sayısı 528'den **838**'e çıktı: 39 pakette 740 Vitest testi ve 17 pakette 98 Pytest testi, %100 geçiyor.
+
+---
+
 ## [0.5.4] - 2026-09-26 (Faz 5 — AI Proaktif Proje Koordinasyonu, 4-Dalga Refaktör & 3 Sağlamlaştırma Paketi)
 
 ### Eklendi (Added)
