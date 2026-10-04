@@ -1,56 +1,56 @@
 # pulse-agent
 
-Python container for Pulse Phase 6 AI agent coordination (ADR-034, spec `docs/spec/v0.6.0-step-6.01.md` §4).
+Pulse Faz 6 yapay zekâ ajan koordinasyonu için Python konteyneri (ADR-034, spesifikasyon `docs/spec/v0.6.0-step-6.01.md` §4).
 
-- **Agent-000 Supervisor** (`src/supervisor.py`): agent registry, per-project enablement (`AgentSettings.enabled`), one run per `(agentKey, projectId, scheduledFor)` via the `AgentRun` unique constraint, error capture.
-- **Scheduler** (`src/scheduler.py`): APScheduler cron, daily at `SCHEDULE_HOUR:00` in `TZ`.
-- **Startup catch-up** (`src/catchup.py`): runs today's missed slot once on boot.
-- **Outbox poller** (`src/poller.py`): consumes `DomainEvent` rows with `FOR UPDATE SKIP LOCKED`. Each claim takes a lease (`lockedAt`, `attempts`); expired leases are re-queued or failed, and `lockedAt` fences finalization, so several agent instances can run safely. Handler errors are stored in `DomainEvent.error` and are not retried automatically.
-- **Internal API client** (`src/internal_client.py`): HMAC-SHA256 signed calls to Next.js `/api/internal/agent/*`.
-- **Clock** (`src/clock.py`): `get_now()` with `set_mock_clock()` for tests.
+- **Agent-000 Supervisor** (`src/supervisor.py`): ajan kaydı, proje bazında etkinleştirme (`AgentSettings.enabled`), `AgentRun` benzersizlik kısıtı sayesinde her `(agentKey, projectId, scheduledFor)` için tek çalışma, hata yakalama.
+- **Scheduler** (`src/scheduler.py`): APScheduler cron'u; her gün `TZ` saat diliminde `SCHEDULE_HOUR:00`'da çalışır.
+- **Başlangıç telafisi** (`src/catchup.py`): açılışta, o gün kaçırılmış slotu bir kez çalıştırır.
+- **Outbox poller** (`src/poller.py`): `DomainEvent` satırlarını `FOR UPDATE SKIP LOCKED` ile tüketir. Her sahiplenme bir kiralama (`lockedAt`, `attempts`) alır; süresi dolan kiralamalar yeniden kuyruğa alınır veya başarısız işaretlenir ve `lockedAt` sonlandırmayı korur. Böylece birden fazla ajan örneği güvenle çalışabilir. Handler hataları `DomainEvent.error` alanına yazılır ve otomatik olarak yeniden denenmez.
+- **Internal API istemcisi** (`src/internal_client.py`): Next.js `/api/internal/agent/*` uç noktalarına HMAC-SHA256 imzalı çağrılar yapar.
+- **Saat** (`src/clock.py`): testler için `set_mock_clock()` destekli `get_now()`.
 
-Python writes only `DomainEvent` status, `AgentRun` and `AgentProposal` rows; all other mutations go through the Next.js Internal API.
+Python tarafı yalnızca `DomainEvent` durumunu, `AgentRun` ve `AgentProposal` satırlarını yazar; diğer tüm mutasyonlar Next.js Internal API üzerinden yapılır.
 
-## Environment
+## Ortam Değişkenleri
 
-| Variable | Default | Notes |
+| Değişken | Varsayılan | Notlar |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgresql://postgres:password@localhost:5432/pulse` | Prisma-only params such as `?schema=public` are stripped automatically |
-| `INTERNAL_API_URL` | `http://localhost:3000` | `http://app:3000` inside docker-compose |
-| `INTERNAL_API_SECRET` | `pulse-internal-secret-key-change-in-prod` | Must match the Next.js app |
+| `DATABASE_URL` | `postgresql://postgres:password@localhost:5432/pulse` | `?schema=public` gibi yalnızca Prisma'ya özgü parametreler otomatik olarak ayıklanır |
+| `INTERNAL_API_URL` | `http://localhost:3000` | docker-compose içinde `http://app:3000` |
+| `INTERNAL_API_SECRET` | `pulse-internal-secret-key-change-in-prod` | Next.js uygulamasındaki değerle aynı olmalıdır |
 | `TZ` | `Europe/Istanbul` | |
-| `SCHEDULE_HOUR` | `9` | Daily run hour (local `TZ`) |
-| `POLL_INTERVAL_SECONDS` | `5` | Outbox poll interval |
-| `POLL_BATCH_SIZE` | `20` | Events claimed per poll |
-| `EVENT_LEASE_SECONDS` | `600` | A PROCESSING event older than this lease is treated as abandoned |
-| `EVENT_MAX_ATTEMPTS` | `3` | Claims allowed before an abandoned event is marked FAILED instead of re-queued |
-| `EVENT_LEASE_SWEEP_SECONDS` | `60` | How often the poller sweeps for expired leases |
-| `DB_CONNECT_TIMEOUT_SECONDS` | `10` | psycopg connect timeout |
+| `SCHEDULE_HOUR` | `9` | Günlük çalışma saati (yerel `TZ`) |
+| `POLL_INTERVAL_SECONDS` | `5` | Outbox yoklama aralığı |
+| `POLL_BATCH_SIZE` | `20` | Her yoklamada sahiplenilen olay sayısı |
+| `EVENT_LEASE_SECONDS` | `600` | Bu süreden eski bir PROCESSING olayı terk edilmiş sayılır |
+| `EVENT_MAX_ATTEMPTS` | `3` | Terk edilmiş bir olayın yeniden kuyruğa alınmak yerine FAILED işaretlenmesinden önce izin verilen sahiplenme sayısı |
+| `EVENT_LEASE_SWEEP_SECONDS` | `60` | Poller'ın süresi dolan kiralamaları tarama sıklığı |
+| `DB_CONNECT_TIMEOUT_SECONDS` | `10` | psycopg bağlantı zaman aşımı |
 | `LOG_LEVEL` | `INFO` | |
 
-Values are read from the process environment, then `agent/.env`, then the repo root `.env`.
+Değerler sırasıyla süreç ortamından, `agent/.env` dosyasından ve depo kökündeki `.env` dosyasından okunur.
 
-## Run locally
+## Yerelde Çalıştırma
 
 ```bash
 cd agent
 python -m venv .venv
-.venv/Scripts/activate        # Windows (source .venv/bin/activate on Linux/macOS)
+.venv/Scripts/activate        # Windows (Linux/macOS: source .venv/bin/activate)
 pip install -r requirements.txt
 python -m src.main
 ```
 
-## Tests
+## Testler
 
 ```bash
 cd agent && pytest
 ```
 
-Test suites under `agent/tests/` are authored by Antigravity (see ADR-034 §I).
+`agent/tests/` altındaki test paketleri Antigravity tarafından yazılır (bkz. ADR-034 §I).
 
 ## Docker
 
 ```bash
-docker compose up -d --build agent   # service "agent", container "pulse-agent"
+docker compose up -d --build agent   # servis "agent", konteyner "pulse-agent"
 docker logs -f pulse-agent
 ```
