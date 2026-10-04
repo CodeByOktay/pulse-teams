@@ -1,6 +1,6 @@
 # Pulse
 
-> Modern, high-performance Kanban & Sprint management platform with proactive AI project coordination.
+> Proaktif yapay zekâ koordinasyonuna sahip, modern ve yüksek performanslı Kanban & Sprint yönetim platformu.
 
 [![CI](https://github.com/CodeByOktay/Pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/CodeByOktay/Pulse/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-v0.6.7-blue.svg)](https://github.com/CodeByOktay/Pulse)
@@ -16,62 +16,62 @@
 
 ---
 
-## Overview
+## Genel Bakış
 
-Pulse is a developer-centric, full-featured project management platform designed for agile software teams. Built with Next.js 16 and PostgreSQL, it delivers sub-millisecond local interactions, fluid drag-and-drop workflows, and deterministic business logic.
+Pulse, çevik yazılım ekipleri için tasarlanmış, geliştirici odaklı ve tam özellikli bir proje yönetim platformudur. Next.js 16 ve PostgreSQL üzerine kuruludur; akıcı sürükle-bırak iş akışları, iyimser (optimistic) arayüz güncellemeleri ve deterministik iş mantığı sunar.
 
-Beyond traditional project tracking, Pulse introduces **Proactive AI Coordination**: an approval-gated, three-tier automation system that detects resolved task dependencies, collects progress reports from team members, interprets natural language status updates, and proposes Kanban/Sprint mutations under human control. A separate Python **LangGraph** service runs a catalog of ten coordination agents (deadlines, task hygiene, blockers, standups, weekly digests, workload balancing, sprint assistance) driven by a PostgreSQL event outbox.
-
----
-
-## Features
-
-- **Interactive Kanban Board:** Fluid vertical and cross-column drag-and-drop powered by `@dnd-kit`, optimistic UI updates with automatic server rollback, and $O(1)$ float-based midpoint sorting (`sortOrder`).
-- **Sprint & Cycle Lifecycle:** Full Draft $\rightarrow$ Active $\rightarrow$ Completed sprint transitions, atomic concurrency guards against double-completion races, and single-active-sprint constraints.
-- **Alternative Views:** Collapsible, sortable tabular List View and dedicated Backlog View that preserves completed sprint history.
-- **Slide-Over Task Panel:** 720px detail drawer featuring inline markdown editing, deterministic avatar color hashing, and deep-linkable URLs (`?task=PRJ-X`).
-- **Task Dependencies & Cycle Prevention:** Unidirectional dependency graph (`BLOCKS`, `RELATES_TO`, `DUPLICATES`) with iterative DFS cycle detection preventing infinite loops.
-- **Global Search & Command Palette:** Global `Ctrl+K` / `Cmd+K` palette with cyclic keyboard navigation and context-aware quick actions across member projects.
-- **Dashboard Analytics:** CSS-only sprint velocity bars, completion rate calculations, overdue task alerts, and recent audit activity feed without external charting bloat.
-- **In-App & Email Notifications:** 30-second tab-aware notification polling, `@mention` parsing, calendar-day due date alerts (0, 1, 3 days), and non-blocking Nodemailer delivery for invites and welcomes.
-- **AI Proactive Coordination:**
-  - Automated `TASK_UNBLOCKED` domain event notifications upon blocker resolution.
-  - Interactive `ProgressRequest` / `ProgressResponse` lifecycle.
-  - Natural language status extraction producing structured `AgentProposal` candidates.
-  - Human-in-the-loop approval UI (`AgentProposalCard`) with audit trail logging (`isAiGenerated`).
-- **Multi-Agent Coordination Service (Python + LangGraph):**
-  - `DomainEvent` outbox consumed with `FOR UPDATE SKIP LOCKED` leases; APScheduler cron with startup catch-up.
-  - Agent-000 Supervisor (routing, per-project enablement, idempotent `AgentRun` logging) and Agents 001–009: Deadline Tracker, Task Hygiene, Status Requester (LangGraph `interrupt()`/resume), Blocker Manager, Async Standup, Weekly Digest, Workload Balancer, Sprint Assistant, Scope Creep Detection.
-  - HMAC-SHA256 signed Internal API between the agent service and Next.js.
-  - Testable clock abstraction with Slot Replay for simulated time travel (development only).
-- **Project Memory & Semantic Search:** `pgvector` embeddings with SHA-256 content hashing and hybrid vector/text ranking, falling back to text search when no embedding provider is configured.
-- **Project Settings & RBAC:** Admin-governed state pipelines, custom color-coded labels, and role-based project member access control.
+Klasik proje takibinin ötesinde Pulse, **Proaktif Yapay Zekâ Koordinasyonu** getirir: çözülen görev bağımlılıklarını tespit eden, ekip üyelerinden ilerleme raporu toplayan, doğal dille yazılmış durum güncellemelerini yorumlayan ve Kanban/Sprint değişikliklerini insan onayına sunan, üç katmanlı ve onay kapılı bir otomasyon sistemi. Ayrı bir Python **LangGraph** servisi, PostgreSQL olay kutusu (outbox) ile tetiklenen on koordinasyon ajanından oluşan bir kataloğu çalıştırır (son tarihler, görev hijyeni, engeller, standup'lar, haftalık özetler, iş yükü dengeleme, sprint asistanlığı).
 
 ---
 
-## Screenshots
+## Özellikler
 
-Captured from the seeded demo dataset (`npm run db:seed-rich`).
-
-| Kanban Board | Task Detail Slide-Over |
-| :---: | :---: |
-| ![Kanban board with filter chips and saved views](docs/screenshots/board.png) | ![Task detail panel with markdown editor, relations and activity](docs/screenshots/task-detail.png) |
-
-| Dashboard | Sprint Management |
-| :---: | :---: |
-| ![Dashboard with stat cards, assigned tasks and recent activity](docs/screenshots/dashboard.png) | ![Sprint list with active, draft and completed sprints](docs/screenshots/sprints.png) |
-
-| List View | Command Palette (Ctrl+K) |
-| :---: | :---: |
-| ![Sortable list view grouped by state](docs/screenshots/list.png) | ![Command palette searching tasks and quick actions](docs/screenshots/command-palette.png) |
-
-> **Language note:** The application UI, the ADRs under `docs/wiki/`, the specs under `docs/spec/`, and some code comments are written in Turkish. This README, the code identifiers, and the commit history are in English.
+- **Etkileşimli Kanban Panosu:** `@dnd-kit` ile sütun içi ve sütunlar arası akıcı sürükle-bırak, sunucu hatasında otomatik geri alınan iyimser arayüz güncellemeleri ve $O(1)$ float tabanlı orta nokta sıralaması (`sortOrder`).
+- **Sprint & Döngü Yaşam Döngüsü:** Taslak $\rightarrow$ Aktif $\rightarrow$ Tamamlandı geçişleri, çift tamamlama yarışlarına karşı atomik eşzamanlılık korumaları ve proje başına tek aktif sprint kısıtı.
+- **Alternatif Görünümler:** Daraltılabilir ve sıralanabilir tablo biçiminde Liste Görünümü ile tamamlanmış sprint geçmişini koruyan ayrı bir Backlog Görünümü.
+- **Yandan Açılan Görev Paneli:** Satır içi markdown düzenleme, deterministik avatar rengi üretimi ve doğrudan bağlantı verilebilen URL'ler (`?task=`) içeren 720px genişliğinde detay çekmecesi.
+- **Görev Bağımlılıkları & Döngü Önleme:** Tek yönlü bağımlılık grafiği (`BLOCKS`, `RELATES_TO`, `DUPLICATES`) ve sonsuz döngüleri engelleyen yinelemeli (iterative) DFS döngü tespiti.
+- **Global Arama & Komut Paleti:** Üye olunan projeler genelinde döngüsel klavye gezinmesi ve bağlama duyarlı hızlı aksiyonlar sunan `Ctrl+K` / `Cmd+K` paleti.
+- **Dashboard Analitiği:** Harici grafik kütüphanesi kullanmadan, yalnızca CSS ile sprint hız çubukları, tamamlanma oranı hesapları, gecikmiş görev uyarıları ve son aktivite akışı.
+- **Uygulama İçi & E-posta Bildirimleri:** Sekme görünürlüğüne duyarlı 30 saniyelik bildirim yoklaması, `@mention` ayrıştırma, takvim günü bazlı son tarih uyarıları (0, 1, 3 gün) ve davet/hoş geldin e-postaları için engellemeyen Nodemailer gönderimi.
+- **Proaktif Yapay Zekâ Koordinasyonu:**
+  - Engel çözüldüğünde otomatik `TASK_UNBLOCKED` domain event bildirimleri.
+  - Etkileşimli `ProgressRequest` / `ProgressResponse` yaşam döngüsü.
+  - Doğal dildeki durum bilgisinden yapılandırılmış `AgentProposal` adayları üretme.
+  - Denetim izi kaydı (`isAiGenerated`) tutan, insan onaylı arayüz (`AgentProposalCard`).
+- **Çok Ajanlı Koordinasyon Servisi (Python + LangGraph):**
+  - `FOR UPDATE SKIP LOCKED` kiralamalarıyla tüketilen `DomainEvent` kutusu; başlangıçta kaçan çalışmaları telafi eden APScheduler cron'u.
+  - Agent-000 Supervisor (yönlendirme, proje bazında etkinleştirme, idempotent `AgentRun` kaydı) ve 001–009 arası ajanlar: Deadline Tracker, Task Hygiene, Status Requester (LangGraph `interrupt()`/resume), Blocker Manager, Async Standup, Weekly Digest, Workload Balancer, Sprint Assistant, Scope Creep Detection.
+  - Ajan servisi ile Next.js arasında HMAC-SHA256 imzalı Internal API.
+  - Simüle zaman yolculuğu için Slot Replay destekli, test edilebilir saat soyutlaması (yalnızca geliştirme ortamında).
+- **Proje Hafızası & Semantik Arama:** SHA-256 içerik özetlemeli `pgvector` gömmeleri (embedding) ve hibrit vektör/metin sıralaması; gömme sağlayıcısı tanımlı değilse metin aramasına düşer.
+- **Proje Ayarları & RBAC:** Yönetici denetimindeki durum (state) hatları, renk kodlu özel etiketler ve rol tabanlı proje üyesi erişim kontrolü.
 
 ---
 
-## Architecture
+## Ekran Görüntüleri
 
-Pulse enforces a strict separation of concerns across its application layers:
+Seed edilmiş demo veri setinden alınmıştır (`npm run db:seed-rich`).
+
+| Kanban Panosu | Görev Detay Paneli |
+| :---: | :---: |
+| ![Filtre çipleri ve kayıtlı görünümlerle Kanban panosu](docs/screenshots/board.png) | ![Markdown editörü, ilişkiler ve aktivite içeren görev detay paneli](docs/screenshots/task-detail.png) |
+
+| Dashboard | Sprint Yönetimi |
+| :---: | :---: |
+| ![İstatistik kartları, atanan görevler ve son aktivitelerle dashboard](docs/screenshots/dashboard.png) | ![Aktif, taslak ve tamamlanmış sprintlerin listesi](docs/screenshots/sprints.png) |
+
+| Liste Görünümü | Komut Paleti (Ctrl+K) |
+| :---: | :---: |
+| ![Duruma göre gruplanmış, sıralanabilir liste görünümü](docs/screenshots/list.png) | ![Görevleri ve hızlı aksiyonları arayan komut paleti](docs/screenshots/command-palette.png) |
+
+> **Dil notu:** Uygulama arayüzü, bu README, `docs/wiki/` altındaki ADR'ler, `docs/spec/` altındaki spesifikasyonlar ve bazı kod yorumları Türkçedir. Kod içindeki isimlendirmeler ve commit geçmişi İngilizcedir.
+
+---
+
+## Mimari
+
+Pulse, uygulama katmanları arasında sıkı bir sorumluluk ayrımı uygular:
 
 ```
 [ Next.js 16 App Router (RSC + Client Components) ]
@@ -93,148 +93,148 @@ Pulse enforces a strict separation of concerns across its application layers:
   (Agent-000 Supervisor → Agents 001–009)           (/api/internal/agent/*)
 ```
 
-### Architectural Principles
-- **Pure Business Logic Isolation:** All algorithmic operations (cycle detection, burndown math, filter compilation, seed generators) reside in pure functions under `src/lib/`.
-- **Centralized Authorization:** Every Server Action delegates membership and role verification to `src/lib/authz.ts`.
-- **Atomic Concurrency:** Mutations prone to race conditions (e.g. `completeSprint`) use atomic Prisma `updateMany` guards.
-- **Non-blocking Side Effects:** Activity logging and notification/email dispatches are isolated in internal error handlers to prevent transactional rollbacks.
+### Mimari İlkeler
+- **Saf İş Mantığı İzolasyonu:** Tüm algoritmik işlemler (döngü tespiti, burndown hesabı, filtre derleme, seed üreteçleri) `src/lib/` altındaki saf fonksiyonlarda bulunur.
+- **Merkezi Yetkilendirme:** Her Server Action, üyelik ve rol doğrulamasını `src/lib/authz.ts` modülüne devreder.
+- **Atomik Eşzamanlılık:** Yarış durumuna açık mutasyonlar (ör. `completeSprint`) atomik Prisma `updateMany` korumaları kullanır.
+- **Engellemeyen Yan Etkiler:** Aktivite kaydı ile bildirim/e-posta gönderimleri kendi hata yakalayıcılarında izole edilir; böylece ana transaction geri alınmaz.
 
 ---
 
-## Tech Stack
+## Teknoloji Yığını
 
-| Layer | Technology | Purpose |
+| Katman | Teknoloji | Amaç |
 |---|---|---|
 | **Framework** | Next.js 16 (App Router, Turbopack) | Server Components, Server Actions, SSR |
-| **Language** | TypeScript 5 (Strict Mode) | End-to-end type safety |
-| **Styling** | Tailwind CSS v4, Lucide React | Modern dark/light responsive interface |
-| **State & Drag-and-Drop** | @dnd-kit (core, sortable, utilities) | Accessible, 60fps drag-and-drop interactions |
-| **Database & ORM** | PostgreSQL 16 + pgvector, Prisma v6.19 | Relational database, vector search, typed migrations |
-| **Agent Service** | Python 3.11+, LangGraph, APScheduler, psycopg 3 | Event-driven and scheduled coordination agents |
-| **Authentication** | NextAuth.js v4 + bcryptjs (salt:12) | Credentials-based JWT authentication |
-| **Markdown** | react-markdown + remark-gfm | GitHub-flavored markdown parsing and rendering |
-| **Email Service** | Nodemailer | Universal SMTP, Ethereal test, and console mailer |
-| **Testing** | Vitest v5, Pytest | TypeScript and Python unit/integration tests |
+| **Dil** | TypeScript 5 (Strict Mode) | Uçtan uca tip güvenliği |
+| **Stil** | Tailwind CSS v4, Lucide React | Modern, koyu/açık temalı duyarlı arayüz |
+| **Sürükle-Bırak** | @dnd-kit (core, sortable, utilities) | Erişilebilir, 60fps sürükle-bırak etkileşimleri |
+| **Veritabanı & ORM** | PostgreSQL 16 + pgvector, Prisma v6.19 | İlişkisel veritabanı, vektör arama, tipli migration'lar |
+| **Ajan Servisi** | Python 3.11+, LangGraph, APScheduler, psycopg 3 | Olay tabanlı ve zamanlanmış koordinasyon ajanları |
+| **Kimlik Doğrulama** | NextAuth.js v4 + bcryptjs (salt:12) | E-posta/şifre tabanlı JWT kimlik doğrulama |
+| **Markdown** | react-markdown + remark-gfm | GitHub tarzı markdown ayrıştırma ve görüntüleme |
+| **E-posta Servisi** | Nodemailer | SMTP, Ethereal test ve konsol çıktısı destekli posta motoru |
+| **Test** | Vitest v5, Pytest | TypeScript ve Python birim/entegrasyon testleri |
 
 ---
 
-## Project Structure
+## Proje Yapısı
 
 ```
 Pulse/
-├── agent/                       # Python LangGraph agent service (pulse-agent)
-│   ├── src/                     # Supervisor, poller, scheduler, Agents 001–009
-│   └── tests/                   # 17 Pytest suites (98 tests)
+├── agent/                       # Python LangGraph ajan servisi (pulse-agent)
+│   ├── src/                     # Supervisor, poller, scheduler, Agent 001–009
+│   └── tests/                   # 17 Pytest paketi (98 test)
 ├── prisma/
-│   ├── schema.prisma            # 26 Pulse models (+4 LangGraph checkpoint tables) & 9 enums
-│   ├── migrations/              # Incremental SQL migration history
-│   └── seed-realistic-data.ts   # Deterministic PRNG seeding script
+│   ├── schema.prisma            # 26 Pulse modeli (+4 LangGraph checkpoint tablosu) ve 9 enum
+│   ├── migrations/              # Artımlı SQL migration geçmişi
+│   └── seed-realistic-data.ts   # Deterministik PRNG seed betiği
 ├── src/
-│   ├── actions/                 # Server Actions with authz guards
-│   ├── app/                     # Next.js App Router pages and API routes
-│   ├── components/              # Modular React 19 UI components
-│   │   ├── board/               # Kanban board & drag-and-drop columns
-│   │   ├── dashboard/           # Analytics cards, activity feeds, metrics
-│   │   ├── filters/             # Filter bars, quick chips, saved views
-│   │   ├── search/              # Command palette (Ctrl+K)
-│   │   ├── settings/            # States, labels, member administration
-│   │   ├── sprints/             # Sprint cards, modals, task picker
-│   │   └── task-detail/         # Slide-over modal, relations, proposals
-│   └── lib/                     # Pure business domain logic
-│       ├── authz.ts             # Centralized server authorization
-│       ├── mail.ts              # Nodemailer email engine
-│       └── __tests__/           # 39 Vitest test suites (740 tests)
+│   ├── actions/                 # Yetkilendirme korumalı Server Action'lar
+│   ├── app/                     # Next.js App Router sayfaları ve API route'ları
+│   ├── components/              # Modüler React 19 arayüz bileşenleri
+│   │   ├── board/               # Kanban panosu ve sürükle-bırak sütunları
+│   │   ├── dashboard/           # Analitik kartları, aktivite akışları, metrikler
+│   │   ├── filters/             # Filtre çubukları, hızlı çipler, kayıtlı görünümler
+│   │   ├── search/              # Komut paleti (Ctrl+K)
+│   │   ├── settings/            # Durum, etiket ve üye yönetimi
+│   │   ├── sprints/             # Sprint kartları, modallar, görev seçici
+│   │   └── task-detail/         # Yandan açılan panel, ilişkiler, öneriler
+│   └── lib/                     # Saf iş mantığı
+│       ├── authz.ts             # Merkezi sunucu yetkilendirmesi
+│       ├── mail.ts              # Nodemailer e-posta motoru
+│       └── __tests__/           # 39 Vitest paketi (740 test)
 └── docs/
-    ├── screenshots/             # README screenshots
-    ├── wiki/                    # 36 Architecture Decision Records (ADRs)
-    ├── spec/                    # Step-by-step implementation specifications
-    └── ai-context/              # Modular AI architectural snapshots
+    ├── screenshots/             # README ekran görüntüleri
+    ├── wiki/                    # 36 Mimari Karar Kaydı (ADR)
+    ├── spec/                    # Adım adım uygulama spesifikasyonları
+    └── ai-context/              # Modüler yapay zekâ mimari özetleri
 ```
 
 ---
 
-## Setup
+## Kurulum
 
-### Prerequisites
-- **Node.js:** v20 or higher (npm v10+)
-- **Docker & Docker Compose:** For PostgreSQL 16 with the `pgvector` extension
-- **Python:** v3.11 or higher *(optional — only for the `pulse-agent` coordination service)*
+### Ön Koşullar
+- **Node.js:** v20 veya üzeri (npm v10+)
+- **Docker & Docker Compose:** `pgvector` eklentili PostgreSQL 16 için
+- **Python:** v3.11 veya üzeri *(isteğe bağlı — yalnızca `pulse-agent` koordinasyon servisi için)*
 
-### Quickstart
+### Hızlı Başlangıç
 
-1. **Clone the repository and install dependencies:**
+1. **Depoyu klonlayın ve bağımlılıkları kurun:**
    ```bash
    git clone https://github.com/CodeByOktay/Pulse.git
    cd Pulse
    npm install
    ```
-   The committed `.npmrc` sets `legacy-peer-deps=true`: `next-auth@4` declares an optional peer on `nodemailer@^7`, while Pulse uses `nodemailer@^10` for its own mail service (the next-auth email provider is not used).
-   On npm 11+, the Prisma and `unrs-resolver` install scripts are pre-approved through the `allowScripts` field in `package.json`.
+   Depodaki `.npmrc` dosyası `legacy-peer-deps=true` ayarını yapar: `next-auth@4`, `nodemailer@^7` için isteğe bağlı bir peer bağımlılığı tanımlar; Pulse ise kendi posta servisi için `nodemailer@^10` kullanır (next-auth e-posta sağlayıcısı kullanılmaz).
+   npm 11 ve üzerinde Prisma ile `unrs-resolver` kurulum betikleri `package.json` içindeki `allowScripts` alanıyla önceden onaylanmıştır.
 
-2. **Configure environment variables:**
+2. **Ortam değişkenlerini yapılandırın:**
    ```bash
    cp .env.example .env
    ```
-   Replace `NEXTAUTH_SECRET` with a random value (`openssl rand -base64 32`).
+   `NEXTAUTH_SECRET` değerini rastgele bir değerle değiştirin (`openssl rand -base64 32`).
 
-3. **Start the PostgreSQL database:**
+3. **PostgreSQL veritabanını başlatın:**
    ```bash
    docker compose up -d db
    ```
-   This starts only the `pgvector/pgvector:pg16` database. A plain `postgres` image will not work: the migrations require the `vector` extension.
-   *(Standalone alternative: `docker run --name pulse-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=pulse -p 5432:5432 -d pgvector/pgvector:pg16`)*
+   Bu komut yalnızca `pgvector/pgvector:pg16` veritabanını başlatır. Düz bir `postgres` imajı çalışmaz: migration'lar `vector` eklentisini gerektirir.
+   *(Bağımsız alternatif: `docker run --name pulse-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=pulse -p 5432:5432 -d pgvector/pgvector:pg16`)*
 
-4. **Apply database migrations:**
+4. **Veritabanı migration'larını uygulayın:**
    ```bash
    npx prisma migrate dev
    ```
 
-5. **(Optional) Seed rich mock dataset:**
+5. **(İsteğe bağlı) Zengin demo veri setini yükleyin:**
    ```bash
    npm run db:seed-rich
    ```
-   *Seeds 10 user personas (password: `password123`), 5 projects, sprints, tasks, comments, and activity history.*
+   *10 kullanıcı (şifre: `password123`), 5 proje, sprintler, görevler, yorumlar ve aktivite geçmişi oluşturur. Örnek giriş: `admin@pulse.local`.*
 
-6. **Start the development server:**
+6. **Geliştirme sunucusunu başlatın:**
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Tarayıcınızda [http://localhost:3000](http://localhost:3000) adresini açın.
 
-7. **(Optional) Run the agent service locally:**
+7. **(İsteğe bağlı) Ajan servisini yerelde çalıştırın:**
    ```bash
    cd agent
    python -m venv .venv
-   .venv/Scripts/activate          # Windows (source .venv/bin/activate on Linux/macOS)
+   .venv/Scripts/activate          # Windows (Linux/macOS: source .venv/bin/activate)
    pip install -r requirements.txt
    python -m src.main
    ```
-   The agent reads `DATABASE_URL` and `INTERNAL_API_SECRET` from the repository root `.env`. See [`agent/README.md`](agent/README.md) for all settings.
+   Ajan, `DATABASE_URL` ve `INTERNAL_API_SECRET` değerlerini depo kökündeki `.env` dosyasından okur. Tüm ayarlar için [`agent/README.md`](agent/README.md) dosyasına bakın.
 
 ---
 
-## Environment Variables
+## Ortam Değişkenleri
 
-Configure the following variables in your `.env` file (see [`.env.example`](.env.example) for the complete, commented list):
+Aşağıdaki değişkenleri `.env` dosyanızda tanımlayın (açıklamalı tam liste için [`.env.example`](.env.example) dosyasına bakın):
 
-| Variable | Description | Example / Default |
+| Değişken | Açıklama | Örnek / Varsayılan |
 |---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:password@localhost:5432/pulse?schema=public` |
-| `NEXTAUTH_SECRET` | Secret key for JWT session encryption | Generate via `openssl rand -base64 32` |
-| `NEXTAUTH_URL` / `APP_URL` | Canonical application URL | `http://localhost:3000` |
-| `INTERNAL_API_SECRET` | Shared HMAC secret between Next.js and `pulse-agent` | Dev-only default; **must be changed in production** |
-| `EMAIL_FROM` | Outgoing sender address | `Pulse <noreply@pulse.local>` |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP delivery (leave host empty for Ethereal/console fallback) | `smtp.example.com`, `587` |
-| `AI_ENDPOINT` / `AI_MODEL` / `AI_API_KEY` | Provider-agnostic (OpenAI-compatible) chat endpoint for AI features | Empty = deterministic heuristic fallback |
-| `AI_EMBEDDING_ENDPOINT` / `AI_EMBEDDING_MODEL` | Embeddings endpoint for semantic search (1536-dim vectors) | Empty = text-only search |
+| `DATABASE_URL` | PostgreSQL bağlantı dizesi | `postgresql://postgres:password@localhost:5432/pulse?schema=public` |
+| `NEXTAUTH_SECRET` | JWT oturum şifrelemesi için gizli anahtar | `openssl rand -base64 32` ile üretin |
+| `NEXTAUTH_URL` / `APP_URL` | Uygulamanın kanonik URL'si | `http://localhost:3000` |
+| `INTERNAL_API_SECRET` | Next.js ile `pulse-agent` arasındaki ortak HMAC anahtarı | Yalnızca geliştirme için varsayılan; **production'da mutlaka değiştirilmeli** |
+| `EMAIL_FROM` | Giden e-posta gönderici adresi | `Pulse <noreply@pulse.local>` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP gönderimi (Ethereal/konsol için host'u boş bırakın) | `smtp.example.com`, `587` |
+| `AI_ENDPOINT` / `AI_MODEL` / `AI_API_KEY` | Yapay zekâ özellikleri için sağlayıcıdan bağımsız (OpenAI uyumlu) sohbet uç noktası | Boş = deterministik sezgisel yorumlayıcı |
+| `AI_EMBEDDING_ENDPOINT` / `AI_EMBEDDING_MODEL` | Semantik arama için gömme uç noktası (1536 boyutlu vektörler) | Boş = yalnızca metin araması |
 
-Non-secret AI settings can alternatively live in `ai.config.json` (copy from [`ai.config.example.json`](ai.config.example.json)); API keys belong in the environment only.
+Gizli olmayan yapay zekâ ayarları alternatif olarak `ai.config.json` dosyasında tutulabilir ([`ai.config.example.json`](ai.config.example.json) dosyasından kopyalayın); API anahtarları yalnızca ortam değişkenlerinde bulunmalıdır.
 
 ---
 
-## Database
+## Veritabanı
 
-Pulse uses **PostgreSQL 16** with the **pgvector** extension, managed via **Prisma ORM v6.19**. The schema comprises **26 Pulse models** (plus 4 LangGraph checkpoint tables owned by the agent service) and **9 enums**. The diagram below shows the core domain.
+Pulse, **Prisma ORM v6.19** ile yönetilen, **pgvector** eklentili **PostgreSQL 16** kullanır. Şema **26 Pulse modeli** (ayrıca ajan servisine ait 4 LangGraph checkpoint tablosu) ve **9 enum** içerir. Aşağıdaki diyagram çekirdek alan modelini gösterir.
 
 ```mermaid
 erDiagram
@@ -274,174 +274,174 @@ erDiagram
     Sprint ||--o{ SprintTask : "includes"
 ```
 
-### Key Models & Enums
-- **Core Entities:** `User`, `Project`, `ProjectMember`, `State`, `Task`, `Label`, `TaskAssignee`, `TaskLabel`, `Comment`.
-- **Sprint Management:** `Sprint`, `SprintTask` (`SprintStatus`: `DRAFT`, `ACTIVE`, `COMPLETED`).
-- **Audit & Relations:** `Activity` (24 types, `isAiGenerated`), `TaskRelation` (`BLOCKS`, `RELATES_TO`, `DUPLICATES`).
-- **Notifications & Preferences:** `Notification` (12 types), `UserNotificationPreference`, `ProjectInvite`.
-- **AI Coordination:** `ProgressRequest`, `ProgressResponse`, `AgentProposal` (`PENDING`, `APPROVED`, `REJECTED`, `STALE`).
-- **Agent Infrastructure:** `DomainEvent` (outbox), `AgentRun` (idempotent run log), `AgentSettings`, `SystemClock`, `DailyStandup`, `StandupEntry`.
-- **Project Memory:** `TaskEmbedding` (`vector(1536)` with an ivfflat cosine index).
+### Temel Modeller & Enum'lar
+- **Çekirdek Varlıklar:** `User`, `Project`, `ProjectMember`, `State`, `Task`, `Label`, `TaskAssignee`, `TaskLabel`, `Comment`.
+- **Sprint Yönetimi:** `Sprint`, `SprintTask` (`SprintStatus`: `DRAFT`, `ACTIVE`, `COMPLETED`).
+- **Denetim & İlişkiler:** `Activity` (24 tür, `isAiGenerated`), `TaskRelation` (`BLOCKS`, `RELATES_TO`, `DUPLICATES`).
+- **Bildirimler & Tercihler:** `Notification` (12 tür), `UserNotificationPreference`, `ProjectInvite`.
+- **Yapay Zekâ Koordinasyonu:** `ProgressRequest`, `ProgressResponse`, `AgentProposal` (`PENDING`, `APPROVED`, `REJECTED`, `STALE`).
+- **Ajan Altyapısı:** `DomainEvent` (outbox), `AgentRun` (idempotent çalışma kaydı), `AgentSettings`, `SystemClock`, `DailyStandup`, `StandupEntry`.
+- **Proje Hafızası:** `TaskEmbedding` (ivfflat kosinüs indeksli `vector(1536)`).
 
 ---
 
-## Development Workflow
+## Geliştirme İş Akışı
 
-Pulse employs an **AI-Assisted Pair Programming & Dual-Agent Protocol**:
+Pulse, **yapay zekâ destekli eşli programlama ve çift ajanlı bir protokol** ile geliştirilmiştir:
 
-- **Antigravity (Lead Architect & QA Authority):** Responsible for architectural design, trade-off analysis, ADR authoring (`docs/wiki/`), AI memory curation (`docs/ai-context/`), and exclusive ownership of all test suites (`src/lib/__tests__/`).
-- **Claude Code (Builder & Implementer):** Implements features across database, server actions, and UI components. Follows the Golden Rule: *Never modify or weaken test files; fix implementation code until tests pass.*
+- **Antigravity (Baş Mimar & Kalite Otoritesi):** Mimari tasarım, ödünleşim analizi, ADR yazımı (`docs/wiki/`), yapay zekâ bağlam yönetimi (`docs/ai-context/`) ve tüm test paketlerinin (`src/lib/__tests__/`) sahipliğinden sorumludur.
+- **Claude Code (Uygulayıcı):** Özellikleri veritabanı, server action ve arayüz katmanlarında uygular. Altın Kural'a uyar: *Test dosyaları asla değiştirilmez veya zayıflatılmaz; testler geçene kadar uygulama kodu düzeltilir.*
 
-### Commands
+### Komutlar
 ```bash
-npm run dev        # Start local Next.js Turbopack dev server
-npm test           # Run 740 Vitest unit and integration tests
-npx tsc --noEmit   # Validate TypeScript types (zero errors)
-npm run build      # Verify production build compilation
-cd agent && pytest # Run 98 Pytest tests for the agent service
+npm run dev        # Yerel Next.js Turbopack geliştirme sunucusunu başlatır
+npm test           # 740 Vitest birim ve entegrasyon testini çalıştırır
+npx tsc --noEmit   # TypeScript tiplerini doğrular (sıfır hata)
+npm run build      # Production derlemesini doğrular
+cd agent && pytest # Ajan servisi için 98 Pytest testini çalıştırır
 ```
 
 ---
 
-## Testing
+## Test
 
-Pulse adheres to strict quality assurance invariants:
-- **Pure Domain Testing:** Server Actions are kept thin; complex algorithms reside in isolated pure functions tested deterministically with zero side effects.
-- **Coverage:** **838 tests** — 740 Vitest tests across 39 suites and 98 Pytest tests across 17 suites — maintaining a 100% pass rate.
-- **Test Inviolability:** Implementation fixes must never alter test assertions.
+Pulse sıkı kalite güvence kurallarına uyar:
+- **Saf Alan Mantığı Testi:** Server Action'lar ince tutulur; karmaşık algoritmalar, yan etkisiz ve deterministik biçimde test edilen izole saf fonksiyonlarda bulunur.
+- **Kapsam:** **838 test** — 39 pakette 740 Vitest testi ve 17 pakette 98 Pytest testi — %100 geçme oranıyla.
+- **Test Dokunulmazlığı:** Uygulama düzeltmeleri test doğrulamalarını (assertion) asla değiştirmemelidir.
 
 ```bash
-# Run the complete test suite
+# Tüm test paketini çalıştır
 npm test
 
-# Run tests in watch mode
+# Testleri izleme (watch) modunda çalıştır
 npx vitest
 
-# Run a specific suite
+# Belirli bir paketi çalıştır
 npx vitest src/lib/__tests__/task-relations.test.ts
 ```
 
 ---
 
-## RBAC Model
+## RBAC Modeli
 
-Pulse enforces granular Role-Based Access Control scoped per project:
+Pulse, proje bazında kapsamlandırılmış ayrıntılı Rol Tabanlı Erişim Kontrolü uygular:
 
-| Capability | OWNER | ADMIN | MEMBER |
+| Yetki | OWNER | ADMIN | MEMBER |
 |---|:---:|:---:|:---:|
-| View Board, List & Backlog | ✅ | ✅ | ✅ |
-| Create, Edit & Move Tasks | ✅ | ✅ | ✅ |
-| Add Comments & Relations | ✅ | ✅ | ✅ |
-| Manage Personal Notification Preferences | ✅ | ✅ | ✅ |
-| Manage Sprints (Create, Start, Complete) | ✅ | ✅ | ❌ |
-| Manage Project States & Labels | ✅ | ✅ | ❌ |
-| Invite & Remove Members | ✅ | ✅ | ❌ |
-| Change Member Roles | ✅ | ✅ | ❌ |
-| Delete Project / Transfer Ownership | ✅ | ❌ | ❌ |
+| Pano, Liste ve Backlog görüntüleme | ✅ | ✅ | ✅ |
+| Görev oluşturma, düzenleme ve taşıma | ✅ | ✅ | ✅ |
+| Yorum ve ilişki ekleme | ✅ | ✅ | ✅ |
+| Kişisel bildirim tercihlerini yönetme | ✅ | ✅ | ✅ |
+| Sprint yönetimi (oluşturma, başlatma, tamamlama) | ✅ | ✅ | ❌ |
+| Proje durumlarını ve etiketlerini yönetme | ✅ | ✅ | ❌ |
+| Üye davet etme ve çıkarma | ✅ | ✅ | ❌ |
+| Üye rollerini değiştirme | ✅ | ✅ | ❌ |
+| Projeyi silme / sahipliği devretme | ✅ | ❌ | ❌ |
 
-All mutations execute through centralized server guards: `requireSession`, `requireMembership`, `requireAdmin`, and `assertNotProjectOwner`.
-
----
-
-## API Documentation
-
-Pulse utilizes Next.js **Server Actions** (`"use server"`) as its primary mutation interface, complemented by NextAuth route handlers:
-
-### Server Actions Overview
-- **`src/actions/task.ts`:** Task CRUD, float position calculation, cross-project ID verification, state assignment.
-- **`src/actions/sprint.ts`:** Sprint lifecycle transitions, atomic completion guard, task sprint assignment.
-- **`src/actions/member.ts`:** Member invitations (7-day tokens), role management, member offboarding.
-- **`src/actions/relation.ts`:** Dependency creation with iterative DFS cycle checks and perspective inversion.
-- **`src/actions/notification.ts`:** In-app notification retrieval, batch read updates, approaching due date checks.
-- **`src/actions/progress.ts`:** Progress request issuance and team member response submission.
-- **`src/actions/agent-proposal.ts`:** AI proposal generation, human approval, and rejection handlers.
-- **`src/actions/search.ts`:** Scoped global search across tasks and project titles.
-- **`src/actions/semantic-search.ts`:** Hybrid vector/text search over project memory.
-- **`src/actions/agent-settings.ts`, `standup.ts`, `clock.ts`:** Per-project agent configuration, standup submission, and development-only time simulation.
-
-### HTTP Endpoints
-- `GET/POST /api/auth/[...nextauth]` — NextAuth.js session and authentication endpoints.
-- `POST /api/auth/register` — New user account registration with automated welcome email dispatch.
-- `POST /api/internal/agent/*` — 17 HMAC-SHA256 signed endpoints used exclusively by the `pulse-agent` service (not user-facing).
+Tüm mutasyonlar merkezi sunucu korumalarından geçer: `requireSession`, `requireMembership`, `requireAdmin` ve `assertNotProjectOwner`.
 
 ---
 
-## Deployment
+## API Dokümantasyonu
 
-Pulse is containerized for standard Docker environments and production cloud providers (Vercel, Railway, AWS ECS).
+Pulse, birincil mutasyon arayüzü olarak Next.js **Server Action**'larını (`"use server"`) kullanır; bunlara NextAuth route handler'ları eşlik eder:
 
-### Production Docker Build
-The compose stack runs three services: `db` (PostgreSQL + pgvector), `app` (Next.js production build), and `agent` (Python coordination service).
+### Server Action'lara Genel Bakış
+- **`src/actions/task.ts`:** Görev CRUD, float konum hesabı, projeler arası ID doğrulaması, durum ataması.
+- **`src/actions/sprint.ts`:** Sprint yaşam döngüsü geçişleri, atomik tamamlama koruması, görev–sprint ataması.
+- **`src/actions/member.ts`:** Üye davetleri (7 günlük token'lar), rol yönetimi, üye çıkarma.
+- **`src/actions/relation.ts`:** Yinelemeli DFS döngü kontrolü ve bakış açısı tersine çevirme ile bağımlılık oluşturma.
+- **`src/actions/notification.ts`:** Uygulama içi bildirimleri getirme, toplu okundu işaretleme, yaklaşan son tarih kontrolleri.
+- **`src/actions/progress.ts`:** İlerleme talebi oluşturma ve ekip üyesi yanıtı gönderme.
+- **`src/actions/agent-proposal.ts`:** Yapay zekâ önerisi üretme, insan onayı ve reddetme işlemleri.
+- **`src/actions/search.ts`:** Görevler ve proje adları üzerinde kapsamı sınırlı global arama.
+- **`src/actions/semantic-search.ts`:** Proje hafızası üzerinde hibrit vektör/metin araması.
+- **`src/actions/agent-settings.ts`, `standup.ts`, `clock.ts`:** Proje bazında ajan yapılandırması, standup gönderimi ve yalnızca geliştirme ortamına özel zaman simülasyonu.
+
+### HTTP Uç Noktaları
+- `GET/POST /api/auth/[...nextauth]` — NextAuth.js oturum ve kimlik doğrulama uç noktaları.
+- `POST /api/auth/register` — Otomatik hoş geldin e-postası gönderimiyle yeni kullanıcı kaydı.
+- `POST /api/internal/agent/*` — Yalnızca `pulse-agent` servisinin kullandığı, HMAC-SHA256 imzalı 17 uç nokta (kullanıcıya açık değildir).
+
+---
+
+## Dağıtım
+
+Pulse, standart Docker ortamları ve bulut sağlayıcıları (Vercel, Railway, AWS ECS) için konteynerleştirilmiştir.
+
+### Production Docker Derlemesi
+Compose yığını üç servis çalıştırır: `db` (PostgreSQL + pgvector), `app` (Next.js production derlemesi) ve `agent` (Python koordinasyon servisi).
 ```bash
-# 1. Environment for the app container
-cp .env.docker.example .env.docker   # then replace every placeholder
+# 1. app konteyneri için ortam dosyası
+cp .env.docker.example .env.docker   # ardından tüm yer tutucuları değiştirin
 
-# 2. The agent and database read POSTGRES_PASSWORD / INTERNAL_API_SECRET from the root .env;
-#    INTERNAL_API_SECRET must match the value in .env.docker
+# 2. agent ve veritabanı, POSTGRES_PASSWORD / INTERNAL_API_SECRET değerlerini kök .env dosyasından okur;
+#    INTERNAL_API_SECRET, .env.docker içindeki değerle aynı olmalıdır
 
-# 3. Build and run
+# 3. Derle ve çalıştır
 docker compose up --build -d
 ```
 
-### Standalone Production Build
+### Bağımsız Production Derlemesi
 ```bash
 npm run build
 npm run start
 ```
 
-### Production Checklist
-- [ ] Configure strong, random `NEXTAUTH_SECRET`.
-- [ ] Set a unique `INTERNAL_API_SECRET` for both the app and the agent — production builds reject every agent request while the public default is in use.
-- [ ] Change `POSTGRES_PASSWORD` (and the matching `DATABASE_URL`) from the development default `password`.
-- [ ] Set canonical `NEXTAUTH_URL` / `APP_URL` matching your production domain.
-- [ ] Configure active SMTP credentials for transactional emails.
-- [ ] Run `npx prisma migrate deploy` on the production database.
-- [ ] Keep `ENABLE_TIME_TRAVEL` unset (time simulation is disabled in production by default).
+### Production Kontrol Listesi
+- [ ] Güçlü ve rastgele bir `NEXTAUTH_SECRET` tanımlayın.
+- [ ] Hem uygulama hem ajan için benzersiz bir `INTERNAL_API_SECRET` belirleyin — herkese açık varsayılan değer kullanılırken production derlemesi tüm ajan isteklerini reddeder.
+- [ ] `POSTGRES_PASSWORD` değerini (ve buna karşılık gelen `DATABASE_URL`'yi) geliştirme varsayılanı olan `password`'den değiştirin.
+- [ ] `NEXTAUTH_URL` / `APP_URL` değerlerini production alan adınıza göre ayarlayın.
+- [ ] İşlemsel e-postalar için geçerli SMTP bilgilerini yapılandırın.
+- [ ] Production veritabanında `npx prisma migrate deploy` çalıştırın.
+- [ ] `ENABLE_TIME_TRAVEL` değişkenini tanımsız bırakın (zaman simülasyonu production'da varsayılan olarak kapalıdır).
 
 ---
 
-## Roadmap
+## Yol Haritası
 
-- [x] **Phase 1 (v0.1.0):** Core Kanban, Auth, Task CRUD, Slide-over panel, Float ordering.
-- [x] **Phase 2 (v0.2.0):** Sprints/Cycles, Tabular List View, Audit Log, Bulk Actions, Markdown Editor, Project Settings.
-- [x] **Phase 3 (v0.3.0):** Member Invites, Task Detail UX, Backlog View, Global Search (Ctrl+K), Analytics Dashboard, Advanced Filters, Task Relations (Dependency Graph & Cycle Prevention).
-- [x] **Phase 4 (v0.4.0):** In-App Notifications with Polling, User Notification Preferences, `@mention` detection, Due Date Alerts, Universal Nodemailer Service, Rich PRNG Analytics Dataset.
-- [x] **Phase 5 MVP & Hardening (v0.5.4):**
-  - Domain Event Foundation & `TASK_UNBLOCKED` dependency automation.
-  - Interactive `ProgressRequest` and `ProgressResponse` lifecycle.
-  - AI Progress Interpretation engine and human-in-the-loop `AgentProposal` approval UI.
-  - 4-Wave Full-Stack Refactoring & 3 Targeted Hardening Packages (Authz consolidation, Modal UX, Concurrency guards).
-- [x] **Phase 6 (v0.6.0 – v0.6.7): AI Agent Coordination System**
-  - Python LangGraph service, `DomainEvent` outbox, APScheduler, HMAC Internal API, testable clock (Agent-000 Supervisor).
+- [x] **Faz 1 (v0.1.0):** Çekirdek Kanban, kimlik doğrulama, görev CRUD, yandan açılan panel, float sıralama.
+- [x] **Faz 2 (v0.2.0):** Sprintler/Döngüler, tablo biçiminde Liste Görünümü, denetim kaydı, toplu işlemler, markdown editörü, proje ayarları.
+- [x] **Faz 3 (v0.3.0):** Üye davetleri, görev detay UX'i, Backlog Görünümü, global arama (Ctrl+K), analitik dashboard, gelişmiş filtreler, görev ilişkileri (bağımlılık grafiği & döngü önleme).
+- [x] **Faz 4 (v0.4.0):** Yoklamalı uygulama içi bildirimler, kullanıcı bildirim tercihleri, `@mention` tespiti, son tarih uyarıları, Nodemailer servisi, zengin PRNG analitik veri seti.
+- [x] **Faz 5 MVP & Sağlamlaştırma (v0.5.4):**
+  - Domain Event temeli ve `TASK_UNBLOCKED` bağımlılık otomasyonu.
+  - Etkileşimli `ProgressRequest` ve `ProgressResponse` yaşam döngüsü.
+  - Yapay zekâ ilerleme yorumlama motoru ve insan onaylı `AgentProposal` arayüzü.
+  - 4 dalgalı full-stack refaktör ve 3 hedefli sağlamlaştırma paketi (yetkilendirme birleştirme, modal UX, eşzamanlılık korumaları).
+- [x] **Faz 6 (v0.6.0 – v0.6.7): Yapay Zekâ Ajan Koordinasyon Sistemi**
+  - Python LangGraph servisi, `DomainEvent` kutusu, APScheduler, HMAC Internal API, test edilebilir saat (Agent-000 Supervisor).
   - Agent-001 Deadline Tracker, Agent-002 Task Hygiene, Agent-003 Status Requester (interrupt/resume).
   - Agent-004 Blocker Manager, Agent-009 Scope Creep Detection.
   - Agent-005 Async Standup, Agent-006 Weekly Sprint Digest.
   - Agent-007 Workload Balancer, Agent-008 Sprint Assistant.
-  - Project Memory & RAG semantic search (pgvector), Slot Replay & time-travel security, multi-agent consolidation.
+  - Proje Hafızası & RAG semantik arama (pgvector), Slot Replay & zaman yolculuğu güvenliği, çok ajanlı konsolidasyon.
 
 ---
 
-## Contributing
+## Katkıda Bulunma
 
-Contributions are welcome! Please follow these guidelines:
+Katkılarınızı bekliyoruz! Lütfen şu adımları izleyin:
 
-1. **Fork the repository** and create a descriptive feature branch:
+1. **Depoyu fork'layın** ve açıklayıcı bir özellik dalı oluşturun:
    ```bash
    git checkout -b feature/your-feature-name
    ```
-2. **Adhere to Code Standards:**
-   - Keep business logic in pure, testable functions under `src/lib/`.
-   - Never weaken or alter existing test suites in `src/lib/__tests__/`.
-   - Ensure all checks pass before submitting:
+2. **Kod standartlarına uyun:**
+   - İş mantığını `src/lib/` altında saf ve test edilebilir fonksiyonlarda tutun.
+   - `src/lib/__tests__/` altındaki mevcut test paketlerini asla zayıflatmayın veya değiştirmeyin.
+   - Göndermeden önce tüm kontrollerin geçtiğinden emin olun:
      ```bash
      npm test
      npx tsc --noEmit
      npm run build
      ```
-3. **Submit a Pull Request** with a detailed summary of changes and rationale.
+3. Değişiklikleri ve gerekçelerini ayrıntılı biçimde özetleyen bir **Pull Request gönderin**.
 
 ---
 
-## License
+## Lisans
 
-This project is licensed under the [MIT License](LICENSE).
+Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
