@@ -2,6 +2,7 @@
 
 > Modern, high-performance Kanban & Sprint management platform with proactive AI project coordination.
 
+[![CI](https://github.com/CodeByOktay/Pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/CodeByOktay/Pulse/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-v0.6.7-blue.svg)](https://github.com/CodeByOktay/Pulse)
 [![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
@@ -50,13 +51,21 @@ Beyond traditional project tracking, Pulse introduces **Proactive AI Coordinatio
 
 ## Screenshots
 
-| Kanban Board | Task Detail & Slide-Over |
-| :---: | :---: |
-| *(Interactive columns, quick task creation, filter chips)* | *(Markdown editor, status/priority popovers, relation graph)* |
+Captured from the seeded demo dataset (`npm run db:seed-rich`).
 
-| Sprint Management | Command Palette (Ctrl+K) |
+| Kanban Board | Task Detail Slide-Over |
 | :---: | :---: |
-| *(Draft/Active/Completed states, burn metrics, scope controls)* | *(Fast fuzzy search, project navigation, keyboard shortcuts)* |
+| ![Kanban board with filter chips and saved views](docs/screenshots/board.png) | ![Task detail panel with markdown editor, relations and activity](docs/screenshots/task-detail.png) |
+
+| Dashboard | Sprint Management |
+| :---: | :---: |
+| ![Dashboard with stat cards, assigned tasks and recent activity](docs/screenshots/dashboard.png) | ![Sprint list with active, draft and completed sprints](docs/screenshots/sprints.png) |
+
+| List View | Command Palette (Ctrl+K) |
+| :---: | :---: |
+| ![Sortable list view grouped by state](docs/screenshots/list.png) | ![Command palette searching tasks and quick actions](docs/screenshots/command-palette.png) |
+
+> **Language note:** The application UI, the ADRs under `docs/wiki/`, the specs under `docs/spec/`, and some code comments are written in Turkish. This README, the code identifiers, and the commit history are in English.
 
 ---
 
@@ -136,6 +145,7 @@ Pulse/
 │       ├── mail.ts              # Nodemailer email engine
 │       └── __tests__/           # 39 Vitest test suites (740 tests)
 └── docs/
+    ├── screenshots/             # README screenshots
     ├── wiki/                    # 36 Architecture Decision Records (ADRs)
     ├── spec/                    # Step-by-step implementation specifications
     └── ai-context/              # Modular AI architectural snapshots
