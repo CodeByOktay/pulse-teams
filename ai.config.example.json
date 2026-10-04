@@ -1,6 +1,6 @@
 {
   "provider": "openai-compatible",
-  "endpoint": "<AI_ENDPOINT_FROM_INTERNAL_DOCS>",
+  "endpoint": "https://api.example.com/v1/chat/completions",
   "model": "<MODEL_OR_DEPLOYMENT_NAME>",
   "apiVersion": "",
   "apiVersionParam": "api-version",
