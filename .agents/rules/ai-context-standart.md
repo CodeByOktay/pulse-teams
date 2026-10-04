@@ -22,7 +22,7 @@ AI-context documents describe the **current state** of the system so an agent ca
 
 ## 2. Layered Structure (Progressive Disclosure)
 
-- **Tier 0 — always loaded:** `AGENTS.md` (+ `CLAUDE.md` / `GEMINI.md`). Short, project-wide facts only. It links to the index; it does not duplicate domain detail.
+- **Tier 0 — always loaded:** `AGENTS.md` (+ `CLAUDE.md` / `ANTIGRAVITY.md`). Short, project-wide facts only. It links to the index; it does not duplicate domain detail.
 - **Tier 1 — index:** `docs/ai-context/system-overview.md` in **llms.txt format**: H1 project name, `>` one-paragraph summary, H2 groups, and one line per file: `- [domain](./domain.md): what it covers and when to read it`. Keep it ≤ 3K characters.
 - **Tier 2 — domain files, loaded just-in-time:** one file per **domain / bounded area** (e.g., `authz.md`, `task-relations.md`, `notifications.md`, `agent-runtime.md`), **never per step**. A step updates the domain files it touched. Add a new file only when a new domain appears.
 

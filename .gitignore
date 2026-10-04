@@ -48,3 +48,6 @@ next-env.d.ts
 
 # local AI provider config (copy from ai.config.example.json)
 ai.config.json
+
+# personal Claude Code hook rules
+.claude/*.local.md
