@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz 1.03 kapsamında, `C:\Pulse` uygulamasına **NextAuth.js v4** tabanlı, e-posta ve şifreye dayalı güvenli kimlik doğrulama altyapısı entegre edilmiştir.
+Faz 1.03 kapsamında, Pulse uygulamasına **NextAuth.js v4** tabanlı, e-posta ve şifreye dayalı güvenli kimlik doğrulama altyapısı entegre edilmiştir.
 
 Bu fazın temel amacı; sonraki adımlarda geliştirilecek olan proje sahipliği, üyelikler, görev atamaları ve yorum mekanizmalarının ihtiyaç duyduğu kullanıcı kimliğini (`session.user.id`) oturum boyunca güvenli ve kesintisiz biçimde sunmaktır.
 

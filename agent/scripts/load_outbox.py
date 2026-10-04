@@ -5,9 +5,9 @@ import from it. Exercises the real `process_batch` claim/dispatch/finalize
 path (`FOR UPDATE SKIP LOCKED`) against whatever database `DATABASE_URL`
 resolves to (repo-root `.env` by default — see `src/config.py`).
 
-Usage (from `C:\\Pulse\\agent`, with the project venv):
+Usage (from the `agent/` directory, with its venv active):
 
-    agent\\.venv\\Scripts\\python.exe -m scripts.load_outbox --events 500 --consumers 3
+    python -m scripts.load_outbox --events 500 --consumers 3
 
 What it does:
   1. Inserts `--events` `LOAD_TEST_NOOP` DomainEvents tagged with a unique

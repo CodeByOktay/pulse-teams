@@ -2,7 +2,7 @@
 
 > **Faz:** 2 (v0.2.0 Hazırlığı)  
 > **Başlık:** Sprint Yönetim Sayfası, Görünümü & Görev-Sprint Entegrasyonu  
-> **Proje:** Pulse Project Manager (`C:\Pulse`)  
+> **Proje:** Pulse Project Manager  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri ve testler karşılandı  
 > **Tarih:** 18 Eylül 2026  
 

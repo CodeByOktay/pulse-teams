@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz 1.02 kapsamında, `C:\Pulse` projesinin omurgasını oluşturan ilişkisel veri modeli tasarlanmış, **Prisma ORM (v6.19.3)** üzerinde tanımlanmış ve **PostgreSQL 16** veritabanına uygulanmıştır.
+Faz 1.02 kapsamında, Pulse projesinin omurgasını oluşturan ilişkisel veri modeli tasarlanmış, **Prisma ORM (v6.19.3)** üzerinde tanımlanmış ve **PostgreSQL 16** veritabanına uygulanmıştır.
 
 Bu fazın temel amacı; açık kaynak proje yönetim sistemlerinden (özellikle **Plane**) edinilen mimari desenleri benimseyerek, küçük ölçekli ancak yüksek performanslı, esnek ve tip güvenli bir Kanban veri altyapısı kurmaktır.
 

@@ -1,4 +1,4 @@
-@context.md
+@CONTEXT.md
 @AGENTS.md
 
 # Pulse — Claude Code Subagent Orchestration Guide

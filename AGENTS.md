@@ -2,7 +2,7 @@
 
 ## Project Identity
 - **Name:** Pulse (Pulse Project Manager) — Modern Kanban & Sprint-based Project Management Application
-- **Location:** `C:\Pulse`
+- **Location:** repository root
 - **Version:** v0.6.7 (Phase 6 Step 6.08 completed — Multi-Agent Coordination Consolidation, Hardening & Final Verification)
 - **URL:** http://localhost:3000
 - **DB:** PostgreSQL 16 with pgvector (Docker container: `pulse-postgres`, port 5432)

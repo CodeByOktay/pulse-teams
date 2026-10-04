@@ -9,7 +9,7 @@
 
 ## 1. Yönetici Özeti (Executive Summary)
 
-Faz 1.04 kapsamında, `C:\Pulse` uygulamasına çalışma alanlarının (projelerin) uçtan uca yönetilmesini sağlayan **Proje CRUD** katmanı inşa edilmiştir.
+Faz 1.04 kapsamında, Pulse uygulamasına çalışma alanlarının (projelerin) uçtan uca yönetilmesini sağlayan **Proje CRUD** katmanı inşa edilmiştir.
 
 Bu fazın en kritik başarısı; yeni bir proje açıldığında **tek bir atomik veritabanı işlemi (interactive transaction)** içerisinde projenin oluşturulması, 5 varsayılan Kanban sütununun (`Backlog`, `Todo`, `In Progress`, `Done`, `Cancelled`) tohumlanması ve oluşturan kullanıcının `ADMIN` rolüyle projeye bağlanmasıdır.
 

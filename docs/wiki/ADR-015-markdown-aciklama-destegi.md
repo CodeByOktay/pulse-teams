@@ -2,7 +2,7 @@
 
 > **Faz:** 2 (v0.2.0 Hazırlığı)  
 > **Başlık:** Markdown Açıklama Desteği — Görev Detayında Zengin Metin Düzenleme & Önizleme  
-> **Proje:** Pulse Project Manager (`C:\Pulse`)  
+> **Proje:** Pulse Project Manager  
 > **Durum:** ✅ Tamamlandı — Tüm kabul kriterleri, birim testler ve derleme testleri eksiksiz karşılandı  
 > **Tarih:** 18 Eylül 2026  
 

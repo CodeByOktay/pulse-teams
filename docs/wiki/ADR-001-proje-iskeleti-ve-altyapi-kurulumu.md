@@ -9,7 +9,7 @@
 
 ## 1. Proje Genel Bakış
 
-Bu rapor, `C:\Pulse` klasöründe hayata geçirilen Pulse Project Manager uygulamasının ilk altyapı fazını (Faz 1.01) belgelemektedir. Hedef; üretim kalitesinde, sürdürülebilir ve ölçeklenebilir bir Next.js + PostgreSQL + Prisma yığını oluşturmaktır.
+Bu rapor, proje kök dizininde hayata geçirilen Pulse Project Manager uygulamasının ilk altyapı fazını (Faz 1.01) belgelemektedir. Hedef; üretim kalitesinde, sürdürülebilir ve ölçeklenebilir bir Next.js + PostgreSQL + Prisma yığını oluşturmaktır.
 
 ### Referans Alınan Açık Kaynak Projeler
 
@@ -56,7 +56,7 @@ Bu rapor, `C:\Pulse` klasöründe hayata geçirilen Pulse Project Manager uygula
 ### 3.1 Genel Mimari Diyagramı
 
 ```
-C:\Pulse\
+Pulse/
 │
 ├── src/
 │   ├── app/                    ← Next.js App Router (sayfa ve API)
