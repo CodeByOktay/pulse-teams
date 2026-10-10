@@ -23,6 +23,26 @@ export function calculateCompletionRate(tasks: { state: { group: StateGroup } }[
   return Math.round((completed / tasks.length) * 100);
 }
 
+/**
+ * Tamamlanan görevler arasında son teslim tarihini geçmeden bitirilenlerin yüzdesi (0-100).
+ * `dueDate` değeri olmayan tamamlanmış görevler zamanında sayılır; tamamlanmamışlar hesaba katılmaz.
+ */
+export function calculateOnTimeDeliveryRate(
+  tasks: { completedAt?: Date | null; dueDate?: Date | null }[],
+): number {
+  let completed = 0;
+  let onTime = 0;
+
+  for (const task of tasks) {
+    if (!task.completedAt) continue;
+    completed++;
+    if (!task.dueDate || task.completedAt.getTime() <= task.dueDate.getTime()) onTime++;
+  }
+
+  if (completed === 0) return 0;
+  return Math.round((onTime / completed) * 100);
+}
+
 export function calculateSprintBurndown(
   totalTasks: number,
   completedTasksByDate: number[],
